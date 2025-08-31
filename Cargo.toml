@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = [
+    "billing",
+    "protocol",
+    "conreg",
+    "console",
+    "gateway",
+    "kms",
+    "lib/logging",
+    "lib/plugin",
+    "lib/pubsub",
+    "lib/registry",
+    "lib/router",
+    "lib/security",
+    "message"
+]
