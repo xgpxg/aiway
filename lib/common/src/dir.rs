@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 
 /// 应用相关目录
 pub struct AppDir {
-    // 应用根目录，即用户安装目录
+    // 应用根目录，即可执行文件所在目录
     app_root_dir: PathBuf,
     // 资源目录
     resources_dir: PathBuf,
