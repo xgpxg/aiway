@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use logging::log;
 use openraft::BasicNode;
 use openraft::RaftTypeConfig;
 use openraft::error::InstallSnapshotError;
@@ -35,7 +36,6 @@ where
 {
     type Network = Network<C>;
 
-    #[tracing::instrument(level = "debug", skip_all)]
     async fn new_client(&mut self, target: C::NodeId, node: &BasicNode) -> Self::Network {
         let addr = node.addr.clone();
 
@@ -55,6 +55,7 @@ where
 {
     addr: String,
     client: Client,
+    #[allow(unused)]
     target: C::NodeId,
 }
 
@@ -66,18 +67,18 @@ where
         &mut self,
         uri: impl Display,
         req: Req,
-    ) -> Result<Result<Resp, Err>, RPCError<C::NodeId, C::Node>>
+    ) -> Result<Result<Resp, Err>, RPCError<C::NodeId, C::Node, RaftError<C::NodeId>>>
     where
         Req: Serialize + 'static,
         Resp: Serialize + DeserializeOwned,
         Err: std::error::Error + Serialize + DeserializeOwned,
     {
         let url = format!("http://{}/{}", self.addr, uri);
-        // println!(
-        //     ">>> network send request to {}: {}",
-        //     url,
-        //     serde_json::to_string_pretty(&req).unwrap()
-        // );
+        log::debug!(
+            "network send request to {}",
+            url,
+            //serde_json::to_string_pretty(&req).unwrap()
+        );
 
         let resp = self
             .client
@@ -95,11 +96,11 @@ where
             })?;
 
         let res: Result<Resp, Err> = resp.json().await.map_err(|e| NetworkError::new(&e))?;
-        // println!(
-        //     "<<< network recv reply from {}: {}",
-        //     url,
-        //     serde_json::to_string_pretty(&res).unwrap()
-        // );
+        log::debug!(
+            "network recv reply from {}",
+            url,
+            /*serde_json::to_string_pretty(&res).unwrap()*/
+        );
 
         Ok(res)
     }
@@ -110,22 +111,17 @@ where
     C: RaftTypeConfig,
 {
     /// 追加日志
-    #[tracing::instrument(level = "debug", skip_all, err(Debug))]
     async fn append_entries(
         &mut self,
         req: AppendEntriesRequest<C>,
         _option: RPCOption,
     ) -> Result<AppendEntriesResponse<C::NodeId>, RPCError<C::NodeId, C::Node, RaftError<C::NodeId>>>
     {
-        let res = self
-            .request::<_, _, Infallible>("append", req)
-            .await
-            .unwrap();
+        let res = self.request::<_, _, Infallible>("append", req).await?;
         Ok(res.unwrap())
     }
 
     /// 安装快照
-    #[tracing::instrument(level = "debug", skip_all, err(Debug))]
     async fn install_snapshot(
         &mut self,
         req: InstallSnapshotRequest<C>,
@@ -150,7 +146,6 @@ where
     }
 
     /// 发起投票
-    #[tracing::instrument(level = "debug", skip_all, err(Debug))]
     async fn vote(
         &mut self,
         req: VoteRequest<C::NodeId>,
@@ -159,8 +154,10 @@ where
         let res = self
             .request::<_, _, Infallible>("vote", req)
             .await
-            .map_err(RPCError::from)
-            .unwrap();
+            .map_err(|e| {
+                log::error!("Vote error: {}", e);
+                RPCError::from(e)
+            })?;
         Ok(res.unwrap())
     }
 }

@@ -68,7 +68,6 @@ fn init_log_for_release() {
     env_logger::Builder::new()
         .filter_module("rocket", log::LevelFilter::Warn)
         .filter_module("rocket::response::debug", log::LevelFilter::Error)
-        .filter_module("lance::dataset", log::LevelFilter::Warn)
         .filter_level(log::LevelFilter::Info)
         .parse_default_env()
         .format(|buf, record| {

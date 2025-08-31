@@ -417,6 +417,7 @@ name = "conreg"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "clap",
  "local-ip-address",
  "logging",
  "openraft",

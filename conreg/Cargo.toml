@@ -17,3 +17,4 @@ rocket = { version = "0.5.1", features = ["json"] }
 reqwest = { version = "0.12.22", features = ["json"] }
 anyhow = "1"
 local-ip-address = "0.6.5"
+clap = "4.5.46"

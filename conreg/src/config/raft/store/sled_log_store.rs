@@ -1,13 +1,10 @@
-use std::error::Error;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::ops::RangeBounds;
 use std::sync::Arc;
 
-use crate::config::raft::declare_types::LogApplied;
 use openraft::RaftTypeConfig;
 use openraft::StorageError;
-use openraft::entry::RaftEntry;
 use openraft::storage::{LogFlushed, RaftLogStorage};
 use openraft::{LogState, Vote};
 use openraft::{OptionalSend, StorageIOError};

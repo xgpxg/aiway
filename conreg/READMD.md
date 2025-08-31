@@ -38,3 +38,16 @@
 - 使用gossip实现AP模式，保证集群的可用性。
 - 使用客户端负载均衡，提供SDK获取命名空间下的服务列表，使用配置的负载策略选择合适的实例调用。
 - 提供web界面，用于管理服务实例
+
+# Raft集群管理
+
+- 初始化单节点集群
+
+```shell
+curl -X POST http://localhost:8000/init -d '[]'
+```
+
+- 初始化多节点集群
+```shell
+curl -X POST http://localhost:8000/init -d '[]'
+```

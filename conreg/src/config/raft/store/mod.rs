@@ -4,11 +4,10 @@ use crate::config::raft::declare_types::{
     Entry, EntryPayload, LogId, SnapshotData, SnapshotMeta, StorageError, StoredMembership,
 };
 use crate::config::raft::{NodeId, RaftRequest, RaftResponse, TypeConfig};
-use openraft::entry::RaftEntry;
+use logging::log;
 use openraft::storage::RaftStateMachine;
 use openraft::storage::Snapshot;
-use openraft::{AnyError, RaftSnapshotBuilder, RaftTypeConfig, StorageIOError, add_async_trait};
-use rand::Rng;
+use openraft::{AnyError, RaftSnapshotBuilder, RaftTypeConfig, StorageIOError};
 use serde::Deserialize;
 use serde::Serialize;
 use sled::Db as DB;
@@ -20,7 +19,6 @@ use std::ops::Deref;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use logging::log;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoredSnapshot {
@@ -79,8 +77,8 @@ impl RaftSnapshotBuilder<TypeConfig> for StateMachineStore {
         let data_write_guard = self.data.write().await;
 
         // 序列化状态机
-        let data =
-            serde_json::to_vec(data_write_guard.deref()).map_err(|e| StorageIOError::read_state_machine(&e))?;
+        let data = serde_json::to_vec(data_write_guard.deref())
+            .map_err(|e| StorageIOError::read_state_machine(&e))?;
 
         let last_applied_log = data_write_guard.last_applied_log;
         let last_membership = data_write_guard.last_membership.clone();
@@ -178,9 +176,14 @@ impl RaftStateMachine<TypeConfig> for StateMachineStore {
                             value: Some(value.clone()),
                         });
                     }
+                    RaftRequest::Delete { key } => {
+                        let old = data_write_guard.data.remove(key);
+                        res.push(RaftResponse { value: old })
+                    }
                 },
                 EntryPayload::Membership(ref mem) => {
-                    data_write_guard.last_membership = StoredMembership::new(Some(entry.log_id), mem.clone());
+                    data_write_guard.last_membership =
+                        StoredMembership::new(Some(entry.log_id), mem.clone());
                     res.push(RaftResponse { value: None })
                 }
             };
