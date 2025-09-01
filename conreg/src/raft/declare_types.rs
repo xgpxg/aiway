@@ -1,4 +1,4 @@
-use crate::config::raft::{NodeId, TypeConfig};
+use crate::raft::{NodeId, TypeConfig};
 use openraft::BasicNode;
 
 pub type LogId = openraft::LogId<NodeId>;

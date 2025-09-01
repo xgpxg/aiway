@@ -1,5 +1,5 @@
-use crate::config::raft::declare_types::ClientWriteResponse;
-use crate::config::raft::{NodeId, RaftRequest};
+use crate::raft::declare_types::ClientWriteResponse;
+use crate::raft::{NodeId, RaftRequest};
 use logging::log;
 use rocket::http::Status;
 use rocket::serde::json::Json;

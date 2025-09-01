@@ -1,13 +1,17 @@
 #[macro_use]
 extern crate rocket;
 
+use crate::app::App;
 use clap::Parser;
 use rocket::Config;
 use rocket::data::{ByteUnit, Limits};
 use std::net::IpAddr;
 use std::str::FromStr;
 
+mod app;
 mod config;
+mod namespace;
+mod raft;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -44,9 +48,10 @@ async fn start_http_server(args: Args) -> anyhow::Result<()> {
         ..Config::debug_default()
     });
 
-    builder = builder.mount("/", config::raft::api::routes());
+    builder = builder.mount("/", raft::api::routes());
+    builder = builder.mount("/config", config::server::api::routes());
 
-    builder = builder.manage(config::new_raft_app(args.node_id).await);
+    builder = builder.manage(App::new(&args).await);
 
     builder.launch().await?;
 

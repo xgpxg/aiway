@@ -1,7 +1,6 @@
-use crate::config::RaftApp;
-use crate::config::raft::api::{ForwardRequest, forward_request_to_leader};
-use crate::config::raft::declare_types::{Node, RaftMetrics};
-use crate::config::raft::{NodeId, TypeConfig};
+use crate::raft::api::{ForwardRequest, forward_request_to_leader};
+use crate::raft::declare_types::{Node, RaftMetrics};
+use crate::raft::{NodeId, TypeConfig};
 use logging::log;
 use openraft::error::{ClientWriteError, RaftError};
 use openraft::raft::ClientWriteResponse;
@@ -10,6 +9,7 @@ use rocket::serde::json::Json;
 use rocket::{State, get, post};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use crate::app::App;
 
 /// 初始化集群
 ///
@@ -19,7 +19,7 @@ use std::collections::BTreeSet;
 /// 示例：`curl -X POST http://127.0.0.1:8000/init -d []`
 #[post("/init", data = "<req>")]
 pub async fn init(
-    app: &State<RaftApp>,
+    app: &State<App>,
     req: Json<Vec<(NodeId, String)>>,
 ) -> Result<Json<()>, Status> {
     let mut nodes = BTreeMap::new();
@@ -53,7 +53,7 @@ pub async fn init(
 /// 示例：`curl -X POST http://localhost:8000/add-learner -d '[2,"127.0.0.1:8001"]'`
 #[post("/add-learner", data = "<req>")]
 pub async fn add_learner(
-    app: &State<RaftApp>,
+    app: &State<App>,
     req: Json<(NodeId, String)>,
 ) -> Result<Json<ClientWriteResponse<TypeConfig>>, Status> {
     let (node_id, api_addr) = req.0;
@@ -69,7 +69,7 @@ pub async fn add_learner(
 /// 示例：`curl -X POST http://localhost:8000/change-membership -d '[1,2,3]'`
 #[post("/change-membership", data = "<req>")]
 pub async fn change_membership(
-    app: &State<RaftApp>,
+    app: &State<App>,
     req: Json<BTreeSet<NodeId>>,
 ) -> Result<Json<ClientWriteResponse<TypeConfig>>, Status> {
     match app.raft.change_membership(req.0.clone(), false).await {
@@ -77,24 +77,26 @@ pub async fn change_membership(
         Err(e) => {
             match e {
                 RaftError::APIError(err) => match err {
-                    ClientWriteError::ForwardToLeader(fl) => match fl.leader_node {
-                        Some(node) => {
-                            log::debug!(
-                                "forward to leader {}, leader address: {}",
-                                fl.leader_id.unwrap(),
-                                node.addr
-                            );
-                            return forward_request_to_leader(
-                                &node.addr,
-                                ForwardRequest::MembershipRequest(req.into_inner()),
-                            )
-                            .await;
-                        }
-                        None => {
-                            log::debug!("forward to leader error: no leader");
-                            return Err(Status::InternalServerError);
-                        }
-                    },
+                    ClientWriteError::ForwardToLeader(fl) => {
+                        return match fl.leader_node {
+                            Some(node) => {
+                                log::debug!(
+                                    "forward to leader {}, leader address: {}",
+                                    fl.leader_id.unwrap(),
+                                    node.addr
+                                );
+                                forward_request_to_leader(
+                                    &node.addr,
+                                    ForwardRequest::MembershipRequest(req.into_inner()),
+                                )
+                                .await
+                            }
+                            None => {
+                                log::debug!("forward to leader error: no leader");
+                                Err(Status::InternalServerError)
+                            }
+                        };
+                    }
                     ClientWriteError::ChangeMembershipError(e) => {
                         log::error!("error when change membership: {:?}", e);
                     }
@@ -112,7 +114,7 @@ pub async fn change_membership(
 ///
 /// 示例：`curl -X GET http://localhost:8000/metrics`
 #[get("/metrics")]
-pub async fn metrics(app: &State<RaftApp>) -> Result<Json<RaftMetrics>, Status> {
+pub async fn metrics(app: &State<App>) -> Result<Json<RaftMetrics>, Status> {
     let metrics = app.raft.metrics().borrow().clone();
     Ok(Json(metrics))
 }

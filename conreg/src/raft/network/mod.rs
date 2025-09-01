@@ -29,9 +29,6 @@ pub struct NetworkFactory {}
 impl<C> RaftNetworkFactory<C> for NetworkFactory
 where
     C: RaftTypeConfig<Node = BasicNode>,
-    // RaftNetworkV2 is implemented automatically for RaftNetwork, but requires the following trait bounds.
-    // In V2 network, the snapshot has no constraints, but RaftNetwork assumes a Snapshot is a file-like
-    // object that can be seeked, read from, and written to.
     <C as RaftTypeConfig>::SnapshotData: AsyncRead + AsyncWrite + AsyncSeek + Unpin,
 {
     type Network = Network<C>;

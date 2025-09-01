@@ -1,6 +1,5 @@
-use crate::config::RaftApp;
-use crate::config::raft::declare_types::VoteRequest;
-use crate::config::raft::{NodeId, TypeConfig};
+use crate::raft::declare_types::VoteRequest;
+use crate::raft::{NodeId, TypeConfig};
 use logging::log;
 use openraft::error::RaftError;
 use openraft::raft::InstallSnapshotResponse;
@@ -9,10 +8,11 @@ use openraft::raft::{AppendEntriesRequest, AppendEntriesResponse, InstallSnapsho
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{State, post};
+use crate::app::App;
 
 #[post("/vote", data = "<req>")]
 pub async fn vote(
-    app: &State<RaftApp>,
+    app: &State<App>,
     req: Json<VoteRequest>,
 ) -> Result<Json<Result<VoteResponse<NodeId>, RaftError<NodeId>>>, Status> {
     match app.raft.vote(req.into_inner()).await {
@@ -34,7 +34,7 @@ pub async fn vote(
 /// 4. Follower的 /append 接口被调用
 #[post("/append", data = "<req>")]
 pub async fn append(
-    app: &State<RaftApp>,
+    app: &State<App>,
     req: Json<AppendEntriesRequest<TypeConfig>>,
 ) -> Result<Json<Result<AppendEntriesResponse<NodeId>, RaftError<NodeId>>>, Status> {
     match app.raft.append_entries(req.0).await {
@@ -45,7 +45,7 @@ pub async fn append(
 
 #[post("/snapshot", data = "<req>")]
 pub async fn snapshot(
-    app: &State<RaftApp>,
+    app: &State<App>,
     req: Json<InstallSnapshotRequest<TypeConfig>>,
 ) -> Result<Json<Result<InstallSnapshotResponse<NodeId>, RaftError<NodeId>>>, Status> {
     match app.raft.install_snapshot(req.0).await {

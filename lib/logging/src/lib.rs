@@ -88,7 +88,7 @@ fn init_log_for_debug() {
     env_logger::Builder::new()
         .filter_module("rocket::server", log::LevelFilter::Warn)
         //.filter_module("rbatis", log::LevelFilter::Debug)
-        .filter_level(log::LevelFilter::Debug)
+        .filter_level(log::LevelFilter::Info)
         .parse_default_env()
         .format(|buf, record| {
             let module_path = record.module_path().unwrap_or("<unknown>");

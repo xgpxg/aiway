@@ -1,13 +1,14 @@
 pub mod sled_log_store;
 
-use crate::config::raft::declare_types::{
+use crate::raft::declare_types::{
     Entry, EntryPayload, LogId, SnapshotData, SnapshotMeta, StorageError, StoredMembership,
 };
-use crate::config::raft::{NodeId, RaftRequest, RaftResponse, TypeConfig};
+use crate::raft::{NodeId, RaftRequest, RaftResponse, TypeConfig};
 use logging::log;
 use openraft::storage::RaftStateMachine;
 use openraft::storage::Snapshot;
 use openraft::{AnyError, RaftSnapshotBuilder, RaftTypeConfig, StorageIOError};
+use rocket::yansi::Paint;
 use serde::Deserialize;
 use serde::Serialize;
 use sled::Db as DB;
@@ -24,7 +25,7 @@ use tokio::sync::RwLock;
 pub struct StoredSnapshot {
     /// 快照元数据
     pub meta: SnapshotMeta,
-    /// 快照数据
+    /// 快照数据，这里即StateMachineData序列化
     pub data: Vec<u8>,
 }
 
@@ -35,7 +36,7 @@ pub struct StateMachineData {
     pub last_applied_log: Option<LogId>,
     /// 记录当前状态机所知道的最新集群成员配置
     pub last_membership: StoredMembership,
-    /// 应用数据
+    /// 当前状态机数据
     pub data: BTreeMap<String, String>,
 }
 
@@ -45,9 +46,10 @@ pub struct StateMachineStore {
     pub data: Arc<RwLock<StateMachineData>>,
     /// 快照索引，一般使用自增或者当前微秒时间戳即可
     pub snapshot_idx: u64,
-    /// 数据库
+    /// KV库，用于存储序列化后的状态机快照
     pub db: Arc<DB>,
 }
+
 impl StateMachineStore {
     async fn new(db: Arc<DB>) -> StateMachineStore {
         let mut state_machine = Self {
@@ -158,6 +160,7 @@ impl RaftStateMachine<TypeConfig> for StateMachineStore {
     where
         I: IntoIterator<Item = Entry> + Send,
     {
+        // 需要处理的日志条目
         let entries_iter = entries.into_iter();
         let mut res = Vec::with_capacity(entries_iter.size_hint().0);
 
@@ -180,6 +183,12 @@ impl RaftStateMachine<TypeConfig> for StateMachineStore {
                         let old = data_write_guard.data.remove(key);
                         res.push(RaftResponse { value: old })
                     }
+                    RaftRequest::SetConfig { entry } => {
+                        log::info!("新增或修改配置: {:?}", entry);
+
+                        res.push(RaftResponse { value: None })
+                    }
+                    RaftRequest::DeleteConfig { namespace_id, id } => {}
                 },
                 EntryPayload::Membership(ref mem) => {
                     data_write_guard.last_membership =
@@ -272,15 +281,14 @@ impl RaftStateMachine<TypeConfig> for StateMachineStore {
         }))
     }
 }
-/// Create a pair of `RocksLogStore` and `RocksStateMachine` that are backed by a same rocks db
-/// instance.
+
 pub async fn new<C, P: AsRef<Path>>(db_path: P) -> (SledLogStore<C>, StateMachineStore)
 where
     C: RaftTypeConfig,
 {
     // 创建 sled 数据库配置
     let mut db_config = sled::Config::new();
-    db_config = db_config.path(db_path);
+    db_config = db_config.path(format!("{}/raft", db_path.as_ref().display()));
 
     // 打开数据库
     let db = Arc::new(db_config.open().expect("Failed to open sled database"));

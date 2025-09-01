@@ -1,11 +1,9 @@
-use crate::config::raft::NodeId;
+pub mod server;
 
-pub mod raft;
+use crate::Args;
 
-pub use raft::App as RaftApp;
+use crate::config::server::ConfigApp;
 
-pub async fn new_raft_app(node_id: NodeId) -> RaftApp {
-    raft::new_raft_app(node_id).await
+pub async fn new_config_app(args: &Args) -> ConfigApp {
+    server::new_config_app(args).await
 }
-
-
