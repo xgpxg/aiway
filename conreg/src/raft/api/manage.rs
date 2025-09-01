@@ -1,3 +1,4 @@
+use crate::app::get_app;
 use crate::raft::api::{ForwardRequest, forward_request_to_leader};
 use crate::raft::declare_types::{Node, RaftMetrics};
 use crate::raft::{NodeId, TypeConfig};
@@ -9,7 +10,6 @@ use rocket::serde::json::Json;
 use rocket::{State, get, post};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use crate::app::App;
 
 /// 初始化集群
 ///
@@ -18,11 +18,9 @@ use crate::app::App;
 ///
 /// 示例：`curl -X POST http://127.0.0.1:8000/init -d []`
 #[post("/init", data = "<req>")]
-pub async fn init(
-    app: &State<App>,
-    req: Json<Vec<(NodeId, String)>>,
-) -> Result<Json<()>, Status> {
+pub async fn init(req: Json<Vec<(NodeId, String)>>) -> Result<Json<()>, Status> {
     let mut nodes = BTreeMap::new();
+    let app = get_app();
     if req.0.is_empty() {
         nodes.insert(
             app.id,
@@ -53,12 +51,11 @@ pub async fn init(
 /// 示例：`curl -X POST http://localhost:8000/add-learner -d '[2,"127.0.0.1:8001"]'`
 #[post("/add-learner", data = "<req>")]
 pub async fn add_learner(
-    app: &State<App>,
     req: Json<(NodeId, String)>,
 ) -> Result<Json<ClientWriteResponse<TypeConfig>>, Status> {
     let (node_id, api_addr) = req.0;
     let node = Node { addr: api_addr };
-    match app.raft.add_learner(node_id, node, true).await {
+    match get_app().raft.add_learner(node_id, node, true).await {
         Ok(response) => Ok(Json(response)),
         Err(_) => Err(Status::InternalServerError),
     }
@@ -69,10 +66,9 @@ pub async fn add_learner(
 /// 示例：`curl -X POST http://localhost:8000/change-membership -d '[1,2,3]'`
 #[post("/change-membership", data = "<req>")]
 pub async fn change_membership(
-    app: &State<App>,
     req: Json<BTreeSet<NodeId>>,
 ) -> Result<Json<ClientWriteResponse<TypeConfig>>, Status> {
-    match app.raft.change_membership(req.0.clone(), false).await {
+    match get_app().raft.change_membership(req.0.clone(), false).await {
         Ok(res) => Ok(Json(res)),
         Err(e) => {
             match e {
@@ -114,7 +110,7 @@ pub async fn change_membership(
 ///
 /// 示例：`curl -X GET http://localhost:8000/metrics`
 #[get("/metrics")]
-pub async fn metrics(app: &State<App>) -> Result<Json<RaftMetrics>, Status> {
-    let metrics = app.raft.metrics().borrow().clone();
+pub async fn metrics() -> Result<Json<RaftMetrics>, Status> {
+    let metrics = get_app().raft.metrics().borrow().clone();
     Ok(Json(metrics))
 }

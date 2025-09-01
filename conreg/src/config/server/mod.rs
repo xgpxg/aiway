@@ -249,16 +249,7 @@ pub struct ConfigApp {
     pub manager: ConfigManager,
 }
 
-pub async fn new_config_app(args: &Args) -> ConfigApp {
-    let manager = ConfigManager::new(args.port, "sqlite::memory:").await;
-    if let Err(e) = manager {
-        log::error!("Failed to create config app: {}", e);
-        exit(1);
-    }
-    ConfigApp {
-        manager: manager.unwrap(),
-    }
-}
+
 
 #[cfg(test)]
 mod tests {

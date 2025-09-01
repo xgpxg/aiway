@@ -10,6 +10,7 @@ use openraft::{LogState, Vote};
 use openraft::{OptionalSend, StorageIOError};
 use openraft::{RaftLogId, RaftLogReader};
 use sled::IVec;
+use logging::log;
 
 /// 基于Sled实现的日志存储。
 ///

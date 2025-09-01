@@ -1,10 +1,12 @@
+use crate::config::server::ConfigApp;
 use crate::raft::store::StateMachineData;
 use crate::raft::{LogStore, Network, NodeId, Raft, StateMachine};
-use crate::config::server::ConfigApp;
 use crate::{Args, config, raft};
+use anyhow::Context;
+use clap::Parser;
 use openraft::Config;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tokio::sync::RwLock;
 
 pub struct App {
@@ -44,7 +46,7 @@ impl App {
         let network = Network {};
 
         // 当前状态机数据
-        let state_machine = state_machine_store.data.clone();
+        let state_machine = state_machine_store.state_machine.clone();
 
         // 创建raft实例
         let raft = Raft::new(
@@ -72,4 +74,16 @@ impl App {
             config_app,
         }
     }
+}
+
+static APP: OnceLock<App> = OnceLock::new();
+
+pub async fn init() -> anyhow::Result<()> {
+    let app = App::new(&Args::parse()).await;
+    APP.get_or_init(|| app);
+    Ok(())
+}
+
+pub fn get_app() -> &'static App {
+    APP.get().context("APP not init").unwrap()
 }
