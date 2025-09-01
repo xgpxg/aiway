@@ -7,7 +7,7 @@ use openraft::error::{ClientWriteError, RaftError};
 use openraft::raft::ClientWriteResponse;
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::{State, get, post};
+use rocket::{get, post};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 

@@ -1,13 +1,12 @@
 use crate::app::get_app;
 use crate::config::server::ConfigEntry;
 use crate::config::server::res::Res;
-use rocket::State;
+use logging::log;
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
-use logging::log;
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![upsert, get, read]
+    routes![upsert, get, read, delete, recover]
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -49,6 +48,29 @@ async fn get(namespace_id: &str, id: &str) -> Res<Option<ConfigEntry>> {
         .await
     {
         Ok(entry) => Res::success(entry),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 删除配置
+#[get("/delete?<namespace_id>&<id>")]
+async fn delete(namespace_id: &str, id: &str) -> Res<()> {
+    match get_app()
+        .config_app
+        .manager
+        .delete_config_and_sync(namespace_id, id)
+        .await
+    {
+        Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 恢复配置
+#[get("/recover?<id_>")]
+async fn recover(id_: i64) -> Res<()> {
+    match get_app().config_app.manager.recovery(id_).await {
+        Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),
     }
 }

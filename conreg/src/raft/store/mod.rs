@@ -9,7 +9,6 @@ use logging::log;
 use openraft::storage::RaftStateMachine;
 use openraft::storage::Snapshot;
 use openraft::{AnyError, RaftSnapshotBuilder, RaftTypeConfig, StorageIOError};
-use rocket::yansi::Paint;
 use serde::Deserialize;
 use serde::Serialize;
 use sled::Db as DB;
@@ -21,7 +20,6 @@ use std::ops::Deref;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::sync::mpsc::error::SendError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoredSnapshot {

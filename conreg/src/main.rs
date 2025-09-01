@@ -16,15 +16,19 @@ mod event;
 mod namespace;
 mod raft;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct Args {
+    /// Server listen address
     #[arg(short, long, default_value = "127.0.0.1")]
     address: String,
+    /// Server listen port
     #[arg(short, long, default_value_t = 8000)]
     port: u16,
+    /// Data directory, storage all data
     #[arg(short, long, default_value = "./data")]
     data_dir: String,
+    /// Node id, used for raft cluster, must be unique, and must be greater than 0
     #[arg(short, long, default_value_t = 1)]
     node_id: u64,
 }

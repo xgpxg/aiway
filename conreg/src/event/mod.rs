@@ -63,10 +63,10 @@ impl EventHandler {
     }
 
     async fn handle_raft_request(&self, req: RaftRequest) {
-        // 实现 Raft 请求处理逻辑
         match req {
-            RaftRequest::Set { .. } => {}
-            RaftRequest::Delete { .. } => {}
+            // 这两个在apply时已经处理
+            RaftRequest::Set { .. } | RaftRequest::Delete { .. } => {}
+            // 配置中心配置变更
             RaftRequest::SetConfig { entry } => {
                 match get_app()
                     .config_app
@@ -85,7 +85,20 @@ impl EventHandler {
                     }
                 };
             }
-            RaftRequest::DeleteConfig { namespace_id, id } => {}
+            // 配置中心删除配置
+            RaftRequest::DeleteConfig { namespace_id, id } => {
+                match get_app()
+                    .config_app
+                    .manager
+                    .delete_config(&namespace_id, &id)
+                    .await
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("Error processing DeleteConfig request: {}", e);
+                    }
+                };
+            }
         }
     }
 }

@@ -3,11 +3,10 @@ use crate::raft::RaftRequest;
 use crate::raft::api::{ForwardRequest, forward_request_to_leader};
 use crate::raft::declare_types::ClientWriteResponse;
 use logging::log;
-use openraft::error::{CheckIsLeaderError, ClientWriteError, RaftError};
-use openraft::{BasicNode, LogId};
+use openraft::error::{ClientWriteError, RaftError};
 use rocket::http::Status;
+use rocket::post;
 use rocket::serde::json::Json;
-use rocket::{State, post};
 
 /// 写入数据
 ///

@@ -1,13 +1,6 @@
-use crate::Args;
-use crate::raft::store::StateMachineData;
-use crate::config::server::{ConfigApp, ConfigEntry};
-use clap::Parser;
-use openraft::Config;
+use crate::config::server::ConfigEntry;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::io::Cursor;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
 pub mod api;
 mod declare_types;
@@ -46,11 +39,6 @@ pub type StateMachine = store::StateMachineStore;
 
 // 4. 实现网络层
 pub type Network = network::NetworkFactory;
-
-pub trait Executor {
-    fn write(key: impl Serialize, value: impl Serialize) -> anyhow::Result<()>;
-    fn read(key: impl Serialize) -> anyhow::Result<Option<Vec<u8>>>;
-}
 
 /// 节点ID
 pub type NodeId = u64;

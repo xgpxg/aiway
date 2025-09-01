@@ -1,13 +1,11 @@
 use crate::Args;
 use crate::raft::RaftRequest;
 use chrono::{DateTime, Local};
-use clap::Parser;
 use logging::log;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use sqlx::sqlite::SqlitePoolOptions;
 use std::fmt::Debug;
-use std::process::exit;
 use std::time::Duration;
 
 pub mod api;
@@ -28,31 +26,24 @@ pub struct ConfigEntry {
     pub description: Option<String>,
 }
 
-impl ConfigEntry {
-    pub fn gen_key(namespace_id: &str, id: &str) -> String {
-        format!("{}:{}", namespace_id, id)
-    }
-}
 
 /// 配置管理
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ConfigManager {
     /// 本地sqlite数据库，用于维护配置内容存储。
     /// 通过raft保证一致性
     pool: SqlitePool,
-    network: reqwest::Client,
-    port: u16,
+    /// Http客户端，主要用于同步log到集群
+    http_client: reqwest::Client,
+    /// 启动参数
+    args: Args,
 }
 
-/*impl Default for ConfigManager {
-    fn default() -> Self {
-        let args = Args::parse();
-        Self::new(args.port,&format!("{}",args.data_dir))
-    }
-}*/
-
 impl ConfigManager {
-    pub async fn new(port: u16, db_url: &str) -> anyhow::Result<Self> {
+    pub async fn new(args: &Args) -> anyhow::Result<Self> {
+        let db_url = &format!("sqlite:{}/{}/{}", args.data_dir, "db", "config.db");
+        log::info!("db url: {}", db_url);
+
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
             .connect(db_url)
@@ -64,16 +55,18 @@ impl ConfigManager {
             .build()?;
         Ok(Self {
             pool,
-            network,
-            port,
+            http_client: network,
+            args: args.clone(),
         })
     }
 
+    /// 初始化数据库
     async fn init(pool: &SqlitePool) -> anyhow::Result<()> {
-        let sql = include_str!("init.sql");
+        let sql = include_str!("../db/init.sql");
         sqlx::query(sql).execute(pool).await?;
         Ok(())
     }
+
     pub async fn get_config(
         &self,
         namespace_id: &str,
@@ -88,6 +81,7 @@ impl ConfigManager {
         Ok(config)
     }
 
+    /// 创建或更新配置，并同步到集群的其他节点
     pub async fn upsert_config_and_sync(
         &self,
         namespace_id: &str,
@@ -99,7 +93,7 @@ impl ConfigManager {
             .await?;
         let config = self.get_config(namespace_id, config_id).await?;
         if config.is_none() {
-            log::error!("config upsert, but config not found");
+            log::error!("config upsert ok, but config not found");
             return Ok(());
         }
         // 同步数据
@@ -109,6 +103,8 @@ impl ConfigManager {
         .await?;
         Ok(())
     }
+
+    /// 创建或更新配置
     pub async fn upsert_config(
         &self,
         namespace_id: &str,
@@ -174,6 +170,8 @@ impl ConfigManager {
 
         Ok(())
     }
+
+    #[allow(unused)]
     pub async fn get_history(
         &self,
         namespace_id: &str,
@@ -227,6 +225,7 @@ impl ConfigManager {
         )
         .await?;
 
+        // TODO 同步数据
         Ok(())
     }
 
@@ -234,8 +233,8 @@ impl ConfigManager {
     /// 同步操作会阻塞进行，直到raft日志同步成功（即超过半数的节点写入成功）
     async fn sync(&self, request: RaftRequest) -> anyhow::Result<()> {
         log::info!("sync config request: {:?}", request);
-        self.network
-            .post(format!("http://127.0.0.1:{}/write", self.port))
+        self.http_client
+            .post(format!("http://127.0.0.1:{}/write", self.args.port))
             .json(&request)
             .send()
             .await?;
@@ -249,14 +248,18 @@ pub struct ConfigApp {
     pub manager: ConfigManager,
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
     #[tokio::test]
     async fn test_config() {
-        let cm = ConfigManager::new(8000, "sqlite::memory:").await.unwrap();
+        let args = Args {
+            address: "127.0..0.1".to_string(),
+            port: 8000,
+            data_dir: "./data".to_string(),
+            node_id: 1,
+        };
+        let cm = ConfigManager::new(&args).await.unwrap();
         let config = cm.get_config("default", "test").await.unwrap();
         println!("config: {:?}", config);
 

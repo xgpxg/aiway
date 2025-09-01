@@ -36,15 +36,18 @@ where
         }
     }
 
+    #[allow(unused)]
     pub fn is_success(&self) -> bool {
         self.code == 0
     }
 
+    #[allow(unused)]
     pub fn to_json_string(&self) -> String {
         json!(&self).to_string()
     }
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PageRes<T> {
     pub page_num: u64,
@@ -53,6 +56,7 @@ pub struct PageRes<T> {
     pub list: Vec<T>,
 }
 
+#[allow(unused)]
 pub trait IntoPageRes<I, T>
 where
     I: Send + Sync,

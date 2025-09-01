@@ -7,8 +7,8 @@ use openraft::raft::InstallSnapshotResponse;
 use openraft::raft::VoteResponse;
 use openraft::raft::{AppendEntriesRequest, AppendEntriesResponse, InstallSnapshotRequest};
 use rocket::http::Status;
+use rocket::post;
 use rocket::serde::json::Json;
-use rocket::{State, post};
 
 #[post("/vote", data = "<req>")]
 pub async fn vote(
