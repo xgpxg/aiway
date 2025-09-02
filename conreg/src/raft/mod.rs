@@ -12,13 +12,26 @@ pub mod store;
 #[serde(tag = "cmd", content = "data")]
 pub enum RaftRequest {
     /// 设置键值对
-    Set { key: String, value: String },
+    Set {
+        key: String,
+        value: String,
+    },
     /// 删除键值对
-    Delete { key: String },
+    Delete {
+        key: String,
+    },
     /// 配置中心设置配置
-    SetConfig { entry: ConfigEntry },
+    SetConfig {
+        entry: ConfigEntry,
+    },
+    UpdateConfig {
+        entry: ConfigEntry,
+    },
     /// 配置中心删除配置
-    DeleteConfig { namespace_id: String, id: String },
+    DeleteConfig {
+        namespace_id: String,
+        id: String,
+    },
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RaftResponse {

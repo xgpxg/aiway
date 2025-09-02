@@ -99,7 +99,9 @@ impl StateMachineStore {
                     Ok(RaftResponse { value: old })
                 }
                 // 处理配置中心的配置变更操作
-                RaftRequest::SetConfig { .. } | RaftRequest::DeleteConfig { .. } => {
+                RaftRequest::SetConfig { .. }
+                | RaftRequest::DeleteConfig { .. }
+                | RaftRequest::UpdateConfig { .. } => {
                     match Event::RaftRequestEvent(req.clone()).send() {
                         Ok(_) => Ok(RaftResponse { value: None }),
                         Err(e) => {

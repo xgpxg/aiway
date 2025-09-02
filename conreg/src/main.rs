@@ -33,7 +33,7 @@ pub struct Args {
     node_id: u64,
 }
 
-#[tokio::main]
+#[rocket::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
@@ -43,10 +43,16 @@ async fn main() -> anyhow::Result<()> {
     // 初始化目录
     init_dir(&args)?;
 
+    // 初始化ID生成器
+    common::id::init();
+
     // 初始化app
     app::init().await?;
 
     start_http_server(&args).await?;
+
+    app::cleanup();
+
     Ok(())
 }
 

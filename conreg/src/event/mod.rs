@@ -68,17 +68,7 @@ impl EventHandler {
             RaftRequest::Set { .. } | RaftRequest::Delete { .. } => {}
             // 配置中心配置变更
             RaftRequest::SetConfig { entry } => {
-                match get_app()
-                    .config_app
-                    .manager
-                    .upsert_config(
-                        &entry.namespace_id,
-                        &entry.id,
-                        &entry.content,
-                        entry.description.clone(),
-                    )
-                    .await
-                {
+                match get_app().config_app.manager.insert_config(entry).await {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("Error processing SetConfig request: {}", e);
@@ -96,6 +86,14 @@ impl EventHandler {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("Error processing DeleteConfig request: {}", e);
+                    }
+                };
+            }
+            RaftRequest::UpdateConfig { entry } => {
+                match get_app().config_app.manager.update_config(entry).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("Error processing UpdateConfig request: {}", e);
                     }
                 };
             }

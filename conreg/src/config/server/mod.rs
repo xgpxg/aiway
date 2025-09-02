@@ -1,6 +1,8 @@
 use crate::Args;
 use crate::raft::RaftRequest;
+use anyhow::bail;
 use chrono::{DateTime, Local};
+use common::id;
 use logging::log;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
@@ -13,6 +15,7 @@ mod res;
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConfigEntry {
+    /// 递增ID
     pub id_: i64,
     /// 命名空间
     pub namespace_id: String,
@@ -24,9 +27,16 @@ pub struct ConfigEntry {
     pub ts: DateTime<Local>,
     /// 描述
     pub description: Option<String>,
+    /// md5
+    pub md5: String,
 }
 
-
+impl ConfigEntry {
+    pub fn gen_md5(content: &str) -> String {
+        let digest = md5::compute(content);
+        format!("{:x}", digest)
+    }
+}
 /// 配置管理
 #[derive(Debug)]
 pub struct ConfigManager {
@@ -67,6 +77,7 @@ impl ConfigManager {
         Ok(())
     }
 
+    /// 获取配置
     pub async fn get_config(
         &self,
         namespace_id: &str,
@@ -89,66 +100,100 @@ impl ConfigManager {
         content: &str,
         description: Option<String>,
     ) -> anyhow::Result<()> {
-        self.upsert_config(namespace_id, config_id, content, description)
-            .await?;
+        // 旧配置
         let config = self.get_config(namespace_id, config_id).await?;
-        if config.is_none() {
-            log::error!("config upsert ok, but config not found");
+        // 新配置的MD5
+        let md5 = ConfigEntry::gen_md5(content);
+        // 配置内容未改变，不处理
+        if config.is_some() && config.as_ref().unwrap().md5 == md5 {
+            log::info!("config content not change");
             return Ok(());
         }
-        // 同步数据
-        self.sync(RaftRequest::SetConfig {
-            entry: config.unwrap(),
-        })
-        .await?;
-        Ok(())
-    }
 
-    /// 创建或更新配置
-    pub async fn upsert_config(
-        &self,
-        namespace_id: &str,
-        config_id: &str,
-        content: &str,
-        description: Option<String>,
-    ) -> anyhow::Result<()> {
-        let config = self.get_config(namespace_id, config_id).await?;
-        if config.is_none() {
-            sqlx::query(
-                "INSERT INTO config (namespace_id, id, content, description) VALUES (?, ?, ?, ?)",
-            )
-            .bind(namespace_id)
-            .bind(config_id)
-            .bind(content)
-            .bind(description)
-            .execute(&self.pool)
-            .await?;
-        } else {
-            sqlx::query(
-                "UPDATE config SET content = ?, description = ? WHERE namespace_id = ? AND id = ?",
-            )
-            .bind(content)
-            .bind(description)
-            .bind(namespace_id)
-            .bind(config_id)
-            .execute(&self.pool)
-            .await?;
+        match config {
+            None => {
+                let entry = ConfigEntry {
+                    id_: id::next(),
+                    namespace_id: namespace_id.to_string(),
+                    id: config_id.to_string(),
+                    content: content.to_string(),
+                    ts: Local::now(),
+                    description,
+                    md5,
+                };
+                // 同步数据
+                self.sync(RaftRequest::SetConfig { entry }).await?;
+            }
+            Some(old) => {
+                let entry = ConfigEntry {
+                    id_: old.id_,
+                    namespace_id: namespace_id.to_string(),
+                    id: config_id.to_string(),
+                    content: content.to_string(),
+                    ts: Local::now(),
+                    description,
+                    md5,
+                };
+                // 同步数据
+                self.sync(RaftRequest::UpdateConfig { entry }).await?;
+            }
         }
 
+        Ok(())
+    }
+
+    /// 新增配置
+    ///
+    /// 注意：该方法不应该直接调用，而需要由raft apply log时调用，以保证数据一致性
+    pub async fn insert_config(&self, entry: ConfigEntry) -> anyhow::Result<()> {
+        sqlx::query(
+            "INSERT INTO config (id_, namespace_id, id, content, description, ts, md5) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        )
+            .bind(&entry.id_)
+            .bind(&entry.namespace_id)
+            .bind(&entry.id)
+            .bind(&entry.content)
+            .bind(&entry.description)
+            .bind(&entry.ts)
+            .bind(&entry.md5)
+            .execute(&self.pool)
+            .await?;
+
         // 添加历史记录
-        let config = self.get_config(namespace_id, config_id).await?.unwrap();
-        self.append_history(&config).await?;
+        self.append_history(&entry).await?;
 
         Ok(())
     }
 
+    /// 更新配置
+    ///
+    /// 注意：该方法不应该直接调用，而需要由raft apply log时调用，以保证数据一致性
+    pub async fn update_config(&self, entry: ConfigEntry) -> anyhow::Result<()> {
+        sqlx::query(
+            "UPDATE config SET content = ?, description = ?, ts = ?, md5 = ? WHERE id_ = ?",
+        )
+        .bind(&entry.content)
+        .bind(&entry.description)
+        .bind(&entry.ts)
+        .bind(&entry.md5)
+        .bind(&entry.id_)
+        .execute(&self.pool)
+        .await?;
+
+        // 添加历史记录
+        self.append_history(&entry).await?;
+
+        Ok(())
+    }
+
+    /// 删除并同步到集群
+    ///
+    /// 不直接删除，提交命令到raft执行
     pub async fn delete_config_and_sync(
         &self,
         namespace_id: &str,
         config_id: &str,
     ) -> anyhow::Result<()> {
-        self.delete_config(namespace_id, config_id).await?;
-
         self.sync(RaftRequest::DeleteConfig {
             namespace_id: namespace_id.to_string(),
             id: config_id.to_string(),
@@ -189,16 +234,21 @@ impl ConfigManager {
     }
 
     pub async fn append_history(&self, entry: &ConfigEntry) -> anyhow::Result<()> {
+        log::info!("append history: {:?}", entry);
         // 保存历史
         sqlx::query(
-            "INSERT INTO config_history (namespace_id, id, content, description, ts) VALUES (?, ?, ?, ?, ?)",
-        ).bind(&entry.namespace_id)
-            .bind(&entry.id)
-            .bind(&entry.content)
-            .bind(&entry.description)
-            .bind(&entry.ts)
-            .execute(&self.pool)
-            .await?;
+            "INSERT INTO config_history (id_, namespace_id, id, content, description, ts, md5) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        )
+        // 注意这个ID，不能自增或随机生成，需要从entry中计算而来，以保证多节点下的数据的一致性
+        .bind(&entry.id_ + entry.ts.timestamp_millis())
+        .bind(&entry.namespace_id)
+        .bind(&entry.id)
+        .bind(&entry.content)
+        .bind(&entry.description)
+        .bind(&entry.ts)
+        .bind(&entry.md5)
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
     }
@@ -212,12 +262,23 @@ impl ConfigManager {
         Ok(())
     }
 
+    /// 恢复配置
+    ///
+    /// - id_: 配置历史ID
     pub async fn recovery(&self, id_: i64) -> anyhow::Result<()> {
-        let history: ConfigEntry = sqlx::query_as("SELECT * FROM config WHERE id_ = ?")
-            .bind(id_)
-            .fetch_one(&self.pool)
-            .await?;
-        self.upsert_config(
+        let history: Option<ConfigEntry> =
+            sqlx::query_as("SELECT * FROM config_history WHERE id_ = ?")
+                .bind(id_)
+                .fetch_optional(&self.pool)
+                .await?;
+
+        if history.is_none() {
+            bail!("No history config found with id {}", id_);
+        }
+
+        let history = history.unwrap();
+
+        self.upsert_config_and_sync(
             &history.namespace_id,
             &history.id,
             &history.content,
@@ -225,7 +286,6 @@ impl ConfigManager {
         )
         .await?;
 
-        // TODO 同步数据
         Ok(())
     }
 
@@ -263,16 +323,21 @@ mod tests {
         let config = cm.get_config("default", "test").await.unwrap();
         println!("config: {:?}", config);
 
-        cm.upsert_config("default", "test", "name: 1", None)
-            .await
-            .unwrap();
+        let mut entry = ConfigEntry {
+            id_: 1,
+            namespace_id: "default".to_string(),
+            id: "test".to_string(),
+            content: "name: 0".to_string(),
+            description: None,
+            ts: Local::now(),
+            md5: "".to_string(),
+        };
+        cm.insert_config(entry).await.unwrap();
 
         let config = cm.get_config("default", "test").await.unwrap();
         println!("config: {:?}", config);
 
-        cm.upsert_config("default", "test", "name: 2", None)
-            .await
-            .unwrap();
+        cm.update_config(entry).await.unwrap();
 
         let config = cm.get_config("default", "test").await.unwrap();
         println!("config: {:?}", config);
@@ -285,5 +350,11 @@ mod tests {
         println!("config: {:?}", config);
         let history = cm.get_history("default", "test").await.unwrap();
         println!("history: {:?}", history);
+    }
+
+    #[tokio::test]
+    async fn test_id() {
+        id::init();
+        println!("{}", id::next());
     }
 }

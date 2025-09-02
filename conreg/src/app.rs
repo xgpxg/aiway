@@ -4,7 +4,9 @@ use crate::raft::{LogStore, Network, NodeId, Raft, StateMachine};
 use crate::{Args, config, raft};
 use anyhow::Context;
 use clap::Parser;
+use logging::log;
 use openraft::Config;
+use rocket::futures::executor::block_on;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 use tokio::sync::RwLock;
@@ -86,4 +88,22 @@ pub async fn init() -> anyhow::Result<()> {
 
 pub fn get_app() -> &'static App {
     APP.get().context("APP not init").unwrap()
+}
+
+impl App {
+    /// 退出前清理资源
+    pub fn clean(&self) {
+        block_on(async {
+            // 保存状态机快照
+            if let Err(e) = self.raft.trigger().snapshot().await {
+                log::error!("raft state machine snapshot error: {}", e);
+            }
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            log::info!("raft state persistence successful");
+        })
+    }
+}
+
+pub fn cleanup() {
+    get_app().clean();
 }

@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 logging = { path = "../lib/logging" }
+common = { path = "../lib/common" }
 openraft = { version = "0.9.21", features = ["storage-v2", "serde"] }
 # rocksdb = { version = "0.23.0", default-features = false, features = ["snappy"] }
 serde = { version = "1.0.219", features = ["derive"] }
@@ -20,3 +21,4 @@ local-ip-address = "0.6.5"
 clap = "4.5.46"
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "chrono"] }
 chrono = { version = "0.4", features = ["serde"] }
+md5 = "0.8"

@@ -1,12 +1,11 @@
 use crate::app::get_app;
 use crate::config::server::ConfigEntry;
 use crate::config::server::res::Res;
-use logging::log;
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![upsert, get, read, delete, recover]
+    routes![upsert, get, delete, recover]
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -15,6 +14,15 @@ struct UpsertConfigReq {
     id: String,
     content: String,
     description: Option<String>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct DeleteConfigReq {
+    namespace_id: String,
+    id: String,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct RecoverConfigReq {
+    id_: i64,
 }
 
 /// 创建或更新配置
@@ -37,8 +45,6 @@ async fn upsert(req: Json<UpsertConfigReq>) -> Res<()> {
 }
 
 /// 获取配置
-///
-/// 该接口仅用于后台获取配置，客户端获取配置请使用`read`接口
 #[get("/get?<namespace_id>&<id>")]
 async fn get(namespace_id: &str, id: &str) -> Res<Option<ConfigEntry>> {
     match get_app()
@@ -53,12 +59,12 @@ async fn get(namespace_id: &str, id: &str) -> Res<Option<ConfigEntry>> {
 }
 
 /// 删除配置
-#[get("/delete?<namespace_id>&<id>")]
-async fn delete(namespace_id: &str, id: &str) -> Res<()> {
+#[post("/delete", data = "<req>")]
+async fn delete(req: Json<DeleteConfigReq>) -> Res<()> {
     match get_app()
         .config_app
         .manager
-        .delete_config_and_sync(namespace_id, id)
+        .delete_config_and_sync(&req.namespace_id, &req.id)
         .await
     {
         Ok(_) => Res::success(()),
@@ -67,30 +73,10 @@ async fn delete(namespace_id: &str, id: &str) -> Res<()> {
 }
 
 /// 恢复配置
-#[get("/recover?<id_>")]
-async fn recover(id_: i64) -> Res<()> {
-    match get_app().config_app.manager.recovery(id_).await {
+#[post("/recover", data = "<req>")]
+async fn recover(req: Json<RecoverConfigReq>) -> Res<()> {
+    match get_app().config_app.manager.recovery(req.id_).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),
-    }
-}
-
-/// 读取配置内容
-#[get("/read?<namespace_id>&<id>")]
-async fn read(namespace_id: &str, id: &str) -> Option<String> {
-    match get_app()
-        .config_app
-        .manager
-        .get_config(namespace_id, id)
-        .await
-    {
-        Ok(entry) => match entry {
-            Some(entry) => Some(entry.content),
-            None => None,
-        },
-        Err(e) => {
-            log::error!("{}", e);
-            None
-        }
     }
 }
