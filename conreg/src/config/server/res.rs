@@ -50,8 +50,8 @@ where
 #[allow(unused)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PageRes<T> {
-    pub page_num: u64,
-    pub page_size: u64,
+    pub page_num: i32,
+    pub page_size: i32,
     pub total: u64,
     pub list: Vec<T>,
 }

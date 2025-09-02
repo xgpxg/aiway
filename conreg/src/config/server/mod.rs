@@ -301,6 +301,63 @@ impl ConfigManager {
         log::info!("sync config success");
         Ok(())
     }
+
+    /// 查询配置列表（分页）
+    pub async fn list_configs_with_page(
+        &self,
+        namespace_id: &str,
+        page_num: i32,
+        page_size: i32,
+    ) -> anyhow::Result<(u64, Vec<ConfigEntry>)> {
+        let total: u64 = sqlx::query_scalar("SELECT COUNT(1) FROM config WHERE namespace_id = ?")
+            .bind(namespace_id)
+            .fetch_one(&self.pool)
+            .await?;
+
+        let offset = (page_num - 1) * page_size;
+
+        let rows: Vec<ConfigEntry> = sqlx::query_as(
+            "SELECT * FROM config WHERE namespace_id = ? ORDER BY id_ DESC LIMIT ?, ?",
+        )
+        .bind(namespace_id)
+        .bind(offset)
+        .bind(page_size)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok((total, rows))
+    }
+
+    /// 查询配置历史列表（分页）
+    pub async fn list_config_history_with_page(
+        &self,
+        namespace_id: &str,
+        id: &str,
+        page_num: i32,
+        page_size: i32,
+    ) -> anyhow::Result<(u64, Vec<ConfigEntry>)> {
+        let total: u64 = sqlx::query_scalar(
+            "SELECT COUNT(1) FROM config_history WHERE namespace_id = ? AND id = ?",
+        )
+        .bind(namespace_id)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        let offset = (page_num - 1) * page_size;
+
+        let rows: Vec<ConfigEntry> = sqlx::query_as(
+            "SELECT * FROM config_history WHERE namespace_id = ? AND id = ? ORDER BY id_ DESC LIMIT ?, ?",
+        )
+        .bind(namespace_id)
+        .bind(id)
+        .bind(offset)
+        .bind(page_size)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok((total, rows))
+    }
 }
 
 #[derive(Debug)]
