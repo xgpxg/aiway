@@ -11,7 +11,6 @@ use std::fmt::Debug;
 use std::time::Duration;
 
 pub mod api;
-mod res;
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConfigEntry {
@@ -77,7 +76,7 @@ impl ConfigManager {
 
     /// 初始化数据库
     async fn init(pool: &SqlitePool) -> anyhow::Result<()> {
-        let sql = include_str!("../db/init.sql");
+        let sql = include_str!("../../db/init.sql");
         sqlx::query(sql).execute(pool).await?;
         Ok(())
     }

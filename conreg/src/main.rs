@@ -11,10 +11,12 @@ use std::path::Path;
 use std::str::FromStr;
 
 mod app;
+mod protocol;
 mod config;
 mod event;
 mod namespace;
 mod raft;
+mod discovery;
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
@@ -69,6 +71,7 @@ async fn start_http_server(args: &Args) -> anyhow::Result<()> {
 
     builder = builder.mount("/", raft::api::routes());
     builder = builder.mount("/config", config::server::api::routes());
+    builder = builder.mount("/namespace", namespace::server::api::routes());
 
     //builder = builder.manage(App::new(&args).await);
 

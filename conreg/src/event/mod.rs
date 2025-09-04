@@ -97,6 +97,27 @@ impl EventHandler {
                     }
                 };
             }
+            RaftRequest::UpsertNamespace { namespace } => {
+                match get_app()
+                    .namespace_app
+                    .manager
+                    .upsert_namespace(namespace)
+                    .await
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("Error processing UpsertNamespace request: {}", e);
+                    }
+                };
+            }
+            RaftRequest::DeleteNamespace { id } => {
+                match get_app().namespace_app.manager.delete_namespace(&id).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("Error processing DeleteNamespace request: {}", e);
+                    }
+                };
+            }
         }
     }
 }

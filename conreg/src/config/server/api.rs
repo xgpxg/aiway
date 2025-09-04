@@ -1,6 +1,6 @@
 use crate::app::get_app;
 use crate::config::server::ConfigEntry;
-use crate::config::server::res::{PageRes, Res};
+use crate::protocol::res::{PageRes, Res};
 use logging::log;
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};

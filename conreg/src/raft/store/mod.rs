@@ -101,7 +101,9 @@ impl StateMachineStore {
                 // 处理配置中心的配置变更操作
                 RaftRequest::SetConfig { .. }
                 | RaftRequest::DeleteConfig { .. }
-                | RaftRequest::UpdateConfig { .. } => {
+                | RaftRequest::UpdateConfig { .. }
+                | RaftRequest::UpsertNamespace { .. }
+                | RaftRequest::DeleteNamespace { .. } => {
                     match Event::RaftRequestEvent(req.clone()).send() {
                         Ok(_) => Ok(RaftResponse { value: None }),
                         Err(e) => {

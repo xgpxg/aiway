@@ -1,4 +1,5 @@
 use crate::config::server::ConfigEntry;
+use crate::namespace::server::Namespace;
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 
@@ -30,6 +31,12 @@ pub enum RaftRequest {
     /// 配置中心删除配置
     DeleteConfig {
         namespace_id: String,
+        id: String,
+    },
+    UpsertNamespace {
+        namespace: Namespace,
+    },
+    DeleteNamespace {
         id: String,
     },
 }

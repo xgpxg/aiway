@@ -1,7 +1,8 @@
 use crate::config::server::ConfigApp;
+use crate::namespace::server::NamespaceApp;
 use crate::raft::store::StateMachineData;
 use crate::raft::{LogStore, Network, NodeId, Raft, StateMachine};
-use crate::{Args, config, raft};
+use crate::{Args, config, namespace, raft};
 use anyhow::Context;
 use clap::Parser;
 use logging::log;
@@ -26,6 +27,8 @@ pub struct App {
     pub other: Arc<RwLock<HashMap<String, String>>>,
     /// 配置中心
     pub config_app: ConfigApp,
+    /// 命名空间
+    pub namespace_app: NamespaceApp,
 }
 
 impl App {
@@ -67,6 +70,9 @@ impl App {
         // 配置中心实例
         let config_app = config::new_config_app(&args).await;
 
+        // 命名空间实例
+        let namespace_app = namespace::new_namespace_app(&args).await;
+
         App {
             id: args.node_id,
             addr,
@@ -74,6 +80,7 @@ impl App {
             state_machine,
             other: Arc::new(Default::default()),
             config_app,
+            namespace_app,
         }
     }
 }
