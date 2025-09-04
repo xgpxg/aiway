@@ -1,11 +1,12 @@
 use crate::app::get_app;
 use crate::config::server::ConfigEntry;
 use crate::config::server::res::{PageRes, Res};
+use logging::log;
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![upsert, get, delete, recover, list, list_history]
+    routes![upsert, get, delete, recover, list, list_history, watch]
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -122,4 +123,28 @@ async fn list_history(
         }),
         Err(e) => Res::error(&e.to_string()),
     }
+}
+
+/// 监听配置变化。
+/// 返回true时，表示配置有变化，由客户端调用`config/get`接口重新拉取配置
+/// 客户端也应该定时从`config/get`拉取配置，作为补偿操作。
+#[get("/watch?<namespace_id>")]
+async fn watch(namespace_id: &str) -> Res<bool> {
+    let mut receiver = get_app().config_app.manager.sender.subscribe();
+    // 客户端超时时间为30秒，这里设置为29秒，留1秒防止客户端超时报错。
+    let res = tokio::time::timeout(std::time::Duration::from_secs(29), async {
+        match receiver.recv().await {
+            Ok(id) => {
+                if id == namespace_id {
+                    log::info!("config changed, namespace id: {}", id);
+                    Res::success(true)
+                } else {
+                    Res::success(false)
+                }
+            }
+            Err(_) => Res::success(false),
+        }
+    })
+    .await;
+    res.unwrap_or_else(|_| Res::success(false))
 }

@@ -1,0 +1,12 @@
+conreg:
+  # 服务ID
+  service-id: test
+  config:
+    # 配置/注册中心地址
+    server-addr: 127.0.0.1:8000
+    # 配置ID
+    config-ids:
+      - test
+      - test.yaml
+  discovery:
+    server-addr: 127.0.0.1:8000

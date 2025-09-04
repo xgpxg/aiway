@@ -47,6 +47,8 @@ pub struct ConfigManager {
     http_client: reqwest::Client,
     /// 启动参数
     args: Args,
+    /// 配置变化通知
+    sender: tokio::sync::broadcast::Sender<String>,
 }
 
 impl ConfigManager {
@@ -63,10 +65,13 @@ impl ConfigManager {
             .connect_timeout(Duration::from_secs(3))
             .read_timeout(Duration::from_secs(60))
             .build()?;
+
+        let (sender, _) = tokio::sync::broadcast::channel(1024);
         Ok(Self {
             pool,
             http_client: network,
             args: args.clone(),
+            sender,
         })
     }
 
@@ -75,6 +80,10 @@ impl ConfigManager {
         let sql = include_str!("../db/init.sql");
         sqlx::query(sql).execute(pool).await?;
         Ok(())
+    }
+
+    fn notify_config_change(&self, namespace_id: String) {
+        let _ = self.sender.send(namespace_id);
     }
 
     /// 获取配置
@@ -138,6 +147,8 @@ impl ConfigManager {
                 self.sync(RaftRequest::UpdateConfig { entry }).await?;
             }
         }
+
+        self.notify_config_change(namespace_id.to_string());
 
         Ok(())
     }
@@ -377,12 +388,12 @@ mod tests {
             node_id: 1,
         };
         let cm = ConfigManager::new(&args).await.unwrap();
-        let config = cm.get_config("default", "test").await.unwrap();
+        let config = cm.get_config("public", "test").await.unwrap();
         println!("config: {:?}", config);
 
         let mut entry = ConfigEntry {
             id_: 1,
-            namespace_id: "default".to_string(),
+            namespace_id: "public".to_string(),
             id: "test".to_string(),
             content: "name: 0".to_string(),
             description: None,
@@ -391,21 +402,21 @@ mod tests {
         };
         cm.insert_config(entry).await.unwrap();
 
-        let config = cm.get_config("default", "test").await.unwrap();
+        let config = cm.get_config("public", "test").await.unwrap();
         println!("config: {:?}", config);
 
         cm.update_config(entry).await.unwrap();
 
-        let config = cm.get_config("default", "test").await.unwrap();
+        let config = cm.get_config("public", "test").await.unwrap();
         println!("config: {:?}", config);
 
-        let history = cm.get_history("default", "test").await.unwrap();
+        let history = cm.get_history("public", "test").await.unwrap();
         println!("history: {:?}", history);
 
         cm.recovery(1).await.unwrap();
-        let config = cm.get_config("default", "test").await.unwrap();
+        let config = cm.get_config("public", "test").await.unwrap();
         println!("config: {:?}", config);
-        let history = cm.get_history("default", "test").await.unwrap();
+        let history = cm.get_history("public", "test").await.unwrap();
         println!("history: {:?}", history);
     }
 

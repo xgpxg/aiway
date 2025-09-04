@@ -14,4 +14,4 @@ members = [
     "lib/router",
     "lib/security",
     "message"
-]
+, "lib/conreg-client"]
