@@ -3,7 +3,6 @@ resolver = "3"
 members = [
     "billing",
     "protocol",
-    "conreg",
     "console",
     "gateway",
     "kms",
@@ -14,4 +13,4 @@ members = [
     "lib/router",
     "lib/security",
     "message"
-, "lib/conreg-client"]
+]
