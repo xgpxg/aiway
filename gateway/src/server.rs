@@ -23,11 +23,11 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
         ..Config::debug_default()
     });
 
-    // 前置安全校验
+    // 前置基础安全校验（不提取body数据）
     builder = builder.attach(fairing::security::PreSecurity::new());
     // 鉴权（前置安全校验后，提取请求数据前执行）
     builder = builder.attach(fairing::auth::Authentication::new());
-    // 提取请求数据（鉴权通过后，全局过滤器执行开始前执行）
+    // 提取请求上下文（鉴权通过后，全局过滤器执行开始前执行）
     builder = builder.attach(fairing::request::RequestData::new());
     // 全局前置过滤器（收到请求后，到达具体API接口前执行）
     // 这些过滤器可自由配置，串联执行
@@ -41,8 +41,10 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.attach(fairing::global_filter::GlobalPostFilter::new());
     // 日志记录（响应客户端前执行）
     builder = builder.attach(fairing::logger::Logger::new());
+    // 清理
+    builder = builder.attach(fairing::cleanup::Cleaner::new());
 
-    builder = builder.mount("/openapi", routes![openapi::call]);
+    builder = builder.mount("/openapi/v1", routes![openapi::call]);
 
     builder.launch().await?;
 

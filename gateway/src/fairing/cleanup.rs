@@ -1,35 +1,30 @@
-//! # 日志记录
+//! # 清理请求上下文
 //!
-//! 在请求结束前记录日志，理论上该fairing总是需要被调用
-
+//! 最后执行，清理RequestContext
+//!
+use crate::context;
 use crate::context::RCM;
 use rocket::Request;
 use rocket::fairing::Fairing;
 
-pub struct Logger {}
-impl Logger {
+pub struct Cleaner {}
+impl Cleaner {
     pub fn new() -> Self {
         Self {}
     }
 }
 
 #[rocket::async_trait]
-impl Fairing for Logger {
+impl Fairing for Cleaner {
     fn info(&self) -> rocket::fairing::Info {
         rocket::fairing::Info {
-            name: "Logger",
+            name: "Cleaner",
             kind: rocket::fairing::Kind::Request | rocket::fairing::Kind::Response,
         }
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, _res: &mut rocket::Response<'r>) {
-        // 提取RequestContext
-        let context = RCM.get_from_request(&req);
-
-        // 记录日志
-
-
-        //println!("In logger: {:?}", context);
-        //println!("Run Logger on response");
+        let request_id = req.headers().get_one(context::Headers::REQUEST_ID).unwrap();
+        RCM.remove(request_id);
     }
 }

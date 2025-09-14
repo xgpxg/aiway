@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+protocol = { path = "../lib/protocol" }
 tokio = { version = "1", features = ["macros"] }
 rocket = { version = "0.5", features = ["json"] }
 serde = "1.0"
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
+dashmap = "6.1"
+uuid = { version = "1.18", features = ["v4"] }

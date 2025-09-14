@@ -2,15 +2,16 @@
 resolver = "3"
 members = [
     "billing",
-    "protocol",
     "console",
     "gateway",
     "kms",
+    "message",
     "lib/logging",
     "lib/plugin",
     "lib/pubsub",
     "lib/registry",
     "lib/router",
     "lib/security",
-    "message"
+    "lib/protocol",
+    "lib/sdk"
 ]
