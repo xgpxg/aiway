@@ -19,6 +19,10 @@
 //!
 //!
 
+use protocol::gateway::RequestContext;
+
 pub trait Plugin: Send + Sync {
+    type Err: Send + Sync;
     fn name(&self) -> &'static str;
+    fn execute(&self, context: &mut RequestContext) -> Result<(), Err>;
 }

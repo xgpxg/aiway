@@ -34,9 +34,12 @@ impl Fairing for PreFilter {
     /// - 默认不执行任何过滤器，由用户自行配置
     /// - 可在此处修改请求参数
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
-        // 1. 加载插件
+        // 1. 获取path，匹配路由
+        let path = req.uri().path().as_str();
 
-        // 2. 按顺序执行插件
+        // 2. 加载插件
+
+        // 3. 按顺序执行插件
 
         //println!("Run PreFilter on request");
     }
@@ -59,9 +62,12 @@ impl Fairing for PostFilter {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
-        // 1. 加载自定义过滤器
+        // 1. 获取path，匹配路由
+        let path = req.uri().path().as_str();
 
-        // 2. 执行过滤器
+        // 2. 加载插件
+
+        // 3. 按顺序执行插件
 
         let context = RCM.get_from_request(&req);
         context.set_header("X-AAA", "123");

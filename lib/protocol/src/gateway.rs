@@ -18,6 +18,7 @@ use dashmap::{DashMap, DashSet};
 pub struct RequestContext {
     /// 请求ID
     pub request_id: String,
+    /// 请求方法
     pub method: Method,
     /// 请求头
     pub headers: DashMap<String, String>,
@@ -27,6 +28,8 @@ pub struct RequestContext {
     pub query: DashSet<String>,
     /// 请求体
     pub body: DashSet<Vec<u8>>,
+    /// 扩展数据
+    pub state: DashMap<String, String>,
 }
 impl RequestContext {
     pub fn set_path(&self, path: &str) {

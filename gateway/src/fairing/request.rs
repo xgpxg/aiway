@@ -52,6 +52,7 @@ impl Fairing for RequestData {
                 .map(|v| DashSet::from_iter(vec![v.to_string()]))
                 .unwrap_or_default(),
             body: DashSet::from_iter(vec![body_data.into()]),
+            state: Default::default(),
         };
 
         RCM.set(&request_id, Arc::new(context));
