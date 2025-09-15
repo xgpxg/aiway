@@ -14,3 +14,4 @@ log = "0.4"
 dashmap = "6.1"
 uuid = { version = "1.18", features = ["v4"] }
 tokio-util = "0.7"
+reqwest = "0.12"

@@ -11,9 +11,7 @@
 //!
 //! 注意：该过滤器全局有效，针对每个API的过滤器需使用`PreFilter`
 //!
-use crate::context::Headers;
 use rocket::fairing::Fairing;
-use rocket::http::Header;
 use rocket::{Data, Request};
 
 pub struct GlobalPreFilter {}
@@ -58,11 +56,6 @@ impl Fairing for GlobalPostFilter {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
-        // 添加请求ID
-        res.set_header(Header::new(
-            Headers::REQUEST_ID,
-            Headers::get_request_id(req),
-        ));
         // 1. 加载全局插件
 
         // 2. 执行过滤器

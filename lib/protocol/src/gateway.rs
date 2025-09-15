@@ -1,7 +1,7 @@
 //! # 网关相关协议定义
 //!
 //! 主要定义以下内容：
-//! 1. 请求上下文
+//! 1. 请求/响应上下文
 //! 2. 网关与插件交互协议
 //!
 
@@ -15,6 +15,7 @@ use std::any::Any;
 ///
 /// - 内部可变性
 /// 要求在实现时，不要出现对外的可变引用
+/// - 该类型也作为与Plugin交互的数据结构
 #[derive(Debug)]
 pub struct HttpContext {
     /// 请求上下文，应该在请求阶段构建
@@ -26,6 +27,7 @@ pub struct HttpContext {
 /// 请求上下文
 ///
 /// 该上下文贯穿整个请求流程，同一个请求中应该仅持有一份数据。
+/// 该上下文不应该被多次创建，仅在请求阶段构建一次。
 ///
 #[derive(Debug, Default)]
 pub struct RequestContext {
@@ -40,6 +42,9 @@ pub struct RequestContext {
     /// 请求参数
     pub query: SV<String>,
     /// 请求体
+    ///
+    /// 理论上，大部分请求体都是Json，可以使用serde_json序列化
+    /// TODO 文件如何处理？
     pub body: SV<Vec<u8>>,
     /// 扩展数据
     pub state: DashMap<String, Box<dyn Any + Send + Sync>>,
@@ -47,8 +52,13 @@ pub struct RequestContext {
 
 #[derive(Debug, Default)]
 pub struct ResponseContext {
+    /// 响应状态码
+    ///
+    /// 注意：初始状态为0，表示未设置
     pub status: SV<u16>,
+    /// 响应头
     pub headers: DashMap<String, String>,
+    /// 响应体
     pub body: SV<Vec<u8>>,
 }
 
@@ -64,9 +74,11 @@ impl RequestContext {
     pub fn set_header(&self, key: &str, value: &str) {
         self.headers.insert(key.to_string(), value.to_string());
     }
+
     pub fn get_header(&self, key: &str) -> Option<String> {
         self.headers.get(key).map(|v| v.value().clone())
     }
+
     pub fn remove_header(&self, key: &str) {
         self.headers.remove(key);
     }
@@ -78,12 +90,21 @@ impl RequestContext {
     pub fn get_query(&self) -> String {
         self.query.get().cloned().unwrap_or_default()
     }
+
+    pub fn set_body(&self, body: Vec<u8>) {
+        self.body.set(body)
+    }
+
+    pub fn get_body(&self) -> Option<&Vec<u8>> {
+        self.body.get().clone()
+    }
 }
 
 impl ResponseContext {
     pub fn set_status(&self, status: u16) {
         self.status.set(status);
     }
+
     pub fn get_status(&self) -> u16 {
         self.status.get().cloned().unwrap_or_default()
     }
@@ -91,9 +112,11 @@ impl ResponseContext {
     pub fn set_header(&self, key: &str, value: &str) {
         self.headers.insert(key.to_string(), value.to_string());
     }
+
     pub fn get_header(&self, key: &str) -> Option<String> {
         self.headers.get(key).map(|v| v.value().clone())
     }
+
     pub fn remove_header(&self, key: &str) {
         self.headers.remove(key);
     }

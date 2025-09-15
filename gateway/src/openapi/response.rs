@@ -5,9 +5,13 @@ use rocket::serde::json::serde_json;
 use tokio::io::AsyncRead;
 
 pub enum GatewayResponse {
+    /// JSON响应
     Json(serde_json::Value),
+    /// 流式响应，以纯文本返回
     Stream(Box<dyn AsyncRead + Unpin + Send>),
+    /// SSE响应，以SSE格式返回
     SSE(Box<dyn AsyncRead + Unpin + Send>),
+    /// 错误响应
     Error(GatewayError),
 }
 

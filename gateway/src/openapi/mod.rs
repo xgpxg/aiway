@@ -2,6 +2,8 @@ mod error;
 mod response;
 mod router;
 mod sse;
+mod client;
+mod lb;
 
 use crate::context::{HttpContextWrapper, HCM};
 use crate::openapi::response::GatewayResponse;
@@ -10,12 +12,14 @@ use protocol::gateway::RequestContext;
 use rocket::async_stream::stream;
 use rocket::http::uri::fmt::Path;
 use rocket::request::FromSegments;
-use rocket::{get, post};
+use rocket::{get, post, route};
 use std::io;
 use std::io::Bytes;
 use std::path::PathBuf;
 use std::pin::Pin;
+use rocket::http::hyper;
 use tokio_util::io::StreamReader;
+use crate::openapi::client::HTTP_CLIENT;
 
 /// OpenAPI统一入口
 ///
@@ -28,9 +32,8 @@ use tokio_util::io::StreamReader;
 #[post("/<path..>")]
 pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     let context = &wrapper.0.request;
-    println!("context: {:?}",context);
 
-    // 1. 通过path获取端点配置
+    // 1. 通过path获取对应的路由配置
 
     // 2. 获取负载实例、协议类型
 

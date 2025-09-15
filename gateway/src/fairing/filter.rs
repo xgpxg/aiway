@@ -9,8 +9,8 @@
 //!
 use crate::context::HCM;
 use rocket::fairing::Fairing;
-use rocket::http::Header;
 use rocket::{Data, Request};
+use rocket::serde::json::serde_json::json;
 
 pub struct PreFilter {}
 impl PreFilter {
@@ -42,12 +42,6 @@ impl Fairing for PreFilter {
         // 3. 按顺序执行插件
 
         //println!("Run PreFilter on request");
-
-        let request_context = &HCM.get_from_request(&req).request;
-        request_context.get_path();
-        request_context.set_path("123");
-        request_context.get_path();
-
     }
 }
 
@@ -75,14 +69,9 @@ impl Fairing for PostFilter {
 
         // 3. 按顺序执行插件
 
-        let context = &HCM.get_from_request(&req).response;
-        context.set_header("X-AAA", "123");
-
-        res.set_header(Header::new("X-AAA", context.get_header("X-AAA").unwrap()));
-
-
-
         //println!("path: {}", context.get_path());
         //println!("Run PostFilter on response");
     }
 }
+
+

@@ -5,6 +5,7 @@
 //! - 插件化，通过可序列化的数据进行通信，同一类型的插件接口参数应保持一致
 //! - 涉及到网络连接的，需池化、复用，避免频繁创建、销毁连接
 //! - 网关应不依赖任何中间件，可水平扩展，每个节点需独立运行，无相互依赖关系
+//!
 use crate::{Args, fairing, openapi};
 use rocket::data::{ByteUnit, Limits};
 use rocket::{Config, routes};
@@ -39,6 +40,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     // 全局后置过滤器（API接口执行完成后，响应客户端前执行）
     // 这些过滤器可自由配置，串联执行
     builder = builder.attach(fairing::global_filter::GlobalPostFilter::new());
+    // 设置响应（响应客户端前执行）
+    builder = builder.attach(fairing::response::ResponseData::new());
     // 日志记录（响应客户端前执行）
     builder = builder.attach(fairing::logger::Logger::new());
     // 清理

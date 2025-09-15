@@ -1,13 +1,13 @@
 use crate::context::Headers;
 use anyhow::Context;
-use dashmap::{DashMap, DashSet};
-use protocol::gateway::{HttpContext, RequestContext};
-use rocket::data::ToByteUnit;
-use rocket::{Data, Request};
+use dashmap::DashMap;
+use protocol::gateway::HttpContext;
+use rocket::Request;
 use std::sync::{Arc, LazyLock};
-use uuid::Uuid;
 
 /// HTTP上下文管理器
+///
+/// 存储请求流程中的所有上下文。
 pub struct HttpContextManager {
     contexts: DashMap<String, Arc<HttpContext>>,
 }
