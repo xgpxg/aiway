@@ -17,12 +17,103 @@
 //! - 请求阶段中断：转发到特殊的API端点，执行响应，此时，后置阶段的插件仍会执行
 //! - 响应阶段中断：返回错误响应。由于日志拦截是在最后一步执行，所以，返回错误响应后，日志仍然能被记录。
 //!
+//! ### 路由插件
+//! 对特定路由生效。
+//!
+//! 路由插件和全局插件实现方式相同，仅执行时机不同。
 //!
 
-use protocol::gateway::RequestContext;
+mod macros;
+mod manager;
 
+use libloading::Symbol;
+use protocol::gateway::HttpContext;
+use std::any::Any;
+use std::path::PathBuf;
+
+#[derive(Debug)]
+pub enum PluginError {
+    /// 执行插件业务逻辑时的错误
+    ExecuteError(String),
+    /// 插件不存在
+    NotFound(String),
+    /// 从磁盘或网络加载插件时错误
+    LoadError(String),
+}
+
+/// 插件定义
+///
+/// - name
+///
+/// 插件的名称，原则上不要重复。在`PluginManager`中，如果重复了，后添加的将被覆盖。
+///
+/// - execute
+///
+/// `execute`接收HttpContext参数，该HttpContext是可变的（内部可变性），可在插件逻辑内部修改请求和响应。
+/// 注意：当多个插件修改HttpContext的同一个属性时，后执行的插件会覆盖前一个插件的修改。
+/// 插件实现方应该自行决定插件运行阶段（请求阶段或者响应阶段），从而获取或修改request或response的数据。
+///
 pub trait Plugin: Send + Sync {
-    type Err: Send + Sync;
-    fn name(&self) -> &'static str;
-    fn execute(&self, context: &mut RequestContext) -> Result<(), Err>;
+    /// 插件名称
+    fn name(&self) -> &str;
+    /// 执行插件
+    fn execute(&self, context: &HttpContext) -> Result<(), PluginError>;
+}
+
+impl TryInto<Box<dyn Plugin>> for PathBuf {
+    type Error = PluginError;
+
+    fn try_into(self) -> Result<Box<dyn Plugin>, Self::Error> {
+        unsafe {
+            let lib = libloading::Library::new(&self)
+                .map_err(|e| PluginError::LoadError(e.to_string()))?;
+
+            let create_plugin: Symbol<unsafe extern "C" fn() -> *mut dyn Plugin> = lib
+                .get(b"create_plugin")
+                .map_err(|e| PluginError::LoadError(e.to_string()))?;
+
+            let plugin_ptr = create_plugin();
+
+            if plugin_ptr.is_null() {
+                return Err(PluginError::LoadError(
+                    "Failed to create plugin: ptr is null".to_string(),
+                ));
+            }
+
+            let plugin = Box::from_raw(plugin_ptr);
+
+            // 包装一层，保持对lib的引用
+            let wrapped_plugin = Box::new(LibraryPluginWrapper { plugin, _lib: lib });
+
+            Ok(wrapped_plugin)
+        }
+    }
+}
+
+struct LibraryPluginWrapper {
+    plugin: Box<dyn Plugin>,
+    _lib: libloading::Library,
+}
+
+impl Plugin for LibraryPluginWrapper {
+    fn name(&self) -> &str {
+        self.plugin.name()
+    }
+
+    fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
+        self.plugin.execute(context)
+    }
+}
+
+impl Drop for LibraryPluginWrapper {
+    fn drop(&mut self) {
+        unsafe {
+            let destructor: Symbol<unsafe extern "C" fn(*mut dyn Plugin)> = self
+                ._lib
+                .get(b"destroy_plugin")
+                .expect("Failed to get destructor function");
+
+            destructor(self.plugin.as_mut());
+        }
+    }
 }

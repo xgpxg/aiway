@@ -3,7 +3,7 @@
 //! 最后执行，清理RequestContext
 //!
 use crate::context;
-use crate::context::RCM;
+use crate::context::HCM;
 use rocket::Request;
 use rocket::fairing::Fairing;
 
@@ -25,6 +25,6 @@ impl Fairing for Cleaner {
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, _res: &mut rocket::Response<'r>) {
         let request_id = req.headers().get_one(context::Headers::REQUEST_ID).unwrap();
-        RCM.remove(request_id);
+        HCM.remove(request_id);
     }
 }

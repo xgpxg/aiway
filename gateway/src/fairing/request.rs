@@ -10,9 +10,9 @@
 //! - 上下文应运行在请求流程中被修改。
 //!
 
-use crate::context::RCM;
-use dashmap::{DashMap, DashSet};
-use protocol::gateway::RequestContext;
+use crate::context::HCM;
+use protocol::SV;
+use protocol::gateway::{HttpContext, RequestContext, ResponseContext};
 use rocket::data::ToByteUnit;
 use rocket::fairing::Fairing;
 use rocket::http::Header;
@@ -37,26 +37,34 @@ impl Fairing for RequestData {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, data: &mut Data<'_>) {
+        // 请求ID，应仅在此处生成一次，后续通过该ID获取上下文
         let request_id = Uuid::new_v4().to_string();
 
+        // 请求体
         let body_data = data.peek(100.mebibytes().as_u64() as usize).await;
 
-        let context = RequestContext {
+        // 请求上下文
+        let request_context = RequestContext {
             request_id: request_id.clone(),
-            method: req.method().as_str().into(),
-            path: DashSet::from_iter(vec![req.uri().path().to_string()]),
+            method: SV::new(req.method().as_str().into()),
+            path: SV::new(req.uri().path().to_string()),
             headers: Default::default(),
-            query: req
-                .uri()
-                .query()
-                .map(|v| DashSet::from_iter(vec![v.to_string()]))
-                .unwrap_or_default(),
-            body: DashSet::from_iter(vec![body_data.into()]),
+            query: SV::new(req.uri().query().map(|v| v.to_string()).unwrap_or_default()),
+            body: SV::new(body_data.to_vec()),
             state: Default::default(),
         };
 
-        RCM.set(&request_id, Arc::new(context));
+        // 响应上下文
+        let response_context = ResponseContext::default();
 
+        let context = HttpContext {
+            request: request_context,
+            response: response_context,
+        };
+
+        HCM.set(&request_id, Arc::new(context));
+
+        // 添加请求ID，用于后续获取上下文
         req.add_header(Header::new(crate::context::Headers::REQUEST_ID, request_id));
     }
 }

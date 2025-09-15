@@ -7,7 +7,7 @@
 //! - 默认不执行任何过滤器，由用户自行配置
 //! - 需要支持自定义脚本执行
 //!
-use crate::context::RCM;
+use crate::context::HCM;
 use rocket::fairing::Fairing;
 use rocket::http::Header;
 use rocket::{Data, Request};
@@ -42,6 +42,12 @@ impl Fairing for PreFilter {
         // 3. 按顺序执行插件
 
         //println!("Run PreFilter on request");
+
+        let request_context = &HCM.get_from_request(&req).request;
+        request_context.get_path();
+        request_context.set_path("123");
+        request_context.get_path();
+
     }
 }
 
@@ -69,10 +75,12 @@ impl Fairing for PostFilter {
 
         // 3. 按顺序执行插件
 
-        let context = RCM.get_from_request(&req);
+        let context = &HCM.get_from_request(&req).response;
         context.set_header("X-AAA", "123");
 
         res.set_header(Header::new("X-AAA", context.get_header("X-AAA").unwrap()));
+
+
 
         //println!("path: {}", context.get_path());
         //println!("Run PostFilter on response");

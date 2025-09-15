@@ -13,5 +13,6 @@ members = [
     "lib/router",
     "lib/security",
     "lib/protocol",
-    "lib/sdk"
+    "lib/sdk",
+    "plugins/demo"
 ]

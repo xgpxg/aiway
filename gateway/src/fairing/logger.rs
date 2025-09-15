@@ -2,7 +2,7 @@
 //!
 //! 在请求结束前记录日志，理论上该fairing总是需要被调用
 
-use crate::context::RCM;
+use crate::context::HCM;
 use rocket::Request;
 use rocket::fairing::Fairing;
 
@@ -24,7 +24,7 @@ impl Fairing for Logger {
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, _res: &mut rocket::Response<'r>) {
         // 提取RequestContext
-        let context = RCM.get_from_request(&req);
+        let context = HCM.get_from_request(&req);
 
         // 记录日志
 

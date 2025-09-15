@@ -3,7 +3,7 @@ mod response;
 mod router;
 mod sse;
 
-use crate::context::{RCM, RequestContextWrapper};
+use crate::context::{HttpContextWrapper, HCM};
 use crate::openapi::response::GatewayResponse;
 use crate::openapi::sse::SseEvent;
 use protocol::gateway::RequestContext;
@@ -24,9 +24,11 @@ use tokio_util::io::StreamReader;
 /// - 接口内部不处理任何业务逻辑，需转发到具体服务上处理
 /// - 同时支持流式和非流式响应
 /// - 流式响应支持恢复（插件实现）
+///
 #[post("/<path..>")]
-pub async fn call(wrapper: RequestContextWrapper, path: PathBuf) -> GatewayResponse {
-    let context = wrapper.0;
+pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+    let context = &wrapper.0.request;
+    println!("context: {:?}",context);
 
     // 1. 通过path获取端点配置
 
@@ -50,8 +52,8 @@ pub async fn call(wrapper: RequestContextWrapper, path: PathBuf) -> GatewayRespo
     let stream_reader = Box::new(StreamReader::new(Box::pin(stream)));
 
     // Json响应
-    // GatewayResponse::Json(context.get_query().into())
+     GatewayResponse::Json(context.get_path().into())
 
     // SSE响应
-    GatewayResponse::SSE(stream_reader)
+    //GatewayResponse::SSE(stream_reader)
 }
