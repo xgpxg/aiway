@@ -21,6 +21,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
             .limit("data-form", ByteUnit::Mebibyte(100))
             .limit("file", ByteUnit::Mebibyte(100)),
         log_level: rocket::config::LogLevel::Critical,
+        cli_colors: false,
         ..Config::debug_default()
     });
 

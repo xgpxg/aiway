@@ -8,6 +8,7 @@
 use crate::SV;
 use dashmap::DashMap;
 use std::any::Any;
+use std::fmt::Display;
 
 /// HTTP上下文
 ///
@@ -140,8 +141,19 @@ pub enum Method {
     Head,
     Options,
     Patch,
-    Connect,
-    Trace,
+}
+impl Display for Method {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Method::Get => write!(f, "GET"),
+            Method::Post => write!(f, "POST"),
+            Method::Put => write!(f, "PUT"),
+            Method::Delete => write!(f, "DELETE"),
+            Method::Head => write!(f, "HEAD"),
+            Method::Options => write!(f, "OPTIONS"),
+            Method::Patch => write!(f, "PATCH"),
+        }
+    }
 }
 
 impl From<&str> for Method {
@@ -154,8 +166,6 @@ impl From<&str> for Method {
             "HEAD" | "head" => Method::Head,
             "OPTIONS" | "options" => Method::Options,
             "PATCH" | "patch" => Method::Patch,
-            "CONNECT" | "connect" => Method::Connect,
-            "TRACE" | "trace" => Method::Trace,
             _ => panic!("Invalid method"),
         }
     }

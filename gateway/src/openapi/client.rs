@@ -1,31 +1,82 @@
-use crate::openapi::lb::LoadBalance;
+use conreg_client::lb::LoadBalanceClient;
 use dashmap::DashMap;
+use reqwest::header::{HeaderMap, HeaderName};
+use std::str::FromStr;
 use std::sync::LazyLock;
 
+/// 对LoadBalanceClient的封装
 pub struct HttpClient {
-    client: reqwest::Client,
-    lb: LoadBalance,
+    client: LoadBalanceClient,
 }
 
 pub static HTTP_CLIENT: LazyLock<HttpClient> = LazyLock::new(HttpClient::new);
 
 impl HttpClient {
     pub fn new() -> Self {
-        let mut builder = reqwest::ClientBuilder::default();
-        builder = builder.connect_timeout(std::time::Duration::from_secs(5));
-        // SAFE, Maybe...
-        let client = builder.build().unwrap();
-
-        let lb = LoadBalance::new();
-
-        Self { client, lb }
+        let client = LoadBalanceClient::new();
+        Self { client }
     }
 
+    /// get请求
+    ///
+    /// - url 请求地址。注意是lb地址
+    /// - headers 请求头
     pub async fn get(
         &self,
-        url: &str,
-        _headers: DashMap<String, String>,
-    ) -> reqwest::Result<reqwest::Response> {
-        self.client.get(url).send().await
+        url: impl Into<String>,
+        headers: DashMap<String, String>,
+    ) -> anyhow::Result<reqwest::Result<reqwest::Response>> {
+        Ok(self
+            .client
+            .get(url.into().as_str())
+            .await?
+            .headers(headers.into_header_map())
+            .send()
+            .await)
+    }
+}
+
+pub trait IntoHeaderMap {
+    /// 转换为HeaderMap
+    fn into_header_map(self) -> HeaderMap;
+}
+impl IntoHeaderMap for DashMap<String, String> {
+    /// DashMap转换为HeaderMap
+    fn into_header_map(self) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        for item in self.iter() {
+            headers.insert(
+                HeaderName::from_str(item.key().as_str()).unwrap(),
+                item.value().parse().unwrap(),
+            );
+        }
+        headers
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conreg_client::conf::{ClientConfigBuilder, ConRegConfigBuilder, DiscoveryConfigBuilder};
+    use conreg_client::init_with;
+
+    #[tokio::test]
+    async fn test_http_client() {
+        init_with(
+            ConRegConfigBuilder::default()
+                .client(ClientConfigBuilder::default().port(8001).build().unwrap())
+                .discovery(
+                    DiscoveryConfigBuilder::default()
+                        .server_addr("127.0.0.1:8000")
+                        .build()
+                        .unwrap(),
+                )
+                .build()
+                .unwrap(),
+        )
+        .await;
+        let url = "lb://test-server/hello";
+        let client = HTTP_CLIENT.get(url, Default::default()).await;
+        println!("{:?}", client);
     }
 }

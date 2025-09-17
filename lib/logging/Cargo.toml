@@ -4,8 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-common = { path = "../common" }
-log = "0.4.27"
-env_logger = "0.11.8"
-ansi_term = "0.12.1"
-chrono = "0.4.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "chrono"] }

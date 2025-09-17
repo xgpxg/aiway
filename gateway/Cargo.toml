@@ -5,9 +5,10 @@ edition = "2024"
 
 [dependencies]
 protocol = { path = "../lib/protocol" }
+logging = { path = "../lib/logging" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }
-serde = "1.0"
+#serde = "1.0"
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
@@ -15,3 +16,5 @@ dashmap = "6.1"
 uuid = { version = "1.18", features = ["v4"] }
 tokio-util = "0.7"
 reqwest = "0.12"
+#conreg-client = { path = "/home/wxg/work/project/conreg/client" }
+conreg-client = { git = "https://github.com/xgpxg/conreg", branch = "master" }

@@ -1,10 +1,12 @@
 use clap::Parser;
 
 mod config;
-mod fairing;
-mod openapi;
-mod server;
 mod context;
+mod fairing;
+mod init;
+mod openapi;
+mod router;
+mod server;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -21,6 +23,9 @@ struct Args {
 #[rocket::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
+
+    init::init(&args).await;
+
     server::start_http_server(&args).await?;
     Ok(())
 }

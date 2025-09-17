@@ -1,4 +1,5 @@
 use std::cell::UnsafeCell;
+use std::fmt::Display;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// 一个具有内部可变性的单值容器
@@ -6,6 +7,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub struct SingleValue<T> {
     value: UnsafeCell<Option<T>>,
     has_value: AtomicBool,
+}
+
+impl<T: Display> Display for SingleValue<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = self.get();
+        if value.is_none() {
+            return write!(f, "None");
+        }
+        write!(f, "{}", value.unwrap())
+    }
 }
 
 unsafe impl<T: Send> Send for SingleValue<T> {}
