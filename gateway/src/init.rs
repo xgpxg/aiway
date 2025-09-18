@@ -1,5 +1,7 @@
-use crate::Args;
-use conreg_client::conf::{ClientConfigBuilder, ConRegConfigBuilder, DiscoveryConfigBuilder};
+use crate::{Args, constants};
+use conreg_client::conf::{
+    ClientConfigBuilder, ConRegConfigBuilder, ConfigConfigBuilder, DiscoveryConfigBuilder,
+};
 use conreg_client::init_with;
 
 pub async fn init(args: &Args) {
@@ -12,6 +14,13 @@ async fn init_client(args: &Args) {
         .client(
             ClientConfigBuilder::default()
                 .port(args.port)
+                .build()
+                .unwrap(),
+        )
+        .config(
+            ConfigConfigBuilder::default()
+                .server_addr("127.0.0.1:8000")
+                .config_ids(vec![constants::ROUTES_CONFIG_ID.to_string()])
                 .build()
                 .unwrap(),
         )

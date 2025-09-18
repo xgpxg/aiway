@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 dashmap = "6.1"
+serde = "1"

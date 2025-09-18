@@ -7,6 +7,7 @@
 
 use crate::SV;
 use dashmap::DashMap;
+use serde::Deserialize;
 use std::any::Any;
 use std::fmt::Display;
 use std::sync::Arc;
@@ -67,7 +68,7 @@ pub struct ResponseContext {
     pub body: SV<Vec<u8>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Route {
     /// 名称
     name: String,
@@ -75,18 +76,21 @@ pub struct Route {
     /// 必须以"/"开头
     pub path: String,
     /// 需要路由到的服务ID
+    #[serde(alias = "service_id", alias = "service-id")]
     pub service_id: String,
     /// 协议：http | sse
     protocol: String,
     /// 请求方法：get | post | put | delete | patch | options
     method: String,
     /// 前置过滤器插件，在请求阶段执行，多个按顺序串联执行
+    #[serde(default = "Vec::default")]
     pre_filters: Vec<FilterPlugin>,
     /// 后置过滤器插件，在响应阶段执行，多个按顺序串联执行
+    #[serde(default = "Vec::default")]
     post_filters: Vec<FilterPlugin>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct FilterPlugin {
     /// 过滤器插件名称
     name: String,
