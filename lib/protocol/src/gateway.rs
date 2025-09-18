@@ -83,10 +83,14 @@ pub struct Route {
     /// 请求方法：get | post | put | delete | patch | options
     method: String,
     /// 前置过滤器插件，在请求阶段执行，多个按顺序串联执行
-    #[serde(default = "Vec::default")]
+    #[serde(default = "Vec::default", alias = "pre_filters", alias = "pre-filters")]
     pre_filters: Vec<FilterPlugin>,
     /// 后置过滤器插件，在响应阶段执行，多个按顺序串联执行
-    #[serde(default = "Vec::default")]
+    #[serde(
+        default = "Vec::default",
+        alias = "post_filters",
+        alias = "post-filters"
+    )]
     post_filters: Vec<FilterPlugin>,
 }
 
