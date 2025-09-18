@@ -7,12 +7,13 @@ mod sse;
 use crate::context::{HCM, HttpContextWrapper};
 use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;
-use crate::openapi::response::GatewayResponse;
+use crate::openapi::response::{GatewayResponse, ResponseExt};
 use crate::openapi::sse::SseEvent;
 use crate::router::ROUTER;
 use protocol::gateway::RequestContext;
 use reqwest::Url;
 use rocket::async_stream::stream;
+use rocket::futures::StreamExt;
 use rocket::http::hyper;
 use rocket::http::uri::fmt::Path;
 use rocket::request::FromSegments;
@@ -40,7 +41,7 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
     let path = &format!("/{}", path.to_str().unwrap());
 
     // 获取匹配的路由
-    // SAFE: 在fairing处理时已经验证，能走到这里来，一定会有值
+    // SAFE: 在routing fairing处理时已经验证，能走到这里来，一定会有值
     let route = context.get_route().unwrap();
 
     //log::info!("匹配到路由：{:?}", route);
@@ -79,7 +80,18 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
         Ok(response) => match response {
             // 返回响应
             // SSE如何实现？
-            Ok(response) => GatewayResponse::Raw(response.bytes().await.unwrap()),
+            Ok(response) => {
+                // 处理SSE流
+                if response.is_sse() {
+                    let stream = response.bytes_stream();
+                    let stream_reader =
+                        StreamReader::new(stream.map(|result| {
+                            result.map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+                        }));
+                    return GatewayResponse::SSE(Box::new(stream_reader));
+                }
+                GatewayResponse::Raw(response.bytes().await.unwrap())
+            }
             // 服务本身错误，如无响应等
             Err(_) => GatewayResponse::Error(GatewayError::ServiceUnavailable),
         },

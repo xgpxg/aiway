@@ -32,7 +32,12 @@ impl Router {
         let mut route = Route::default();
         route.path = "/hello".into();
         route.service_id = "test-server".into();
+
+        let mut route2 = Route::default();
+        route2.path = "/sse".into();
+        route2.service_id = "test-server".into();
         routes.insert(route.path.clone(), Arc::new(route)).unwrap();
+        routes.insert(route2.path.clone(), Arc::new(route2)).unwrap();
 
         Self { routes }
     }

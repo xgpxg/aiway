@@ -1,4 +1,5 @@
 use crate::openapi::error::GatewayError;
+use reqwest::header;
 use rocket::Request;
 use rocket::response::Responder;
 use rocket::serde::json::serde_json;
@@ -41,5 +42,18 @@ impl<'r> Responder<'r, 'r> for GatewayResponse {
                 .ok(),
             GatewayResponse::Error(e) => e.respond_to(request),
         }
+    }
+}
+
+pub trait ResponseExt {
+    fn is_sse(&self) -> bool;
+}
+impl ResponseExt for reqwest::Response {
+    #[inline]
+    fn is_sse(&self) -> bool {
+        if let Some(content_type) = self.headers().get(header::CONTENT_TYPE) {
+            return content_type.as_bytes().starts_with(b"text/event-stream");
+        }
+        false
     }
 }

@@ -1,11 +1,28 @@
+//! # 网关错误处理端点
+//!
+//! 在Fairing阶段发生错误，需要返回错误响应时，由于Fairing不能直接返回响应，
+//! 所以转发到这些错误处理的端点处理。
+//!
+//! ## 502
+//! 网关内部错误
+//!
+//! ## 503
+//! 服务错误
+//!
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::GatewayResponse;
 use rocket::{get, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![error_502]
+    routes![error_502, error_503]
 }
+
 #[get("/502")]
 async fn error_502() -> GatewayResponse {
     GatewayResponse::Error(GatewayError::BadGateway)
+}
+
+#[get("/503")]
+async fn error_503() -> GatewayResponse {
+    GatewayResponse::Error(GatewayError::ServiceUnavailable)
 }

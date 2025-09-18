@@ -15,7 +15,7 @@ log = "0.4"
 dashmap = "6.1"
 uuid = { version = "1.18", features = ["v4"] }
 tokio-util = "0.7"
-reqwest = "0.12"
+reqwest = { version = "0.12", features = ["stream"] }
 #conreg-client = { path = "/home/wxg/work/project/conreg/client" }
 conreg-client = { git = "https://github.com/xgpxg/conreg", branch = "master" }
 matchit = "0.8.6"
