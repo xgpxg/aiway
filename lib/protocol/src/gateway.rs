@@ -9,6 +9,7 @@ use crate::SV;
 use dashmap::DashMap;
 use std::any::Any;
 use std::fmt::Display;
+use std::sync::Arc;
 
 /// HTTP上下文
 ///
@@ -41,7 +42,7 @@ pub struct RequestContext {
     /// 请求路径。
     pub path: SV<String>,
     /// 请求参数
-    pub query: SV<String>,
+    pub query: SV<Option<String>>,
     /// 请求体
     ///
     /// 理论上，大部分请求体都是Json，可以使用serde_json序列化
@@ -49,18 +50,48 @@ pub struct RequestContext {
     pub body: SV<Vec<u8>>,
     /// 扩展数据
     pub state: DashMap<String, Box<dyn Any + Send + Sync>>,
+    /// 路由信息
+    ///
+    /// 路由由网关根据当前请求的path匹配得到，通常情况下，路由不应该手动修改。
+    /// 由于Route是网关级别的配置，对全局有效，所以使用Arc来共享
+    pub route: SV<Arc<Route>>,
 }
 
 #[derive(Debug, Default)]
 pub struct ResponseContext {
     /// 响应状态码
-    ///
-    /// 注意：初始状态为0，表示未设置
-    pub status: SV<u16>,
+    pub status: SV<Option<u16>>,
     /// 响应头
     pub headers: DashMap<String, String>,
     /// 响应体
     pub body: SV<Vec<u8>>,
+}
+
+#[derive(Debug, Default)]
+pub struct Route {
+    /// 名称
+    name: String,
+    /// 路径，支持通配符，全局唯一。
+    /// 必须以"/"开头
+    pub path: String,
+    /// 需要路由到的服务ID
+    pub service_id: String,
+    /// 协议：http | sse
+    protocol: String,
+    /// 请求方法：get | post | put | delete | patch | options
+    method: String,
+    /// 前置过滤器插件，在请求阶段执行，多个按顺序串联执行
+    pre_filters: Vec<FilterPlugin>,
+    /// 后置过滤器插件，在响应阶段执行，多个按顺序串联执行
+    post_filters: Vec<FilterPlugin>,
+}
+
+#[derive(Debug)]
+pub struct FilterPlugin {
+    /// 过滤器插件名称
+    name: String,
+    /// 阶段
+    phase: String,
 }
 
 impl RequestContext {
@@ -85,11 +116,13 @@ impl RequestContext {
     }
 
     pub fn set_query(&self, query: &str) {
-        self.query.set(query.to_string());
+        self.query.set(Some(query.to_string()));
     }
 
-    pub fn get_query(&self) -> String {
-        self.query.get().cloned().unwrap_or_default()
+    pub fn get_query(&self) -> Option<&str> {
+        self.query
+            .get()
+            .and_then(|opt| opt.as_ref().map(|s| s.as_str()))
     }
 
     pub fn set_body(&self, body: Vec<u8>) {
@@ -99,15 +132,23 @@ impl RequestContext {
     pub fn get_body(&self) -> Option<&Vec<u8>> {
         self.body.get().clone()
     }
+
+    pub fn set_route(&self, route: Arc<Route>) {
+        self.route.set(route);
+    }
+
+    pub fn get_route(&self) -> Option<&Arc<Route>> {
+        self.route.get()
+    }
 }
 
 impl ResponseContext {
     pub fn set_status(&self, status: u16) {
-        self.status.set(status);
+        self.status.set(Some(status));
     }
 
-    pub fn get_status(&self) -> u16 {
-        self.status.get().cloned().unwrap_or_default()
+    pub fn get_status(&self) -> Option<u16> {
+        self.status.get().and_then(|opt| opt.clone())
     }
 
     pub fn set_header(&self, key: &str, value: &str) {

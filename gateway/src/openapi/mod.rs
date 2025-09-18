@@ -1,7 +1,7 @@
 mod client;
+pub mod eep;
 mod error;
 mod response;
-mod router;
 mod sse;
 
 use crate::context::{HCM, HttpContextWrapper};
@@ -39,20 +39,14 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
 
     let path = &format!("/{}", path.to_str().unwrap());
 
-    // 通过path获取对应的路由配置(可以考虑放到Fairing做？)
-    let route = match ROUTER.matches(path) {
-        Some(r) => r,
-        None => {
-            // 没有匹配到路由，返回502错误
-            log::warn!("No route matched for path: {}", path);
-            return GatewayResponse::Error(GatewayError::BadGateway);
-        }
-    };
+    // 获取匹配的路由
+    // SAFE: 在fairing处理时已经验证，能走到这里来，一定会有值
+    let route = context.get_route().unwrap();
 
-    log::info!("匹配到路由：{:?}", route);
+    //log::info!("匹配到路由：{:?}", route);
 
     // 服务ID
-    let service_id = route.service_id.clone();
+    let service_id = &route.service_id;
 
     // 负载URL
     let mut url = match Url::parse(&format!("lb://{}{}", service_id, path)) {
@@ -66,20 +60,26 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
 
     // 添加query参数，如果有的话
     if let Some(query) = context.query.get() {
-        if query != "" {
+        if let Some(query) = query {
             url.set_query(Some(query));
         }
     }
 
+    // 负载地址
     let url = url.as_str();
-    log::info!("负载地址：{} {}", context.method, url);
+    //log::info!("负载地址：{} {}", context.method, url);
+
+    // 请求头
+    let headers = context.headers.clone();
 
     // 转发请求
-    let response = HTTP_CLIENT.get(url, context.headers.clone()).await;
+    let response = HTTP_CLIENT.get(url, headers).await;
     // 获取响应
     match response {
         Ok(response) => match response {
-            Ok(response) => GatewayResponse::Json(response.text().await.unwrap().into()),
+            // 返回响应
+            // SSE如何实现？
+            Ok(response) => GatewayResponse::Raw(response.bytes().await.unwrap()),
             // 服务本身错误，如无响应等
             Err(_) => GatewayResponse::Error(GatewayError::ServiceUnavailable),
         },

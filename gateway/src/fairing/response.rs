@@ -33,7 +33,7 @@ impl Fairing for ResponseData {
 
         // 设置状态码
         if let Some(status) = context.status.get() {
-            if status != &0 {
+            if let Some(status) = status{
                 res.set_status(Status::new(*status));
             }
         }

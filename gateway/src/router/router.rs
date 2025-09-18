@@ -11,13 +11,12 @@
 //! last-change: 毫秒时间戳
 //! ```
 
-use crate::router::route::Route;
-use dashmap::DashMap;
+use protocol::gateway::Route;
 use std::sync::{Arc, LazyLock};
 
 pub struct Router {
-    /// 路由表，key为path，含通配符，value为Route配置
-    routes: DashMap<String, Arc<Route>>,
+    /// 路由表
+    routes: matchit::Router<Arc<Route>>,
 }
 
 pub static ROUTER: LazyLock<Router> = LazyLock::new(Router::load);
@@ -29,21 +28,22 @@ impl Router {
         // 3. 长轮询监听指定配置，实时更新
 
         // 测试数据
-        let routes = DashMap::new();
+        let mut routes = matchit::Router::new();
         let mut route = Route::default();
         route.path = "/hello".into();
         route.service_id = "test-server".into();
-        routes.insert(route.path.clone(), Arc::new(route));
+        routes.insert(route.path.clone(), Arc::new(route)).unwrap();
 
-        Self { routes: routes }
+        Self { routes }
     }
 
-    pub fn add(&self, route: Route) {
-        self.routes.insert(route.path.clone(), Arc::new(route));
+    pub fn add(&mut self, route: Route) {
+        self.routes
+            .insert(route.path.clone(), Arc::new(route))
+            .unwrap();
     }
 
     pub fn matches(&self, path: &str) -> Option<Arc<Route>> {
-        // TODO 路径匹配
-        self.routes.get(path).map(|r| r.value().clone())
+        self.routes.at(path).ok().map(|res| res.value.clone())
     }
 }

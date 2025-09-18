@@ -66,6 +66,7 @@ mod tests {
                 query: Default::default(),
                 body: Default::default(),
                 state: Default::default(),
+                route: Default::default(),
             },
             response: Default::default(),
         };

@@ -1,6 +1,7 @@
 use clap::Parser;
 
 mod config;
+mod constants;
 mod context;
 mod fairing;
 mod init;

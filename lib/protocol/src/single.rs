@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// 一个具有内部可变性的单值容器
 #[derive(Debug)]
 pub struct SingleValue<T> {
-    value: UnsafeCell<Option<T>>,
+    value: UnsafeCell<T>,
     has_value: AtomicBool,
 }
 
@@ -25,29 +25,30 @@ unsafe impl<T: Send> Sync for SingleValue<T> {}
 impl<T> SingleValue<T> {
     pub fn new(value: T) -> Self {
         Self {
-            value: UnsafeCell::new(Some(value)),
+            value: UnsafeCell::new(value),
             has_value: AtomicBool::new(true),
         }
     }
 
     pub fn set(&self, value: T) {
         unsafe {
-            *self.value.get() = Some(value);
+            *self.value.get() = value;
         }
         self.has_value.store(true, Ordering::Release);
     }
 
-    pub fn take(&self) -> Option<T> {
-        if self.has_value.swap(false, Ordering::Acquire) {
-            unsafe { (*self.value.get()).take() }
-        } else {
-            None
-        }
-    }
+    // 目前bu需要take
+    // pub fn take(&self) -> Option<T> {
+    //     if self.has_value.swap(false, Ordering::Acquire) {
+    //         unsafe { (*self.value.get()).take() }
+    //     } else {
+    //         None
+    //     }
+    // }
 
     pub fn get(&self) -> Option<&T> {
         if self.has_value.load(Ordering::Acquire) {
-            unsafe { (*self.value.get()).as_ref() }
+            unsafe { Some(&*self.value.get()) }
         } else {
             None
         }

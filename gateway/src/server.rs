@@ -11,6 +11,7 @@ use rocket::data::{ByteUnit, Limits};
 use rocket::{Config, routes};
 use std::net::IpAddr;
 use std::str::FromStr;
+use crate::openapi::eep;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     let mut builder = rocket::build().configure(Config {
@@ -31,15 +32,15 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.attach(fairing::auth::Authentication::new());
     // 提取请求上下文（鉴权通过后，全局过滤器执行开始前执行）
     builder = builder.attach(fairing::request::RequestData::new());
-    // 全局前置过滤器（收到请求后，到达具体API接口前执行）
-    // 这些过滤器可自由配置，串联执行
+    // 全局前置过滤器（收到请求后，到达具体API接口前执行），可自由配置，串联执行
     builder = builder.attach(fairing::global_filter::GlobalPreFilter::new());
     // API前置过滤器，可自由配置，串联执行
     builder = builder.attach(fairing::filter::PreFilter::new());
+    // 路由匹配
+    builder = builder.attach(fairing::routing::Routing::new());
     // API后置过滤器，可自由配置，串联执行
     builder = builder.attach(fairing::filter::PostFilter::new());
-    // 全局后置过滤器（API接口执行完成后，响应客户端前执行）
-    // 这些过滤器可自由配置，串联执行
+    // 全局后置过滤器（API接口执行完成后，响应客户端前执行），可自由配置，串联执行
     builder = builder.attach(fairing::global_filter::GlobalPostFilter::new());
     // 设置响应（响应客户端前执行）
     builder = builder.attach(fairing::response::ResponseData::new());
@@ -49,6 +50,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.attach(fairing::cleanup::Cleaner::new());
 
     builder = builder.mount("/openapi/v1", routes![openapi::call]);
+    builder = builder.mount("/eep", eep::routes());
 
     builder.launch().await?;
 

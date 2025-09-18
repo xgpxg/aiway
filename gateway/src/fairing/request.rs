@@ -49,9 +49,10 @@ impl Fairing for RequestData {
             method: SV::new(req.method().as_str().into()),
             path: SV::new(req.uri().path().to_string()),
             headers: Default::default(),
-            query: SV::new(req.uri().query().map(|v| v.to_string()).unwrap_or_default()),
+            query: SV::new(req.uri().query().map(|v| v.to_string())),
             body: SV::new(body_data.to_vec()),
             state: Default::default(),
+            route: Default::default(),
         };
 
         // 响应上下文

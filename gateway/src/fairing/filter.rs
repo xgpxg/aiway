@@ -7,10 +7,8 @@
 //! - 默认不执行任何过滤器，由用户自行配置
 //! - 需要支持自定义脚本执行
 //!
-use crate::context::HCM;
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
-use rocket::serde::json::serde_json::json;
 
 pub struct PreFilter {}
 impl PreFilter {
@@ -73,5 +71,3 @@ impl Fairing for PostFilter {
         //println!("Run PostFilter on response");
     }
 }
-
-
