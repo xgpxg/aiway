@@ -53,6 +53,14 @@ impl<T> SingleValue<T> {
             None
         }
     }
+
+    /// 获取并
+    pub fn get_flat<U>(&self) -> Option<&U>
+    where
+        T: AsRef<Option<U>>
+    {
+        self.get().and_then(|inner| inner.as_ref().as_ref())
+    }
 }
 
 impl<T: Default> Default for SingleValue<T> {

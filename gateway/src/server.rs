@@ -6,12 +6,12 @@
 //! - 涉及到网络连接的，需池化、复用，避免频繁创建、销毁连接
 //! - 网关应不依赖任何中间件，可水平扩展，每个节点需独立运行，无相互依赖关系
 //!
+use crate::openapi::eep;
 use crate::{Args, fairing, openapi};
 use rocket::data::{ByteUnit, Limits};
 use rocket::{Config, routes};
 use std::net::IpAddr;
 use std::str::FromStr;
-use crate::openapi::eep;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     let mut builder = rocket::build().configure(Config {
@@ -34,11 +34,13 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.attach(fairing::request::RequestData::new());
     // 全局前置过滤器（收到请求后，到达具体API接口前执行），可自由配置，串联执行
     builder = builder.attach(fairing::global_filter::GlobalPreFilter::new());
-    // API前置过滤器，可自由配置，串联执行
+    // 路由前置过滤器，可自由配置，串联执行
     builder = builder.attach(fairing::filter::PreFilter::new());
     // 路由匹配
     builder = builder.attach(fairing::routing::Routing::new());
-    // API后置过滤器，可自由配置，串联执行
+    // 负载均衡
+    builder = builder.attach(fairing::lb::LoadBalance::new());
+    // 路由后置过滤器，可自由配置，串联执行
     builder = builder.attach(fairing::filter::PostFilter::new());
     // 全局后置过滤器（API接口执行完成后，响应客户端前执行），可自由配置，串联执行
     builder = builder.attach(fairing::global_filter::GlobalPostFilter::new());

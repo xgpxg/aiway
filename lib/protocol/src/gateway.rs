@@ -71,27 +71,35 @@ pub struct ResponseContext {
 #[derive(Debug, Default, Deserialize)]
 pub struct Route {
     /// 名称
-    name: String,
-    /// 路径，支持通配符，全局唯一。
-    /// 必须以"/"开头
+    pub name: String,
+    // 域名
+    // 暂不实现域名匹配，由Nginx处理
+    //pub host: String,
+    /// 路径，支持通配符，必须以"/"开头，全局唯一。
     pub path: String,
     /// 需要路由到的服务ID
     #[serde(alias = "service_id", alias = "service-id")]
     pub service_id: String,
     /// 协议：http | sse
-    protocol: String,
+    pub protocol: String,
     /// 请求方法：get | post | put | delete | patch | options
-    method: String,
+    pub method: String,
+    /// header匹配条件
+    #[serde(alias = "header_condition", alias = "header-condition")]
+    pub header: Option<DashMap<String, String>>,
+    /// query匹配条件，满足
+    #[serde(alias = "query_condition", alias = "query-condition")]
+    pub query: Option<DashMap<String, String>>,
     /// 前置过滤器插件，在请求阶段执行，多个按顺序串联执行
     #[serde(default = "Vec::default", alias = "pre_filters", alias = "pre-filters")]
-    pre_filters: Vec<FilterPlugin>,
+    pub pre_filters: Vec<FilterPlugin>,
     /// 后置过滤器插件，在响应阶段执行，多个按顺序串联执行
     #[serde(
         default = "Vec::default",
         alias = "post_filters",
         alias = "post-filters"
     )]
-    post_filters: Vec<FilterPlugin>,
+    pub post_filters: Vec<FilterPlugin>,
 }
 
 #[derive(Debug, Deserialize)]

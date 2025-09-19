@@ -15,11 +15,12 @@
 //! 可在此阶段修改响应结果。
 //! TODO 以上内容需重写
 pub mod auth;
+pub mod cleanup;
 pub mod filter;
 pub mod global_filter;
+pub mod lb;
 pub mod logger;
 pub mod request;
-pub mod security;
-pub mod cleanup;
 pub mod response;
 pub mod routing;
+pub mod security;

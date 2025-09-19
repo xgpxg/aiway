@@ -18,7 +18,7 @@ async fn main() -> anyhow::Result<()> {
         ..Config::debug_default()
     });
 
-    builder = builder.mount("/", routes![hello, sse]);
+    builder = builder.mount("/", routes![hello, sse, html]);
 
     builder.launch().await?;
 
@@ -38,6 +38,11 @@ fn sse() -> EventStream![] {
             tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         }
     }
+}
+
+#[get("/html")]
+fn html() -> String {
+    include_str!("index.html").to_string()
 }
 
 async fn init_client() {
