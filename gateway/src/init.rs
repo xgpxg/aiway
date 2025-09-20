@@ -20,7 +20,10 @@ async fn init_client(args: &Args) {
         .config(
             ConfigConfigBuilder::default()
                 .server_addr("127.0.0.1:8000")
-                .config_ids(vec![constants::ROUTES_CONFIG_ID.to_string()])
+                .config_ids(vec![
+                    constants::ROUTES_CONFIG_ID.to_string(),
+                    constants::SERVICES_CONFIG_ID.to_string(),
+                ])
                 .build()
                 .unwrap(),
         )

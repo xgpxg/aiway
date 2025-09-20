@@ -1,0 +1,136 @@
+use crate::SV;
+use crate::gateway::route::Route;
+use dashmap::DashMap;
+use std::any::Any;
+use std::fmt::Display;
+use std::sync::Arc;
+
+/// 请求上下文
+///
+/// - 贯穿整个请求流程，同一个请求中应该仅持有一份数据。
+/// - 不应该被多次创建，仅在请求阶段构建一次。
+/// - 不需要序列化和反序列化
+///
+#[derive(Debug, Default)]
+pub struct RequestContext {
+    /// 请求ID
+    pub request_id: String,
+    /// 请求方法
+    pub method: SV<Method>,
+    /// 请求头
+    pub headers: DashMap<String, String>,
+    /// 请求路径。
+    pub path: SV<String>,
+    /// 请求参数
+    pub query: SV<Option<String>>,
+    /// 请求体
+    ///
+    /// 理论上，大部分请求体都是Json，可以使用serde_json序列化
+    /// TODO 文件如何处理？
+    pub body: SV<Vec<u8>>,
+    /// 扩展数据
+    pub state: DashMap<String, Box<dyn Any + Send + Sync>>,
+    /// 路由信息
+    ///
+    /// 路由由网关根据当前请求的path匹配得到，通常情况下，路由不应该手动修改。
+    /// 由于Route是网关级别的配置，对全局有效，所以使用Arc来共享。
+    pub route: SV<Arc<Route>>,
+    /// 路由目标地址，可以是域名或IP
+    pub routing_url: SV<String>,
+}
+
+impl RequestContext {
+    pub fn set_path(&self, path: &str) {
+        self.path.set(path.to_string());
+    }
+
+    pub fn get_path(&self) -> String {
+        self.path.get().cloned().unwrap_or_default()
+    }
+
+    pub fn set_header(&self, key: &str, value: &str) {
+        self.headers.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn get_header(&self, key: &str) -> Option<String> {
+        self.headers.get(key).map(|v| v.value().clone())
+    }
+
+    pub fn remove_header(&self, key: &str) {
+        self.headers.remove(key);
+    }
+
+    pub fn set_query(&self, query: &str) {
+        self.query.set(Some(query.to_string()));
+    }
+
+    pub fn get_query(&self) -> Option<&str> {
+        self.query
+            .get()
+            .and_then(|opt| opt.as_ref().map(|s| s.as_str()))
+    }
+
+    pub fn set_body(&self, body: Vec<u8>) {
+        self.body.set(body)
+    }
+
+    pub fn get_body(&self) -> Option<&Vec<u8>> {
+        self.body.get().clone()
+    }
+
+    pub fn set_route(&self, route: Arc<Route>) {
+        self.route.set(route);
+    }
+
+    pub fn get_route(&self) -> Option<&Arc<Route>> {
+        self.route.get()
+    }
+
+    pub fn set_routing_url(&self, url: String) {
+        self.routing_url.set(url);
+    }
+
+    pub fn get_routing_url(&self) -> Option<&String> {
+        self.routing_url.get()
+    }
+}
+
+#[derive(Debug, Default)]
+pub enum Method {
+    #[default]
+    Get,
+    Post,
+    Put,
+    Delete,
+    Head,
+    Options,
+    Patch,
+}
+impl Display for Method {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Method::Get => write!(f, "GET"),
+            Method::Post => write!(f, "POST"),
+            Method::Put => write!(f, "PUT"),
+            Method::Delete => write!(f, "DELETE"),
+            Method::Head => write!(f, "HEAD"),
+            Method::Options => write!(f, "OPTIONS"),
+            Method::Patch => write!(f, "PATCH"),
+        }
+    }
+}
+
+impl From<&str> for Method {
+    fn from(s: &str) -> Self {
+        match s {
+            "GET" | "get" => Method::Get,
+            "POST" | "post" => Method::Post,
+            "PUT" | "put" => Method::Put,
+            "DELETE" | "delete" => Method::Delete,
+            "HEAD" | "head" => Method::Head,
+            "OPTIONS" | "options" => Method::Options,
+            "PATCH" | "patch" => Method::Patch,
+            _ => panic!("Invalid method"),
+        }
+    }
+}

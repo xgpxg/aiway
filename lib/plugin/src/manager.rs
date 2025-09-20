@@ -28,8 +28,7 @@ impl PluginManager {
 mod tests {
     use super::*;
     use protocol::SV;
-    use protocol::gateway::Method;
-    use std::any::Any;
+    use protocol::gateway::request_context::Method;
     use std::path::Path;
     use std::sync::{Arc, Mutex};
     use std::thread::spawn;
@@ -67,6 +66,7 @@ mod tests {
                 body: Default::default(),
                 state: Default::default(),
                 route: Default::default(),
+                routing_url: SV::empty(),
             },
             response: Default::default(),
         };
@@ -88,6 +88,8 @@ mod tests {
             query: Default::default(),
             body: Default::default(),
             state: Default::default(),
+            route: SV::empty(),
+            routing_url: SV::empty(),
         };
         let context = Arc::new(HttpContext {
             request: context,

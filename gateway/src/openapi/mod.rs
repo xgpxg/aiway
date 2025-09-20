@@ -15,6 +15,7 @@ use reqwest::Url;
 use rocket::async_stream::stream;
 use rocket::futures::StreamExt;
 use rocket::http::hyper;
+use rocket::http::uri::Uri;
 use rocket::http::uri::fmt::Path;
 use rocket::request::FromSegments;
 use rocket::serde::json::{Value, serde_json};
@@ -24,6 +25,7 @@ use std::io;
 use std::io::Bytes;
 use std::path::PathBuf;
 use std::pin::Pin;
+use std::str::FromStr;
 use tokio_util::io::StreamReader;
 
 /// OpenAPI统一入口
@@ -37,20 +39,21 @@ use tokio_util::io::StreamReader;
 #[post("/<path..>")]
 pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     let context = &wrapper.0.request;
-
-    let path = &format!("/{}", path.to_str().unwrap());
-
     // 获取匹配的路由
     // SAFE: 在routing fairing处理时已经验证，能走到这里来，一定会有值
     let route = context.get_route().unwrap();
-
     //log::info!("匹配到路由：{:?}", route);
 
-    // 服务ID
-    let service_id = &route.service_id;
+    // 原始请求路径
+    let path = path.to_string_lossy();
+    //log::info!("原始请求路径：{?}", path);
 
-    // 负载URL
-    let mut url = match Url::parse(&format!("lb://{}{}", service_id, path)) {
+    // 对Route前缀处理过后的路径
+    let path = route.build_path(&path);
+
+    // 路由的实际地址，该地址已经有负载均衡处理过，可能是IP或域名
+    let routing_url = context.get_routing_url().unwrap();
+    let mut url = match Url::parse(&format!("{}/{}", routing_url, path)) {
         Ok(url) => url,
         // 理论上不会执行到这里
         Err(e) => {
@@ -66,12 +69,12 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
         }
     }
 
-    // 负载地址
-    let url = url.as_str();
-    //log::info!("负载地址：{} {}", context.method, url);
-
     // 请求头
     let headers = context.headers.clone();
+
+    // 最终请求的url
+    let url = url.as_str();
+    //log::info!("最终请求地址：{} {}", context.method, url);
 
     // 转发请求
     let response = HTTP_CLIENT.get(url, headers).await;
@@ -79,7 +82,6 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
     match response {
         Ok(response) => match response {
             // 返回响应
-            // SSE如何实现？
             Ok(response) => {
                 // 处理SSE流
                 if response.is_sse() {
@@ -93,7 +95,10 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
                 GatewayResponse::Raw(response.bytes().await.unwrap())
             }
             // 服务本身错误，如无响应等
-            Err(_) => GatewayResponse::Error(GatewayError::ServiceUnavailable),
+            Err(e) => {
+                log::error!("服务调用失败: {}", e);
+                GatewayResponse::Error(GatewayError::ServiceUnavailable)
+            }
         },
         // 网关内部错误，如无可用实例、构建url失败、内部异常等
         Err(e) => {

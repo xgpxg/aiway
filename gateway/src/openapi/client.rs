@@ -1,19 +1,19 @@
-use conreg_client::lb::LoadBalanceClient;
 use dashmap::DashMap;
 use reqwest::header::{HeaderMap, HeaderName};
+use reqwest::{Client, ClientBuilder};
 use std::str::FromStr;
 use std::sync::LazyLock;
 
 /// 对LoadBalanceClient的封装
 pub struct HttpClient {
-    client: LoadBalanceClient,
+    client: Client,
 }
 
 pub static HTTP_CLIENT: LazyLock<HttpClient> = LazyLock::new(HttpClient::new);
 
 impl HttpClient {
     pub fn new() -> Self {
-        let client = LoadBalanceClient::new();
+        let client = ClientBuilder::default().build().unwrap();
         Self { client }
     }
 
@@ -29,7 +29,6 @@ impl HttpClient {
         Ok(self
             .client
             .get(url.into().as_str())
-            .await?
             .headers(headers.into_header_map())
             .send()
             .await)
@@ -40,6 +39,7 @@ pub trait IntoHeaderMap {
     /// 转换为HeaderMap
     fn into_header_map(self) -> HeaderMap;
 }
+
 impl IntoHeaderMap for DashMap<String, String> {
     /// DashMap转换为HeaderMap
     fn into_header_map(self) -> HeaderMap {

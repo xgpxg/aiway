@@ -1,12 +1,11 @@
+use serde::{Deserialize, Deserializer};
 use std::cell::UnsafeCell;
 use std::fmt::Display;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 /// 一个具有内部可变性的单值容器
 #[derive(Debug)]
 pub struct SingleValue<T> {
-    value: UnsafeCell<T>,
-    has_value: AtomicBool,
+    value: UnsafeCell<Option<T>>,
 }
 
 impl<T: Display> Display for SingleValue<T> {
@@ -25,58 +24,66 @@ unsafe impl<T: Send> Sync for SingleValue<T> {}
 impl<T> SingleValue<T> {
     pub fn new(value: T) -> Self {
         Self {
-            value: UnsafeCell::new(value),
-            has_value: AtomicBool::new(true),
+            value: UnsafeCell::new(Some(value)),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            value: UnsafeCell::new(None),
         }
     }
 
     pub fn set(&self, value: T) {
         unsafe {
-            *self.value.get() = value;
+            *self.value.get() = Some(value);
         }
-        self.has_value.store(true, Ordering::Release);
     }
 
-    // 目前bu需要take
-    // pub fn take(&self) -> Option<T> {
-    //     if self.has_value.swap(false, Ordering::Acquire) {
-    //         unsafe { (*self.value.get()).take() }
-    //     } else {
-    //         None
-    //     }
-    // }
-
+    #[inline]
     pub fn get(&self) -> Option<&T> {
-        if self.has_value.load(Ordering::Acquire) {
-            unsafe { Some(&*self.value.get()) }
-        } else {
-            None
-        }
+        unsafe { (*self.value.get()).as_ref() }
     }
 
-    /// 获取并
-    pub fn get_flat<U>(&self) -> Option<&U>
-    where
-        T: AsRef<Option<U>>
-    {
-        self.get().and_then(|inner| inner.as_ref().as_ref())
-    }
+    // #[inline]
+    // pub fn get_flat<U>(&self) -> Option<&U>
+    // where
+    //     T: AsRef<Option<U>>,
+    // {
+    //     self.get().and_then(|inner| inner.as_ref().as_ref())
+    // }
 }
 
 impl<T: Default> Default for SingleValue<T> {
+    #[inline]
     fn default() -> Self {
         Self::new(T::default())
     }
 }
 
 impl Into<SingleValue<String>> for String {
+    #[inline]
     fn into(self) -> SingleValue<String> {
         SingleValue::new(self)
     }
 }
 
 impl Into<SingleValue<Vec<u8>>> for Vec<u8> {
+    #[inline]
     fn into(self) -> SingleValue<Vec<u8>> {
         SingleValue::new(self)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for SingleValue<T>
+where
+    T: Deserialize<'de> + Default,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = T::deserialize(deserializer)?;
+        Ok(SingleValue::new(value))
     }
 }
