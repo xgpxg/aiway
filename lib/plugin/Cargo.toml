@@ -6,3 +6,7 @@ edition = "2024"
 [dependencies]
 protocol = { path = "../protocol" }
 libloading = "0.8"
+reqwest = "0.12"
+uuid = { version = "1.18", features = ["v4"] }
+[dev-dependencies]
+tokio = { version = "1", features = ["macros"] }

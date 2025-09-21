@@ -22,13 +22,45 @@
 //!
 //! 路由插件和全局插件实现方式相同，仅执行时机不同。
 //!
+//! ## 使用方式
+//! ```rust
+//! // 示例插件
+//! pub struct DemoPlugin;
+//!
+//! impl DemoPlugin {
+//!     pub fn new() -> Self {
+//!         Self {}
+//!     }
+//! }
+//! impl Plugin for DemoPlugin {
+//!     fn name(&self) -> &'static str {
+//!         "demo"
+//!     }
+//!
+//!     // 实现插件逻辑
+//!     fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
+//!         println!("run demo plugin, context: {:?}", context);
+//!         Ok(())
+//!     }
+//! }
+//!
+//! // 导出插件
+//! export!(DemoPlugin);
+//! ```
+//!
 
 mod macros;
 mod manager;
+mod network;
 
+use crate::network::NETWORK;
 use libloading::Symbol;
 use protocol::gateway::HttpContext;
 use std::any::Any;
+use std::env::temp_dir;
+use std::fs;
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -90,6 +122,47 @@ impl TryInto<Box<dyn Plugin>> for PathBuf {
     }
 }
 
+/// 从网络加载Plugin
+pub struct NetworkPlugin(String);
+impl NetworkPlugin {
+    pub fn new(url: &str) -> Self {
+        Self(url.to_string())
+    }
+    pub async fn load(&self) -> Result<Box<dyn Plugin>, PluginError> {
+        let response = NETWORK
+            .client
+            .get(&self.0)
+            .send()
+            .await
+            .map_err(|e| PluginError::LoadError(e.to_string()))?
+            .error_for_status()
+            .map_err(|e| PluginError::LoadError(e.to_string()))?;
+
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| PluginError::LoadError(e.to_string()))?;
+
+        let tpf = temp_dir().join(uuid::Uuid::new_v4().to_string());
+
+        let plugin = {
+            let tpf = tpf.clone();
+            let mut file = File::create(&tpf).map_err(|e| PluginError::LoadError(e.to_string()))?;
+
+            file.write_all(&bytes)
+                .map_err(|e| PluginError::LoadError(e.to_string()))?;
+
+            drop(file);
+
+            tpf.try_into()
+        };
+
+        fs::remove_file(tpf).map_err(|e| PluginError::LoadError(e.to_string()))?;
+
+        plugin
+    }
+}
+
 struct LibraryPluginWrapper {
     plugin: Box<dyn Plugin>,
     _lib: libloading::Library,
@@ -115,5 +188,30 @@ impl Drop for LibraryPluginWrapper {
 
             destructor(self.plugin.as_mut());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::manager::PluginManager;
+    #[tokio::test]
+    async fn test_network_plugin() {
+        let p = NetworkPlugin(
+            "http://192.168.1.242:10000/aiway/test/plugins/libdemo_plugin.so".to_string(),
+        );
+        let plugin = p.load().await.unwrap();
+        plugin.execute(&HttpContext::default()).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_plugin_manager() {
+        let p = NetworkPlugin(
+            "http://192.168.1.242:10000/aiway/test/plugins/libdemo_plugin.so".to_string(),
+        );
+        let plugin = p.load().await.unwrap();
+        let mut manager = PluginManager::new();
+        manager.register(plugin);
+        manager.run("demo", &HttpContext::default()).unwrap();
     }
 }

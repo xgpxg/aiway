@@ -8,7 +8,7 @@ use crate::gateway::response_context::ResponseContext;
 /// - 内部可变性
 /// 要求在实现时，不要出现对外的可变引用
 /// - 该类型也作为与Plugin交互的数据结构
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct HttpContext {
     /// 请求上下文，应该在请求阶段构建
     pub request: RequestContext,
