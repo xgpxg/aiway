@@ -11,7 +11,15 @@
 //!
 //! 注意：该过滤器全局有效，针对每个API的过滤器需使用`PreFilter`
 //!
+//! ## 过滤器加载
+//! 过滤器逻辑使用插件实现，从conreg获取全局过滤器配置，调用插件加载逻辑即可。
+//!
+
+use crate::context::HCM;
+use crate::router::PLUGINS;
 use rocket::fairing::Fairing;
+use rocket::http::Method;
+use rocket::http::uri::Origin;
 use rocket::{Data, Request};
 
 pub struct GlobalPreFilter {}
@@ -30,12 +38,31 @@ impl Fairing for GlobalPreFilter {
         }
     }
 
-    async fn on_request(&self, _req: &mut Request<'_>, _data: &mut Data<'_>) {
-        // 1. 加载全局插件
+    async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        let context = HCM.get_from_request(req);
+        let plugins = PLUGINS
+            .get()
+            .unwrap() // SAFE: 在启动时已经初始化
+            .global_pre_filter_plugins
+            .read()
+            .await;
 
-        // 2. 按顺序执行插件
-
-        //println!("Run GlobalPreFilter on request");
+        for (_, plugin) in plugins.iter() {
+            log::debug!("execute global pre filter plugin: {}", plugin.name());
+            match plugin.execute(&context).await {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!(
+                        "execute global pre filter plugin {} error: {}",
+                        plugin.name(),
+                        e
+                    );
+                    req.set_method(Method::Get);
+                    req.set_uri(Origin::parse("/eep/502").unwrap());
+                    return;
+                }
+            }
+        }
     }
 }
 

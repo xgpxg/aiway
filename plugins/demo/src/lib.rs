@@ -1,4 +1,4 @@
-use plugin::{Plugin, PluginError, export};
+use plugin::{Plugin, PluginError, export, async_trait};
 use protocol::gateway::HttpContext;
 
 // 示例插件
@@ -9,14 +9,16 @@ impl DemoPlugin {
         Self {}
     }
 }
+
+#[async_trait]
 impl Plugin for DemoPlugin {
     fn name(&self) -> &'static str {
         "demo"
     }
 
     // 实现插件逻辑
-    fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
-        println!("run demo plugin, context: {:?}", context);
+    async fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
+        //println!("run demo plugin, context: {:?}", context);
         Ok(())
     }
 }

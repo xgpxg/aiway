@@ -8,12 +8,14 @@
 //!
 
 pub mod http_context;
+pub mod plugin;
 pub mod request_context;
 pub mod response_context;
 pub mod route;
 pub mod service;
 
 pub use http_context::HttpContext;
+pub use plugin::Plugin;
 pub use request_context::RequestContext;
 pub use response_context::ResponseContext;
 pub use route::Route;

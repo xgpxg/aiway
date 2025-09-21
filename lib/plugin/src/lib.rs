@@ -32,13 +32,14 @@
 //!         Self {}
 //!     }
 //! }
+//! #[async_trait]
 //! impl Plugin for DemoPlugin {
 //!     fn name(&self) -> &'static str {
 //!         "demo"
 //!     }
 //!
 //!     // 实现插件逻辑
-//!     fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
+//!     async fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
 //!         println!("run demo plugin, context: {:?}", context);
 //!         Ok(())
 //!     }
@@ -54,9 +55,10 @@ mod manager;
 mod network;
 
 use crate::network::NETWORK;
+pub use async_trait::async_trait;
 use libloading::Symbol;
+pub use manager::PluginManager;
 use protocol::gateway::HttpContext;
-use std::any::Any;
 use std::env::temp_dir;
 use std::fs;
 use std::fs::File;
@@ -73,6 +75,16 @@ pub enum PluginError {
     LoadError(String),
 }
 
+impl std::fmt::Display for PluginError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PluginError::ExecuteError(msg) => write!(f, "{}", msg),
+            PluginError::NotFound(msg) => write!(f, "{}", msg),
+            PluginError::LoadError(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
 /// 插件定义
 ///
 /// - name
@@ -85,13 +97,15 @@ pub enum PluginError {
 /// 注意：当多个插件修改HttpContext的同一个属性时，后执行的插件会覆盖前一个插件的修改。
 /// 插件实现方应该自行决定插件运行阶段（请求阶段或者响应阶段），从而获取或修改request或response的数据。
 ///
+#[async_trait]
 pub trait Plugin: Send + Sync {
     /// 插件名称
     fn name(&self) -> &str;
     /// 执行插件
-    fn execute(&self, context: &HttpContext) -> Result<(), PluginError>;
+    async fn execute(&self, context: &HttpContext) -> Result<(), PluginError>;
 }
 
+/// 从本地磁盘加载插件
 impl TryInto<Box<dyn Plugin>> for PathBuf {
     type Error = PluginError;
 
@@ -122,13 +136,50 @@ impl TryInto<Box<dyn Plugin>> for PathBuf {
     }
 }
 
-/// 从网络加载Plugin
-pub struct NetworkPlugin(String);
-impl NetworkPlugin {
-    pub fn new(url: &str) -> Self {
-        Self(url.to_string())
+struct LibraryPluginWrapper {
+    plugin: Box<dyn Plugin>,
+    _lib: libloading::Library,
+}
+
+#[async_trait]
+impl Plugin for LibraryPluginWrapper {
+    fn name(&self) -> &str {
+        self.plugin.name()
     }
-    pub async fn load(&self) -> Result<Box<dyn Plugin>, PluginError> {
+
+    async fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
+        self.plugin.execute(context).await
+    }
+}
+
+impl Drop for LibraryPluginWrapper {
+    fn drop(&mut self) {
+        unsafe {
+            let destructor: Symbol<unsafe extern "C" fn(*mut dyn Plugin)> = self
+                ._lib
+                .get(b"destroy_plugin")
+                .expect("Failed to get destructor function");
+
+            destructor(self.plugin.as_mut());
+        }
+    }
+}
+
+/// 从指定的URL加载插件
+pub struct NetworkPlugin(pub String);
+
+#[async_trait]
+pub trait AsyncTryInto<T>: Sized {
+    type Error;
+
+    async fn async_try_into(self) -> Result<T, Self::Error>;
+}
+
+#[async_trait]
+impl AsyncTryInto<Box<dyn Plugin>> for NetworkPlugin {
+    type Error = PluginError;
+
+    async fn async_try_into(self) -> Result<Box<dyn Plugin>, Self::Error> {
         let response = NETWORK
             .client
             .get(&self.0)
@@ -163,34 +214,6 @@ impl NetworkPlugin {
     }
 }
 
-struct LibraryPluginWrapper {
-    plugin: Box<dyn Plugin>,
-    _lib: libloading::Library,
-}
-
-impl Plugin for LibraryPluginWrapper {
-    fn name(&self) -> &str {
-        self.plugin.name()
-    }
-
-    fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
-        self.plugin.execute(context)
-    }
-}
-
-impl Drop for LibraryPluginWrapper {
-    fn drop(&mut self) {
-        unsafe {
-            let destructor: Symbol<unsafe extern "C" fn(*mut dyn Plugin)> = self
-                ._lib
-                .get(b"destroy_plugin")
-                .expect("Failed to get destructor function");
-
-            destructor(self.plugin.as_mut());
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,18 +223,17 @@ mod tests {
         let p = NetworkPlugin(
             "http://192.168.1.242:10000/aiway/test/plugins/libdemo_plugin.so".to_string(),
         );
-        let plugin = p.load().await.unwrap();
-        plugin.execute(&HttpContext::default()).unwrap();
+        let plugin: Box<dyn Plugin> = p.async_try_into().await.unwrap();
+        plugin.execute(&HttpContext::default()).await.unwrap();
     }
-
     #[tokio::test]
     async fn test_plugin_manager() {
         let p = NetworkPlugin(
             "http://192.168.1.242:10000/aiway/test/plugins/libdemo_plugin.so".to_string(),
         );
-        let plugin = p.load().await.unwrap();
+        let plugin: Box<dyn Plugin> = p.async_try_into().await.unwrap();
         let mut manager = PluginManager::new();
         manager.register(plugin);
-        manager.run("demo", &HttpContext::default()).unwrap();
+        manager.run("demo", &HttpContext::default()).await.unwrap();
     }
 }

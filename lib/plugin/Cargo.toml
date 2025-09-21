@@ -8,5 +8,8 @@ protocol = { path = "../protocol" }
 libloading = "0.8"
 reqwest = "0.12"
 uuid = { version = "1.18", features = ["v4"] }
+dashmap = "6.1"
+async-trait = "0.1.89"
+
 [dev-dependencies]
 tokio = { version = "1", features = ["macros"] }
