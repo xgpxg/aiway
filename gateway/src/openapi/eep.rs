@@ -9,6 +9,9 @@
 //! ## 503
 //! 服务错误
 //!
+//! ## 401
+//! API Key验证失败
+//!
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::GatewayResponse;
 use rocket::{get, routes};

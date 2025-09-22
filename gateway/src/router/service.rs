@@ -42,7 +42,7 @@ impl Service {
     }
 
     fn fetch_services() -> Vec<gateway::Service> {
-        // 从配置中心哪路由表
+        // 从配置中心拿路由表
         let mut services = AppConfig::get::<Vec<gateway::Service>>("services").unwrap_or_default();
         log::info!("fetched {} services", services.len());
         log::debug!("services: {:?}", services);

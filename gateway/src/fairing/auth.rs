@@ -1,19 +1,14 @@
 //! # 鉴权
 //! ## 主要功能
 //! 从请求中提取ApiKey并验证，验证不通过则返回403。
-//! 验证通过后
 //!
-//! ## 基本准则
-//! - 在基本安全验证后执行。
-//! - 由系统内置，不可关闭。
-//! - 不应提取请求body数据，仅对请求url（含query参数）、header等基础数据进行验证。
-//! - 当验证失败时，更改uri到指定端点，返回错误信息。
-//! - 不应涉及任何网络请求及IO操作，需要在5ms内完成
+//! 考虑是调用另外的服务验证，还是对API Key解密验证?
 //!
 use crate::context::Headers;
+use protocol::gateway::ApiKey;
 use rocket::fairing::Fairing;
-use rocket::http::uri::Origin;
 use rocket::http::Method;
+use rocket::http::uri::Origin;
 use rocket::{Data, Request};
 
 pub struct Authentication {}
@@ -37,8 +32,8 @@ impl Fairing for Authentication {
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         let _ = crate::extract_api_path!(req);
 
-        let api_key = req.headers().get_one(Headers::AUTHORIZATION);
-        let api_key = match api_key {
+        let bearer_token = req.headers().get_one(Headers::AUTHORIZATION);
+        let api_key = match bearer_token {
             Some(api_key) => match api_key.strip_prefix(BEARER_PREFIX) {
                 Some(api_key) => api_key,
                 None => {
@@ -54,6 +49,22 @@ impl Fairing for Authentication {
             }
         };
 
-        // TODO 调用KMS鉴权
+        if let Err(_) = ApiKey::decrypt(&[0; 32], api_key) {
+            req.set_method(Method::Get);
+            req.set_uri(Origin::parse("/eep/401").unwrap());
+            return;
+        }
+
+        let api_key = cache::get::<String>(api_key).await.unwrap();
+        let _api_key = match api_key {
+            None => {
+                req.set_method(Method::Get);
+                req.set_uri(Origin::parse("/eep/401").unwrap());
+                return;
+            }
+            Some(v) => v,
+        };
+
+        //println!("{:?}", api_key.unwrap().principal);
     }
 }

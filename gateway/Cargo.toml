@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-protocol = { path = "../lib/protocol" }
+protocol = { path = "../lib/protocol", features = ["rocket", "api-key"] }
 logging = { path = "../lib/logging" }
 loadbalance = { path = "../lib/loadbalance" }
 plugin = { path = "../lib/plugin" }
+cache = { path = "../lib/cache" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }
 #serde = "1.0"
