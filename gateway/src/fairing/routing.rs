@@ -29,8 +29,8 @@ impl Fairing for Routing {
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         // 获取path
-        // 注意这个path非全路径，而是去除了网关API前缀后的路径
-        let path = &req.uri().path().as_str()[constants::API_PREFIX.len()..];
+        let path = crate::extract_api_path!(req);
+
         let route = match ROUTER.matches(path) {
             Some(r) => r,
             None => {

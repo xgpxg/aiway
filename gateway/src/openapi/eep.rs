@@ -14,7 +14,7 @@ use crate::openapi::response::GatewayResponse;
 use rocket::{get, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![error_502, error_503]
+    routes![error_502, error_503, error_401]
 }
 
 #[get("/502")]
@@ -25,4 +25,9 @@ async fn error_502() -> GatewayResponse {
 #[get("/503")]
 async fn error_503() -> GatewayResponse {
     GatewayResponse::Error(GatewayError::ServiceUnavailable)
+}
+
+#[get("/401")]
+async fn error_401() -> GatewayResponse {
+    GatewayResponse::Error(GatewayError::Unauthorized)
 }

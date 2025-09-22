@@ -54,10 +54,11 @@ impl Router {
 
     fn fetch_routes() -> Vec<Route> {
         // 从配置中心哪路由表
-        let mut routes = AppConfig::get::<Vec<Route>>("routes");
-        log::info!("路由表: {:?}", routes);
+        let mut routes = AppConfig::get::<Vec<Route>>("routes").unwrap_or_default();
+        log::info!("fetched {} routes", routes.len());
+        log::debug!("routes: {:?}", routes);
 
-        routes.unwrap_or_default()
+        routes
     }
 
     fn watch() {

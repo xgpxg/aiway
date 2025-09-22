@@ -87,10 +87,8 @@ impl Plugins {
     fn fetch_plugins() -> Vec<PluginConfig> {
         // 从配置中心拿插件
         let plugins = AppConfig::get::<Vec<PluginConfig>>("plugins").unwrap_or_default();
-        log::info!(
-            "fetched plugins: {:?}",
-            plugins.iter().map(|p| &p.name).collect::<Vec<_>>()
-        );
+        log::info!("fetched {} plugins", plugins.len());
+        log::debug!("plugins: {:?}", plugins);
 
         plugins
     }

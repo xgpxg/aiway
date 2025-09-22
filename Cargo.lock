@@ -1200,6 +1200,16 @@ dependencies = [
 [[package]]
 name = "kms"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "conreg-client 0.1.3",
+ "log",
+ "logging",
+ "protocol",
+ "rocket",
+ "tokio",
+]
 
 [[package]]
 name = "lazy_static"
@@ -1600,7 +1610,9 @@ name = "protocol"
 version = "0.1.0"
 dependencies = [
  "dashmap",
+ "rocket",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

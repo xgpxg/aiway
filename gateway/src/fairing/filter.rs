@@ -33,7 +33,7 @@ impl Fairing for PreFilter {
     /// - 可在此处修改请求参数
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         // 1. 获取path，匹配路由
-        let path = req.uri().path().as_str();
+        let path = crate::extract_api_path!(req);
 
         // 2. 加载插件
 

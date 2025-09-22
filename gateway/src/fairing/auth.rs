@@ -10,7 +10,10 @@
 //! - 当验证失败时，更改uri到指定端点，返回错误信息。
 //! - 不应涉及任何网络请求及IO操作，需要在5ms内完成
 //!
+use crate::context::Headers;
 use rocket::fairing::Fairing;
+use rocket::http::uri::Origin;
+use rocket::http::Method;
 use rocket::{Data, Request};
 
 pub struct Authentication {}
@@ -19,6 +22,8 @@ impl Authentication {
         Self {}
     }
 }
+
+const BEARER_PREFIX: &str = "Bearer ";
 
 #[rocket::async_trait]
 impl Fairing for Authentication {
@@ -29,7 +34,26 @@ impl Fairing for Authentication {
         }
     }
 
-    async fn on_request(&self, _req: &mut Request<'_>, _data: &mut Data<'_>) {
-        //println!("Run Authentication on request");
+    async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        let _ = crate::extract_api_path!(req);
+
+        let api_key = req.headers().get_one(Headers::AUTHORIZATION);
+        let api_key = match api_key {
+            Some(api_key) => match api_key.strip_prefix(BEARER_PREFIX) {
+                Some(api_key) => api_key,
+                None => {
+                    req.set_method(Method::Get);
+                    req.set_uri(Origin::parse("/eep/401").unwrap());
+                    return;
+                }
+            },
+            None => {
+                req.set_method(Method::Get);
+                req.set_uri(Origin::parse("/eep/401").unwrap());
+                return;
+            }
+        };
+
+        // TODO 调用KMS鉴权
     }
 }

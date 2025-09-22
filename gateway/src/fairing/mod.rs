@@ -23,3 +23,18 @@ pub mod request;
 pub mod response;
 pub mod routing;
 pub mod security;
+
+/// 在请求fairing阶段，提取不含网关前缀的API路径
+///
+/// 如果原始路径不含前缀，则直接返回，不执行后续逻辑。
+#[macro_export]
+macro_rules! extract_api_path {
+    ($req:expr) => {{
+        use crate::constants;
+        let uri_path = $req.uri().path().as_str();
+        match uri_path.strip_prefix(constants::API_PREFIX) {
+            Some(path) => path,
+            None => return,
+        }
+    }};
+}

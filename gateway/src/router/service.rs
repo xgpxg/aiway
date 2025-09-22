@@ -43,10 +43,11 @@ impl Service {
 
     fn fetch_services() -> Vec<gateway::Service> {
         // 从配置中心哪路由表
-        let mut services = AppConfig::get::<Vec<gateway::Service>>("services");
-        log::info!("服务表: {:?}", services);
+        let mut services = AppConfig::get::<Vec<gateway::Service>>("services").unwrap_or_default();
+        log::info!("fetched {} services", services.len());
+        log::debug!("services: {:?}", services);
 
-        services.unwrap_or_default()
+        services
     }
 
     fn watch() {

@@ -12,6 +12,6 @@ pub fn init_log() {
         .with_timer(tracing_subscriber::fmt::time::ChronoLocal::new(
             "%Y-%m-%d %H:%M:%S.%3f".to_string(),
         ))
-        .compact() // 避免乱码问题
+        .compact()
         .init();
 }
