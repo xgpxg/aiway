@@ -1,6 +1,21 @@
 //! # 发布订阅
 //! 基于NATS，消息内容统一使用JSON格式。
 //!
+//! 使用方式：
+//! ```rust
+//! // 初始化
+//! pubsub::init("127.0.0.1:4222").await.unwrap();
+//!
+//! // 发布消息
+//! pubsub::publish("topic","xxx").await.unwrap();
+//!
+//! // 订阅消息
+//! let subscriber = pubsub::subscribe("topic").await.unwrap();
+//!
+//! while let Some(message) = subscriber.next().await {
+//!     println!("Received message {:?}", message);
+//! }
+//! ```
 use async_nats::Client;
 use async_nats::subject::ToSubject;
 use serde::Serialize;
