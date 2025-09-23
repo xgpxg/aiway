@@ -16,8 +16,12 @@
 //!     println!("Received message {:?}", message);
 //! }
 //! ```
+//!
+//! # TODO 消息确认机制待研究
+//!
 use async_nats::Client;
 use async_nats::subject::ToSubject;
+use logging::log;
 use serde::Serialize;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::OnceLock;
@@ -81,6 +85,8 @@ impl PubSub {
 pub static PUB_SUB: OnceLock<PubSub> = OnceLock::new();
 
 pub async fn init(addr: &str) -> Result<(), Err> {
+    log::info!("init pub-sub client");
+
     let ps = PubSub::connect(addr).await?;
 
     PUB_SUB.get_or_init(|| ps);
@@ -110,7 +116,7 @@ mod tests {
     #[tokio::test]
     async fn test_pub_sub() -> Result<(), Box<dyn std::error::Error>> {
         let ps = PubSub::connect("127.0.0.1:4222").await?;
-        let mut s = ps.subscribe("gateway-log").await?;
+        let mut s = ps.subscribe("gateway.log").await?;
 
         #[derive(Debug, Serialize, Deserialize)]
         struct Foo {

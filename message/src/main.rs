@@ -1,3 +1,7 @@
+//! # 消息服务
+//! 基于NATS实现
+//! # TODO 集群模式及ACK待研究
+//!
 use logging::{init_log, log};
 use rust_embed::Embed;
 use std::env::temp_dir;
