@@ -15,6 +15,9 @@ pub async fn init(args: &Args) {
     // 初始化缓存
     cache::init_local_cache("cache").unwrap();
 
+    // 初始化发布订阅
+    pubsub::init("127.0.0.1:4222").await.unwrap();
+
     // 初始化插件
     Plugins::init().await;
 }
