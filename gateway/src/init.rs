@@ -13,6 +13,7 @@ pub async fn init(args: &Args) {
         logging::Config {
             dir: Some("logs".to_string()),
             quickwit_endpoint: Some("127.0.0.1:7280".to_string()),
+            ..Default::default()
         },
     );
 
@@ -20,7 +21,7 @@ pub async fn init(args: &Args) {
     init_client(args).await;
 
     // 初始化缓存
-    cache::init_local_cache("cache").unwrap();
+    cache::init_local_cache("cache/gateway").unwrap();
 
     // 初始化发布订阅
     pubsub::init("127.0.0.1:4222").await.unwrap();

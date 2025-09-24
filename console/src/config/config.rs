@@ -16,8 +16,6 @@ pub struct Config {
     /// 缓存配置
     #[serde(default = "RedisConfig::default")]
     redis: RedisConfig,
-    /// openapi配置
-    openapi: Option<OpenApiConfig>,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -26,7 +24,6 @@ impl Default for Config {
             mode: Mode::default(),
             database: DatabaseConfig::default(),
             redis: RedisConfig::default(),
-            openapi: None,
         }
     }
 }
@@ -145,9 +142,6 @@ impl AppConfig {
         &CONFIG.get().expect("Config not initialized").redis
     }
 
-    pub fn openapi() -> &'static Option<OpenApiConfig> {
-        &CONFIG.get().expect("Config not initialized").openapi
-    }
 }
 
 pub fn init(path: &str) -> anyhow::Result<()> {

@@ -19,7 +19,6 @@ use rocket::http::uri::Uri;
 use rocket::http::uri::fmt::Path;
 use rocket::request::FromSegments;
 use rocket::serde::json::{Value, serde_json};
-use rocket::yansi::Paint;
 use rocket::{get, post, route};
 use std::io;
 use std::io::Bytes;

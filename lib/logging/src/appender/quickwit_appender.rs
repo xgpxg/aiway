@@ -2,8 +2,7 @@ use reqwest::{Client, ClientBuilder};
 use serde::Serialize;
 
 pub struct QuickwitAppender {
-    client: Client,
-    endpoint: String,
+    service: String,
     sender: tokio::sync::mpsc::UnboundedSender<LogEntry>,
 }
 
@@ -31,15 +30,10 @@ impl From<Vec<u8>> for LogEntry {
     }
 }
 
-pub struct QuickwitLogReq {
-    index_name: String,
-    doc: String,
-}
-
 impl QuickwitAppender {
     const MAX_BUFFER_SIZE: usize = 100;
 
-    pub fn new<E: Into<String>>(endpoint: E) -> Self {
+    pub fn new<E: Into<String>, S: Into<String>>(endpoint: E, service: S) -> Self {
         let client = ClientBuilder::default()
             .connect_timeout(std::time::Duration::from_secs(3))
             .build()
@@ -48,9 +42,9 @@ impl QuickwitAppender {
         // 缓存，无界队列
         let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
 
-        let endpoint = endpoint.into();
-        let endpoint_clone = endpoint.clone();
+        let endpoint_clone = endpoint.into();
         let client_clone = client.clone();
+
         tokio::spawn(async move {
             let mut buffer = Vec::new();
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
@@ -74,9 +68,8 @@ impl QuickwitAppender {
             }
         });
         Self {
-            client,
-            endpoint,
             sender,
+            service: service.into(),
         }
     }
 
@@ -97,7 +90,8 @@ impl QuickwitAppender {
 
 impl std::io::Write for QuickwitAppender {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let log_entry = LogEntry::from(buf.to_vec());
+        let mut log_entry = LogEntry::from(buf.to_vec());
+        log_entry.service = self.service.clone();
         self.sender.send(log_entry).ok();
         Ok(buf.len())
     }

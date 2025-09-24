@@ -8,8 +8,7 @@ use plugin::{AsyncTryInto, NetworkPlugin, Plugin, PluginManager};
 use protocol::gateway::Plugin as PluginConfig;
 use protocol::gateway::plugin::PluginPhase;
 use protocol::gateway::service::LbStrategy;
-use protocol::gateway::{HttpContext, Route};
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, OnceLock};
 use tokio::sync::RwLock;
 
 pub struct Plugins {

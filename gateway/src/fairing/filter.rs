@@ -33,7 +33,7 @@ impl Fairing for PreFilter {
     /// - 可在此处修改请求参数
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         // 1. 获取path，匹配路由
-        let path = crate::extract_api_path!(req);
+        let _path = crate::extract_api_path!(req);
 
         // 2. 加载插件
 
@@ -59,9 +59,9 @@ impl Fairing for PostFilter {
         }
     }
 
-    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
+    async fn on_response<'r>(&self, req: &'r Request<'_>, _res: &mut rocket::Response<'r>) {
         // 1. 获取path，匹配路由
-        let path = req.uri().path().as_str();
+        let _path = req.uri().path().as_str();
 
         // 2. 加载插件
 

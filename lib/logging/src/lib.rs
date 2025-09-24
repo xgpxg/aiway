@@ -11,12 +11,9 @@
 
 use crate::appender::QuickwitAppender;
 use std::fmt::Debug;
-use std::ops::Deref;
 use std::sync::OnceLock;
 use tracing_subscriber::fmt::time::ChronoLocal;
-use tracing_subscriber::layer::Layer;
 use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{Registry, fmt};
 
 pub use log;
@@ -35,39 +32,59 @@ bitflags::bitflags! {
 
 #[derive(Debug)]
 pub struct Config {
+    /// 服务名，默认为当前进程名
+    pub service: String,
+    /// 日志目录，默认为程序启动目录下的logs，不存在则自动创建
     pub dir: Option<String>,
+    /// quickwit服务地址，默认127.0.0.1:7280
     pub quickwit_endpoint: Option<String>,
 }
 
-impl Config {
+impl Default for Config {
     fn default() -> Self {
         Self {
             dir: Some(Self::default_dir()),
             quickwit_endpoint: Some(Self::default_quickwit_endpoint()),
+            service: current_process_name(),
         }
     }
+}
+
+impl Config {
+    // 默认日志目录
     fn default_dir() -> String {
         "logs".to_string()
     }
+
+    // 默认quickwit endpoint
     fn default_quickwit_endpoint() -> String {
         "127.0.0.1:7280".to_string()
     }
 
+    // 日志索引ID
+    const INDEX_ID: &'static str = "aiway-logs";
+
+    // 构建quickwit restful的api
     fn build_quickwit_endpoint(&self) -> String {
         format!(
-            "http://{}/api/v1/gateway-logs/ingest",
+            "http://{}/api/v1/{}/ingest",
             self.quickwit_endpoint
                 .clone()
-                .unwrap_or(Self::default_quickwit_endpoint())
+                .unwrap_or(Self::default_quickwit_endpoint()),
+            Self::INDEX_ID,
         )
     }
 }
-static LOG_GUARD: OnceLock<Vec<WorkerGuard>> = OnceLock::new();
 
+// 保持引用worker的引用
+static HOLDING_WORKER_GUARDS: OnceLock<Vec<WorkerGuard>> = OnceLock::new();
+
+/// 初始化日志
 pub fn init_log() {
     init_log_with(LogAppender::CONSOLE, Config::default());
 }
 
+/// 使用配置初始化日志
 pub fn init_log_with(writer: LogAppender, config: Config) {
     let mut guards = vec![];
 
@@ -96,7 +113,7 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
         .with(if writer.contains(LogAppender::FILE) {
             let appender = tracing_appender::rolling::daily(
                 config.dir.clone().unwrap_or(Config::default_dir()),
-                "app.log",
+                format!("{}.log", config.service),
             );
             let (appender, guard) = tracing_appender::non_blocking(appender);
             let layer = fmt::Layer::default()
@@ -116,7 +133,8 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
             if config.quickwit_endpoint.is_none() {
                 panic!("quickwit endpoint is required");
             }
-            let quickwit_appender = QuickwitAppender::new(config.build_quickwit_endpoint());
+            let quickwit_appender =
+                QuickwitAppender::new(config.build_quickwit_endpoint(), config.service);
             let (appender, guard) = tracing_appender::non_blocking(quickwit_appender);
 
             let layer = fmt::Layer::default()
@@ -139,5 +157,17 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
     tracing_log::LogTracer::init().expect("failed to set logger");
 
     // 保持引用，non_blocking需要
-    LOG_GUARD.get_or_init(|| guards);
+    HOLDING_WORKER_GUARDS.get_or_init(|| guards);
+}
+
+// 获取当前进程名
+pub(crate) fn current_process_name() -> String {
+    std::env::args()
+        .next()
+        .as_ref()
+        .map(std::path::Path::new)
+        .and_then(std::path::Path::file_name)
+        .and_then(std::ffi::OsStr::to_str)
+        .map(String::from)
+        .unwrap_or_else(|| "unknown".to_string())
 }

@@ -33,6 +33,9 @@ impl Fairing for Authentication {
         let _ = crate::extract_api_path!(req);
 
         let bearer_token = req.headers().get_one(Headers::AUTHORIZATION);
+
+        log::error!("bearer_token: {}", bearer_token.unwrap());
+
         let api_key = match bearer_token {
             Some(api_key) => match api_key.strip_prefix(BEARER_PREFIX) {
                 Some(api_key) => api_key,

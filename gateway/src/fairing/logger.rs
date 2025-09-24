@@ -24,7 +24,7 @@ impl Fairing for Logger {
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, _res: &mut rocket::Response<'r>) {
         // 提取RequestContext
-        let context = HCM.get_from_request(&req);
+        let _context = HCM.get_from_request(&req);
 
         // 记录日志
 

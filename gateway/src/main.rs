@@ -1,11 +1,11 @@
 use clap::Parser;
 
-mod config;
 mod constants;
 mod context;
 mod fairing;
 mod init;
 mod openapi;
+mod report;
 mod router;
 mod server;
 
@@ -19,6 +19,10 @@ struct Args {
     /// Port
     #[arg(short, long, default_value_t = 5000)]
     port: u16,
+
+    /// Console address
+    #[arg(short, long, default_value = "127.0.0.1:5001")]
+    console: String,
 }
 
 #[rocket::main]

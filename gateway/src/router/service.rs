@@ -12,9 +12,8 @@ use conreg_client::AppConfig;
 use dashmap::DashMap;
 use loadbalance::LoadBalance;
 use protocol::gateway;
-use protocol::gateway::Route;
 use protocol::gateway::service::LbStrategy;
-use std::sync::{Arc, LazyLock, RwLock};
+use std::sync::{Arc, LazyLock};
 
 pub struct Service {
     /// 路由表
@@ -43,7 +42,7 @@ impl Service {
 
     fn fetch_services() -> Vec<gateway::Service> {
         // 从配置中心拿路由表
-        let mut services = AppConfig::get::<Vec<gateway::Service>>("services").unwrap_or_default();
+        let services = AppConfig::get::<Vec<gateway::Service>>("services").unwrap_or_default();
         log::info!("fetched {} services", services.len());
         log::debug!("services: {:?}", services);
 
