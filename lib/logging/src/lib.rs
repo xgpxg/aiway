@@ -36,28 +36,38 @@ bitflags::bitflags! {
 #[derive(Debug)]
 pub struct Config {
     pub dir: Option<String>,
-    pub endpoint: Option<String>,
+    pub quickwit_endpoint: Option<String>,
 }
 
 impl Config {
+    fn default() -> Self {
+        Self {
+            dir: Some(Self::default_dir()),
+            quickwit_endpoint: Some(Self::default_quickwit_endpoint()),
+        }
+    }
     fn default_dir() -> String {
         "logs".to_string()
     }
-    fn default_endpoint() -> String {
-        "http://127.0.0.1:7280/api/v1/gateway-logs/ingest".to_string()
+    fn default_quickwit_endpoint() -> String {
+        "127.0.0.1:7280".to_string()
+    }
+
+    fn build_quickwit_endpoint(&self) -> String {
+        format!(
+            "http://{}/api/v1/gateway-logs/ingest",
+            self.quickwit_endpoint
+                .clone()
+                .unwrap_or(Self::default_quickwit_endpoint())
+        )
     }
 }
 static LOG_GUARD: OnceLock<Vec<WorkerGuard>> = OnceLock::new();
 
 pub fn init_log() {
-    init_log_with(
-        LogAppender::CONSOLE,
-        Config {
-            dir: Some("logs".to_string()),
-            endpoint: Some(Config::default_endpoint()),
-        },
-    );
+    init_log_with(LogAppender::CONSOLE, Config::default());
 }
+
 pub fn init_log_with(writer: LogAppender, config: Config) {
     let mut guards = vec![];
 
@@ -85,7 +95,7 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
         // 输出到文件
         .with(if writer.contains(LogAppender::FILE) {
             let appender = tracing_appender::rolling::daily(
-                config.dir.unwrap_or(Config::default_dir()),
+                config.dir.clone().unwrap_or(Config::default_dir()),
                 "app.log",
             );
             let (appender, guard) = tracing_appender::non_blocking(appender);
@@ -103,11 +113,10 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
         })
         // 输出到quickwit
         .with(if writer.contains(LogAppender::QUICKWIT) {
-            if config.endpoint.is_none() {
+            if config.quickwit_endpoint.is_none() {
                 panic!("quickwit endpoint is required");
             }
-            let quickwit_appender =
-                QuickwitAppender::new(config.endpoint.unwrap_or(Config::default_endpoint()));
+            let quickwit_appender = QuickwitAppender::new(config.build_quickwit_endpoint());
             let (appender, guard) = tracing_appender::non_blocking(quickwit_appender);
 
             let layer = fmt::Layer::default()

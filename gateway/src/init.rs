@@ -4,10 +4,17 @@ use conreg_client::conf::{
     ClientConfigBuilder, ConRegConfigBuilder, ConfigConfigBuilder, DiscoveryConfigBuilder,
 };
 use conreg_client::init_with;
+use logging::LogAppender;
 
 pub async fn init(args: &Args) {
     // 初始化日志
-    logging::init_log();
+    logging::init_log_with(
+        LogAppender::all(),
+        logging::Config {
+            dir: Some("logs".to_string()),
+            quickwit_endpoint: Some("127.0.0.1:7280".to_string()),
+        },
+    );
 
     // 初始化conreg
     init_client(args).await;
