@@ -4,19 +4,16 @@
 use crate::local_cache::LocalCache;
 #[cfg(feature = "deadpool-redis")]
 use crate::redis_cache::{RedisCache, RedisClusterCache};
-use anyhow::bail;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::OnceLock;
 
-// mod caches;
 mod local_cache;
 
 #[cfg(feature = "deadpool-redis")]
 mod redis_cache;
-// mod redis_cache;
 
 #[allow(unused)]
 #[async_trait]
