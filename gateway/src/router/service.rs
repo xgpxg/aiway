@@ -1,17 +1,32 @@
-//! # 路由
-//! 负责从配置中心加载路由表并缓存。
+//! # 服务
+//! 负责从配置中心加载服务并缓存。
 //!
 //! 实现流程：
-//! - 初始化时，从配置中心获取配置key为`routes`的配置项
-//! - 反序列化为[`Vec<Route>`]
-//! - 缓存路由表
-//! - 监听配置`routes.yaml`变更，重写获取路由表并缓存
+//! - 初始化时，从配置中心获取配置key为`services`的配置项
+//! - 反序列化为[`Vec<Service>`]
+//! - 缓存服务
+//! - 监听配置`routes.yaml`变更，重写获取服务并缓存
+//!
+//! TODO 以上内容需重写
+//!
+//! # 服务
+//! 负责从控制台加载服务配置并缓存。
+//!
+//! 实现流程：
+//! - 初始化时，尝试从控制台的`GET /api/v1/gateway/services`端点获取服务列表。
+//! - 如果控制台无法连接，则退出，禁止启动。
+//! - 反序列化响应结果为[`Vec<Service>`]
+//! - 缓存服务列表到内存以及本地。
+//! - 启动定时任务，每5秒从控制台拉取服务列表，校验hash值，如果不一致则更新本地服务列表。
+//!
+//! 服务定义：[`Service`]
 //!
 use crate::constants;
 use conreg_client::AppConfig;
 use dashmap::DashMap;
 use loadbalance::LoadBalance;
 use protocol::gateway;
+use protocol::gateway::Route;
 use protocol::gateway::service::LbStrategy;
 use std::sync::{Arc, LazyLock};
 

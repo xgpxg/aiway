@@ -1,13 +1,20 @@
 //! # 插件
+//! 负责从控制台加载所有已启用的插件并缓存。
+//!
+//! 实现流程：
+//! - 初始化时，尝试从控制台的`GET /api/v1/gateway/plugins`端点获取插件列表。
+//! - 如果控制台无法连接，则退出，禁止启动。
+//! - 缓存插件列表到内存以及本地。
+//! - 启动定时任务，每5秒从控制台拉取插件列表，校验hash值，如果不一致则更新本地插件列表。
 //!
 use crate::constants;
 use conreg_client::AppConfig;
 use dashmap::{DashMap, DashSet};
 use loadbalance::LoadBalance;
 use plugin::{AsyncTryInto, NetworkPlugin, Plugin, PluginManager};
-use protocol::gateway::Plugin as PluginConfig;
 use protocol::gateway::plugin::PluginPhase;
 use protocol::gateway::service::LbStrategy;
+use protocol::gateway::{Plugin as PluginConfig, Route};
 use std::sync::{Arc, OnceLock};
 use tokio::sync::RwLock;
 
