@@ -75,4 +75,32 @@
 //!
 //! 【网关】 监听 【Conreg】
 
-pub fn start_http_server() {}
+mod db;
+mod common;
+
+use crate::config::config::AppConfig;
+use rocket::data::{ByteUnit, Limits};
+use rocket::{Config, routes};
+use std::net::IpAddr;
+use std::str::FromStr;
+
+pub async fn start_http_server() -> anyhow::Result<()> {
+    let config = &AppConfig::server();
+    let mut builder = rocket::build().configure(Config {
+        address: IpAddr::from_str(config.address.as_str())?,
+        port: config.port,
+        limits: Limits::default()
+            .limit("json", ByteUnit::Mebibyte(3))
+            .limit("data-form", ByteUnit::Mebibyte(100))
+            .limit("file", ByteUnit::Mebibyte(100)),
+        log_level: rocket::config::LogLevel::Critical,
+        cli_colors: false,
+        ..Config::debug_default()
+    });
+
+    builder = builder.mount("/api/v1", routes![]);
+
+    builder.launch().await?;
+
+    Ok(())
+}
