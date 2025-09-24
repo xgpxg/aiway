@@ -11,3 +11,6 @@ tokio = { version = "1", features = ["macros"] }
 log = "0.4"
 tracing-appender = "0.2"
 tracing-log = "0.2.0"
+serde = "1"
+serde_json = "1"
+bitflags = "2.9.4"
