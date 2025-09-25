@@ -43,7 +43,7 @@ impl Fairing for LoadBalance {
                     return;
                 }
                 _ => {
-                    log::warn!("No valid instance available for service: {}", service);
+                    log::warn!("No available instance for service: {}", service);
                 }
             }
         }

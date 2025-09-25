@@ -110,6 +110,8 @@ impl Servicer {
                     continue;
                 }
 
+                log::info!("loaded {} services", list.len());
+
                 SERVICES
                     .get()
                     .unwrap()
