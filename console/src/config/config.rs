@@ -1,7 +1,7 @@
 use common::data_dir;
+use logging::log;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
-use logging::log;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -141,7 +141,6 @@ impl AppConfig {
     pub fn redis() -> &'static RedisConfig {
         &CONFIG.get().expect("Config not initialized").redis
     }
-
 }
 
 pub fn init(path: &str) -> anyhow::Result<()> {

@@ -2,6 +2,7 @@ use clap::Parser;
 
 mod init;
 
+mod cache;
 mod config;
 mod server;
 

@@ -75,14 +75,15 @@
 //!
 //! 【网关】 监听 【Conreg】
 
-mod db;
-mod common;
-
 use crate::config::config::AppConfig;
 use rocket::data::{ByteUnit, Limits};
 use rocket::{Config, routes};
 use std::net::IpAddr;
 use std::str::FromStr;
+mod auth;
+mod common;
+pub mod db;
+mod user;
 
 pub async fn start_http_server() -> anyhow::Result<()> {
     let config = &AppConfig::server();
@@ -99,6 +100,8 @@ pub async fn start_http_server() -> anyhow::Result<()> {
     });
 
     builder = builder.mount("/api/v1", routes![]);
+
+    builder = builder.mount("/api/user", user::api::routes());
 
     builder.launch().await?;
 
