@@ -1,7 +1,7 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::common::page::RbPage;
 use crate::server::db::models::route;
-use crate::server::db::models::route::Route;
+use crate::server::db::models::route::{Route, RouteStatus};
 use crate::server::db::{Pool, tools};
 use crate::server::route::request::{RouteAddOrUpdateReq, RouteListReq};
 use crate::server::route::response::RouteListRes;
@@ -14,6 +14,7 @@ use rbs::value;
 pub async fn add(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
     let route = Route {
         id: Some(id::next()),
+        status: Some(RouteStatus::Disable),
         create_user_id: Some(user.id),
         create_time: Some(tools::now()),
         ..Route::from(req)

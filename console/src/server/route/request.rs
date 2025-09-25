@@ -45,7 +45,7 @@ impl From<RouteAddOrUpdateReq> for Route {
             id: req.id.into(),
             name: req.name.into(),
             description: req.description,
-            status: None,
+            status: Some(Default::default()),
             host: req.host,
             prefix: req.prefix,
             strip_prefix: (req.strip_prefix as i8).into(),

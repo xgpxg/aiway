@@ -1,0 +1,44 @@
+use crate::server::auth::UserPrincipal;
+use crate::server::service::request::{ServiceAddOrUpdateReq, ServiceListReq};
+use crate::server::service::response::ServiceListRes;
+use crate::server::service::service;
+use protocol::common::req::IdsReq;
+use protocol::common::res::{PageRes, Res};
+use rocket::serde::json::Json;
+use rocket::{post, routes};
+
+pub fn routes() -> Vec<rocket::Route> {
+    routes![add, list, update, delete]
+}
+
+#[post("/add", data = "<req>")]
+async fn add(req: Json<ServiceAddOrUpdateReq>, user: UserPrincipal) -> Res<()> {
+    match service::add(req.0, user).await {
+        Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+#[post("/list", data = "<req>")]
+async fn list(req: Json<ServiceListReq>, _user: UserPrincipal) -> Res<PageRes<ServiceListRes>> {
+    match service::list(req.0).await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+#[post("/update", data = "<req>")]
+async fn update(req: Json<ServiceAddOrUpdateReq>, user: UserPrincipal) -> Res<()> {
+    match service::update(req.0, user).await {
+        Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+#[post("/delete", data = "<req>")]
+async fn delete(req: Json<IdsReq>, _user: UserPrincipal) -> Res<()> {
+    match service::delete(req.0).await {
+        Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
