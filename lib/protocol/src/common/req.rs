@@ -4,7 +4,6 @@
 //! - 多个ID请求
 //! - 分页请求
 
-use rocket::request::FromRequest;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,7 +13,7 @@ pub struct IdReq {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdsReq {
-    pub id: Vec<i64>,
+    pub ids: Vec<i64>,
 }
 
 /// 分页
@@ -23,6 +22,11 @@ pub trait Pagination {
     fn page_num(&self) -> u64;
     /// 每页数量
     fn page_size(&self) -> u64;
+
+    #[cfg(feature = "rbatis")]
+    fn to_rb_page(&self) -> rbatis::PageRequest {
+        rbatis::PageRequest::new(self.page_num(), self.page_size())
+    }
 }
 
 /// 分页请求参数
@@ -53,7 +57,7 @@ impl Default for PageReq {
 #[macro_export]
 macro_rules! impl_pagination {
     ($s:ty) => {
-        impl crate::server::common::req::Pagination for $s {
+        impl $crate::common::req::Pagination for $s {
             fn page_num(&self) -> u64 {
                 self.page.page_num
             }

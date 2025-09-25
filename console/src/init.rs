@@ -3,6 +3,7 @@ use crate::config::config;
 use crate::server::db;
 use anyhow::Context;
 use common::dir::AppDir;
+use common::id;
 use logging::LogAppender;
 use std::fs;
 
@@ -20,7 +21,11 @@ pub async fn init(args: &Args) {
     // 初始化配置
     config::init(args.config.as_str()).unwrap();
 
+    // 初始化目录
     init_dir().unwrap();
+
+    // 初始化id
+    id::init();
 
     // 初始化数据库
     db::init().await.unwrap();

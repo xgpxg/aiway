@@ -45,14 +45,23 @@ where
     }
 }
 
+#[cfg(feature = "rocket")]
+impl<'r, 'o: 'r, T: Serialize> rocket::response::Responder<'r, 'o> for Res<T> {
+    fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
+        rocket::serde::json::Json(self).respond_to(request)
+    }
+}
+
 #[allow(unused)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PageRes<T> {
-    pub page_num: i32,
-    pub page_size: i32,
+    pub page_num: u64,
+    pub page_size: u64,
     pub total: u64,
     pub list: Vec<T>,
 }
+
+
 
 #[allow(unused)]
 pub trait IntoPageRes<I, T>
@@ -65,9 +74,41 @@ where
         F: Fn(Vec<I>) -> Vec<T>;
 }
 
-#[cfg(feature = "rocket")]
-impl<'r, 'o: 'r, T: Serialize> rocket::response::Responder<'r, 'o> for Res<T> {
-    fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {
-        rocket::serde::json::Json(self).respond_to(request)
+
+#[cfg(feature = "rbatis")]
+impl<I, T> IntoPageRes<I, T> for rbatis::page::Page<I>
+where
+    I: Send + Sync,
+    T: Send + Sync,
+{
+    fn convert_to_page_res<F>(self, f: F) -> PageRes<T>
+    where
+        F: Fn(Vec<I>) -> Vec<T>,
+    {
+        let list = f(self.records);
+        PageRes {
+            page_num: self.page_no,
+            page_size: self.page_size,
+            total: self.total,
+            list,
+        }
     }
 }
+
+
+#[cfg(feature = "rbatis")]
+impl<I> Into<PageRes<I>> for rbatis::page::Page<I>
+where
+    I: Send + Sync,
+{
+    fn into(self) -> PageRes<I> {
+        PageRes {
+            page_num: self.page_no,
+            page_size: self.page_size,
+            total: self.total,
+            list: self.records,
+        }
+    }
+}
+
+

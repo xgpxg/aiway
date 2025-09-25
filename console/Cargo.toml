@@ -7,7 +7,7 @@ edition = "2024"
 logging = { path = "../lib/logging" }
 cache = { path = "../lib/cache" }
 common = { path = "../lib/common" }
-protocol = { path = "../lib/protocol" }
+protocol = { path = "../lib/protocol", features = ["rbatis"] }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }
 #serde = "1.0"

@@ -1,6 +1,7 @@
+use crate::server::route::RouteListReq;
 use derive_builder::Builder;
-use rbatis::crud;
 use rbatis::rbdc::DateTime;
+use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
@@ -13,6 +14,8 @@ pub struct Route {
     pub name: Option<String>,
     /// 路由描述
     pub description: Option<String>,
+    /// 状态：0停用 1启用
+    pub status: Option<RouteStatus>,
     /// 需要匹配的域名
     pub host: Option<String>,
     /// 路由前缀
@@ -49,4 +52,14 @@ pub struct Route {
     pub is_delete: Option<i8>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub enum RouteStatus {
+    /// 停用
+    #[default]
+    Disable = 0,
+    /// 启用
+    Ok = 1,
+}
+
 crud!(Route {});
+htmlsql_select_page!(list_page(param: &RouteListReq) -> Route => "src/server/db/mapper/route.html");

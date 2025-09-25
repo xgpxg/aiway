@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+<mapper>
+    <select id="list_page">
+        <if test="do_count == true">
+            select count(1)
+        </if>
+        <if test="do_count == false">
+            select r.*
+        </if>
+        ` `
+        from route r
+        <where>
+            <if test="param.filter_text!=null && param.filter_text!=''">
+                ` and (
+                        r.name like concat('%',#{param.filter_text},'%')
+                        or r.description like concat('%',#{param.filter_text},'%')
+                        or r.host like concat('%',#{param.filter_text},'%')
+                        or r.prefix like concat('%',#{param.filter_text},'%')
+                        or r.path like concat('%',#{param.filter_text},'%')
+                    ) `
+            </if>
+            <if test="param.status!=null">
+                ` and r.status = #{param.status} `
+            </if>
+        </where>
+        <if test="do_count == false">
+            ` order by r.id desc `
+            ` limit ${page_no},${page_size} `
+        </if>
+    </select>
+</mapper>

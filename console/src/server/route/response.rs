@@ -1,7 +1,8 @@
+use crate::server::db::models::route::Route;
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LoginRes {
-    pub token: String,
+pub struct RouteListRes {
+    #[serde(flatten)]
+    pub inner: Route,
 }
-

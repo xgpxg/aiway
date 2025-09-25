@@ -7,6 +7,7 @@
 //! 4. 服务配置
 //!
 
+#[cfg(feature = "api-key")]
 mod api_key;
 pub mod http_context;
 pub mod plugin;
@@ -15,6 +16,7 @@ pub mod response_context;
 pub mod route;
 pub mod service;
 
+#[cfg(feature = "api-key")]
 pub use api_key::ApiKey;
 pub use http_context::HttpContext;
 pub use plugin::Plugin;
