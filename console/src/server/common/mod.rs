@@ -4,9 +4,6 @@ use serde::{Deserializer, Serializer, de};
 #[allow(unused)]
 pub(crate) mod pool;
 
-#[allow(unused)]
-pub mod res;
-
 pub mod page;
 
 /// 序列化时间

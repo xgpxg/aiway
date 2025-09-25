@@ -1,6 +1,7 @@
 use crate::config::config::DatabaseConfig;
 use crate::server::db::{Pool, RB};
 use anyhow::bail;
+use logging::log;
 use rbatis::RBatis;
 use rbatis::executor::RBatisTxExecutor;
 use rbdc_pool_fast::FastPool;
@@ -9,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use std::process::exit;
 use std::str::FromStr;
-use logging::log;
 
 pub(crate) async fn init(config: &DatabaseConfig) {
     let db_url = config.url.as_str();

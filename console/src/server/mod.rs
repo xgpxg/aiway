@@ -83,6 +83,8 @@ use std::str::FromStr;
 mod auth;
 mod common;
 pub mod db;
+mod gateway;
+mod route;
 mod user;
 
 pub async fn start_http_server() -> anyhow::Result<()> {
@@ -99,9 +101,10 @@ pub async fn start_http_server() -> anyhow::Result<()> {
         ..Config::debug_default()
     });
 
-    builder = builder.mount("/api/v1", routes![]);
+    builder = builder.mount("/api/v1", gateway::api::routes());
 
     builder = builder.mount("/api/user", user::api::routes());
+    builder = builder.mount("/api/route", route::api::routes());
 
     builder.launch().await?;
 

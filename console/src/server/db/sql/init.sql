@@ -35,33 +35,47 @@ create table if not exists user_auth
 create table if not exists route
 (
     id             bigint primary key,
-    name           varchar(100) not null,           -- 路由名称
-    description    varchar(500),                    -- 路由描述
-    host           varchar(100),                    -- 需要匹配的域名
-    prefix         varchar(100),                    -- 路由前缀
-    path           varchar(500) not null,           -- 路由路径
-    strip_prefix   tinyint(1)   not null default 1, -- 是否去除路径前缀
-    service        varchar(100) not null,           -- 目标服务名称
-    protocol       varchar(10)  not null,           -- 请求协议：http | https
-    method         varchar(10)  not null,           -- 请求方法：GET | POST | PUT | DELETE | HEAD | OPTIONS | PATCH | TRACE | CONNECT
-    header         varchar(1000),                   -- 按请求头匹配
-    query          varchar(1000),                   -- 按请求参数匹配
-    pre_filters    varchar(500),                    -- 请求阶段过滤器，JSON数组
-    post_filters   varchar(500),                    -- 响应阶段过滤器，JSON数组
-    create_user_id bigint,                          -- 创建人ID
-    update_user_id bigint,                          -- 修改人ID
-    create_time    datetime,                        -- 创建时间
-    update_time    datetime,                        -- 更新时间
-    remark         varchar(500),                    -- 备注
-    is_delete      tinyint(1)   not null default 0  -- 是否删除
+    name           varchar(100)  not null,           -- 路由名称
+    description    varchar(500),                     -- 路由描述
+    host           varchar(100),                     -- 需要匹配的域名
+    prefix         varchar(100),                     -- 路由前缀
+    path           varchar(500)  not null,           -- 路由路径
+    strip_prefix   tinyint(1)    not null default 1, -- 是否去除路径前缀
+    service        varchar(100)  not null,           -- 目标服务名
+    header         varchar(1000) not null,           -- 按请求头匹配
+    query          varchar(1000) not null,           -- 按请求参数匹配
+    pre_filters    varchar(500)  not null,           -- 请求阶段过滤器，JSON数组
+    post_filters   varchar(500)  not null,           -- 响应阶段过滤器，JSON数组
+    create_user_id bigint,                           -- 创建人ID
+    update_user_id bigint,                           -- 修改人ID
+    create_time    datetime,                         -- 创建时间
+    update_time    datetime,                         -- 更新时间
+    remark         varchar(500),                     -- 备注
+    is_delete      tinyint(1)    not null default 0  -- 是否删除
 );
 create table if not exists service
 (
     id             bigint primary key,
-    name           varchar(100) not null,          -- 服务名称
+    name           varchar(100) not null,          -- 服务名称，全局唯一
     description    varchar(500),                   -- 服务描述
     nodes          varchar(100) not null,          -- 节点地址，JSON数组，支持IP和域名，如["http://127.0.0.1:8080"]
-    load_balance   varchar(20)  not null,          -- 负载均衡算法：random | round_robin
+    lb             varchar(20)  not null,          -- 负载均衡策略：random | round_robin
+    create_user_id bigint,                         -- 创建人ID
+    update_user_id bigint,                         -- 修改人ID
+    create_time    datetime,                       -- 创建时间
+    update_time    datetime,                       -- 更新时间
+    remark         varchar(500),                   -- 备注
+    is_delete      tinyint(1)   not null default 0 -- 是否删除
+);
+
+create table if not exists plugin
+(
+    id             bigint primary key,
+    name           varchar(100) not null,
+    description    varchar(500),
+    phase          varchar(20)  not null,
+    url            varchar(500) not null,
+    version        varchar(50)  not null,
     create_user_id bigint,                         -- 创建人ID
     update_user_id bigint,                         -- 修改人ID
     create_time    datetime,                       -- 创建时间

@@ -1,12 +1,12 @@
 use rocket::{get, post, routes};
 use crate::server::auth::UserPrincipal;
-use crate::server::common::res::Res;
 use crate::server::user::request::{
     LoginReq, SendVerifyCodeReq, UpdateEmailReq, UpdatePasswordReq,
 };
 use crate::server::user::response::{LoginRes, UserCenterRes};
 use crate::server::user::service;
 use rocket::serde::json::Json;
+use protocol::common::res::Res;
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![
