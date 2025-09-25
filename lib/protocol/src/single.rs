@@ -1,4 +1,4 @@
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cell::UnsafeCell;
 use std::fmt::Display;
 
@@ -75,6 +75,17 @@ impl Into<SingleValue<Vec<u8>>> for Vec<u8> {
     }
 }
 
+impl<T: Serialize> Serialize for SingleValue<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self.get() {
+            Some(value) => value.serialize(serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+}
 impl<'de, T> Deserialize<'de> for SingleValue<T>
 where
     T: Deserialize<'de> + Default,

@@ -3,7 +3,7 @@ mod manager;
 
 pub use header::Headers;
 pub use manager::HCM;
-use protocol::gateway::{HttpContext, RequestContext};
+use protocol::gateway::HttpContext;
 use rocket::request::FromRequest;
 use std::sync::Arc;
 

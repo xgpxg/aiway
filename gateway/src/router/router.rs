@@ -24,11 +24,12 @@
 //!
 //!
 
-use crate::constants;
-use conreg_client::AppConfig;
+use crate::router::client::INNER_HTTP_CLIENT;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use protocol::gateway::Route;
-use std::sync::{Arc, LazyLock, RwLock};
+use std::process::exit;
+use std::sync::{Arc, OnceLock, RwLock};
+use std::time::Duration;
 
 pub struct Router {
     /// 路由表
@@ -37,22 +38,36 @@ pub struct Router {
     matcher: Arc<RwLock<GlobSet>>,
 }
 
-pub static ROUTER: LazyLock<Router> = LazyLock::new(Router::load);
+pub static ROUTER: OnceLock<Router> = OnceLock::new();
 
 impl Router {
-    pub fn load() -> Self {
+    pub async fn init() {
+        if let Err(e) = Self::load().await {
+            log::error!("{}", e);
+            exit(1)
+        }
+    }
+    async fn load() -> anyhow::Result<()> {
         let routes = Self::fetch_routes()
+            .await?
             .into_iter()
             .map(Arc::new)
             .collect::<Vec<_>>();
+
+        log::info!("loaded {} routes", routes.len());
+
         let matcher = Self::build_matcher(&routes);
+
+        let router = Router {
+            routes: Arc::new(RwLock::new(routes)),
+            matcher: Arc::new(RwLock::new(matcher)),
+        };
+
+        ROUTER.get_or_init(|| router);
 
         Self::watch();
 
-        Self {
-            routes: Arc::new(RwLock::new(routes)),
-            matcher: Arc::new(RwLock::new(matcher)),
-        }
+        Ok(())
     }
 
     fn build_matcher(routes: &[Arc<Route>]) -> GlobSet {
@@ -69,29 +84,54 @@ impl Router {
         builder.build().unwrap()
     }
 
-    fn fetch_routes() -> Vec<Route> {
-        // 从配置中心哪路由表
-        let mut routes = AppConfig::get::<Vec<Route>>("routes").unwrap_or_default();
-        log::info!("fetched {} routes", routes.len());
-        log::debug!("routes: {:?}", routes);
-
-        routes
+    async fn fetch_routes() -> anyhow::Result<Vec<Route>> {
+        INNER_HTTP_CLIENT.fetch_routes().await
     }
 
+    const INTERVAL: Duration = Duration::from_secs(5);
     fn watch() {
-        AppConfig::add_listener(constants::ROUTES_CONFIG_ID, |_| {
-            let routes = Self::fetch_routes()
-                .into_iter()
-                .map(Arc::new)
-                .collect::<Vec<_>>();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Self::INTERVAL);
 
-            let matcher = Self::build_matcher(&routes);
+            loop {
+                interval.tick().await;
 
-            {
-                *ROUTER.routes.write().unwrap() = routes;
-            }
-            {
-                *ROUTER.matcher.write().unwrap() = matcher;
+                log::debug!("{}", "reloading routes from console");
+                let routes = Self::fetch_routes().await;
+
+                let routes = match routes {
+                    Ok(routes) => routes,
+                    Err(e) => {
+                        log::error!("{}", e);
+                        continue;
+                    }
+                };
+
+                let old_routes: Vec<Route> = {
+                    let guard = ROUTER.get().unwrap().routes.read().unwrap();
+                    guard.iter().map(|r| (**r).clone()).collect()
+                };
+
+                let old = serde_json::to_string(&old_routes).unwrap();
+                let new = serde_json::to_string(&routes).unwrap();
+
+                if old == new {
+                    log::debug!("routes not changed");
+                    continue;
+                }
+
+                log::info!("loaded {} routes", routes.len());
+
+                let routes = routes.into_iter().map(Arc::new).collect::<Vec<_>>();
+
+                let matcher = Self::build_matcher(&routes);
+
+                {
+                    *ROUTER.get().unwrap().routes.write().unwrap() = routes;
+                }
+                {
+                    *ROUTER.get().unwrap().matcher.write().unwrap() = matcher;
+                }
             }
         });
     }

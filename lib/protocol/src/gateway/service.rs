@@ -1,20 +1,20 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// 服务信息
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Service {
-    /// 服务ID
-    pub id: String,
+    /// 服务名
+    pub name: String,
     /// 服务节点，支持域名或IP:PORT
     pub nodes: Vec<String>,
     #[serde(default = "LbStrategy::default")]
     pub lb: LbStrategy,
 }
-#[derive(Debug, Default, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum LbStrategy {
-    #[serde(rename = "r")]
+    #[serde(rename = "random")]
     #[default]
     Random,
-    #[serde(rename = "rr")]
+    #[serde(rename = "random_robin")]
     RoundRobin,
 }

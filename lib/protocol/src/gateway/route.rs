@@ -1,9 +1,8 @@
-use crate::SV;
-use dashmap::DashMap;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Route {
     /// 名称
     pub name: String,
@@ -22,40 +21,32 @@ pub struct Route {
     )]
     pub strip_prefix: bool,
     /// 需要路由到的服务ID
-    pub service: SV<String>,
-    /// 协议：http | sse
+    pub service: String,
+    /*/// 协议：http | sse
     pub protocol: String,
     /// 请求方法：get | post | put | delete | patch | options
-    pub method: String,
+    pub method: String,*/
     /// header匹配条件
     #[serde(alias = "header_condition", alias = "header-condition")]
-    pub header: Option<DashMap<String, String>>,
+    pub header: BTreeMap<String, String>,
     /// query匹配条件，满足
     #[serde(alias = "query_condition", alias = "query-condition")]
-    pub query: Option<DashMap<String, String>>,
+    pub query: BTreeMap<String, String>,
     /// 前置过滤器插件，在请求阶段执行，多个按顺序串联执行
     #[serde(default = "Vec::default", alias = "pre_filters", alias = "pre-filters")]
-    pre_filters: Vec<FilterPlugin>,
+    pub pre_filters: Vec<String>,
     /// 后置过滤器插件，在响应阶段执行，多个按顺序串联执行
     #[serde(
         default = "Vec::default",
         alias = "post_filters",
         alias = "post-filters"
     )]
-    post_filters: Vec<FilterPlugin>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct FilterPlugin {
-    /// 过滤器插件名称
-    name: String,
-    /// 阶段
-    phase: String,
+    pub post_filters: Vec<String>,
 }
 
 impl Route {
-    pub fn get_service(&self) -> Option<&String> {
-        self.service.get()
+    pub fn get_service(&self) -> &String {
+        &self.service
     }
 
     /// 构建请求路径

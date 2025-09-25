@@ -1,8 +1,8 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 /// 插件配置
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Plugin {
     /// 插件名称
     pub name: String,
@@ -13,7 +13,7 @@ pub struct Plugin {
     /// 插件版本
     pub version: String,
 }
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PluginPhase {
     /// 全局，请求阶段执行
     #[serde(rename = "global-pre")]

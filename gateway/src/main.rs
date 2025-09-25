@@ -9,6 +9,8 @@ mod report;
 mod router;
 mod server;
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -21,7 +23,7 @@ struct Args {
     port: u16,
 
     /// Console address
-    #[arg(short, long, default_value = "127.0.0.1:5001")]
+    #[arg(short, long, default_value = "127.0.0.1:6000")]
     console: String,
 }
 

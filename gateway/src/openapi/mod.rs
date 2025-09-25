@@ -4,27 +4,15 @@ mod error;
 mod response;
 mod sse;
 
-use crate::context::{HCM, HttpContextWrapper};
+use crate::context::HttpContextWrapper;
 use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::{GatewayResponse, ResponseExt};
-use crate::openapi::sse::SseEvent;
-use crate::router::ROUTER;
-use protocol::gateway::RequestContext;
 use reqwest::Url;
-use rocket::async_stream::stream;
 use rocket::futures::StreamExt;
-use rocket::http::hyper;
-use rocket::http::uri::Uri;
-use rocket::http::uri::fmt::Path;
-use rocket::request::FromSegments;
-use rocket::serde::json::{Value, serde_json};
-use rocket::{get, post, route};
+use rocket::post;
 use std::io;
-use std::io::Bytes;
 use std::path::PathBuf;
-use std::pin::Pin;
-use std::str::FromStr;
 use tokio_util::io::StreamReader;
 
 /// OpenAPI统一入口

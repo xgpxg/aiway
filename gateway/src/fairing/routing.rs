@@ -1,14 +1,11 @@
 //! # 路由匹配
 //! 通过请求的path匹配路由，并将路由设置到上下文。
 //!
-use crate::constants;
 use crate::context::HCM;
 use crate::router::ROUTER;
 use rocket::fairing::Fairing;
 use rocket::http::Method;
 use rocket::http::uri::Origin;
-use rocket::request::FromRequest;
-use rocket::serde::json::serde_json::json;
 use rocket::{Data, Request};
 
 pub struct Routing {}
@@ -31,7 +28,7 @@ impl Fairing for Routing {
         // 获取path
         let path = crate::extract_api_path!(req);
 
-        let route = match ROUTER.matches(path) {
+        let route = match ROUTER.get().unwrap().matches(path) {
             Some(r) => r,
             None => {
                 // 没有匹配到路由，修改uri，转发到502端点

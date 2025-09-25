@@ -84,7 +84,7 @@ impl Fairing for GlobalPostFilter {
         }
     }
 
-    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
+    async fn on_response<'r>(&self, _req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
         // 1. 加载全局插件
 
         // 2. 执行过滤器

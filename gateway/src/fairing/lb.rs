@@ -1,8 +1,7 @@
 //! # 负载均衡
 //!
 use crate::context::HCM;
-use crate::router::{ROUTER, SERVICES};
-use protocol::gateway::Service;
+use crate::router::SERVICES;
 use rocket::fairing::Fairing;
 use rocket::http::Method;
 use rocket::http::uri::Origin;
@@ -32,23 +31,20 @@ impl Fairing for LoadBalance {
         }
 
         let route = route.unwrap();
-
-        match route.get_service() {
-            Some(service) if !service.is_empty() => {
-                match SERVICES.get_instance(service) {
-                    Some(instance) if !instance.is_empty() => {
-                        // 设置最终需要转发的URL
-                        context.request.set_routing_url(instance);
-                        return;
-                    }
-                    _ => {
-                        log::warn!("No valid instance available for service: {}", service);
-                    }
+        let service = route.get_service();
+        if service.is_empty() {
+            // 没有匹配到service或service为空，修改uri，转发到502端点
+            log::warn!("No valid service matched for route path: {}", route.path);
+        } else {
+            match SERVICES.get().unwrap().get_instance(service) {
+                Some(instance) if !instance.is_empty() => {
+                    // 设置最终需要转发的URL
+                    context.request.set_routing_url(instance);
+                    return;
                 }
-            }
-            _ => {
-                // 没有匹配到service或service为空，修改uri，转发到502端点
-                log::warn!("No valid service matched for route path: {}", route.path);
+                _ => {
+                    log::warn!("No valid instance available for service: {}", service);
+                }
             }
         }
         req.set_method(Method::Get);

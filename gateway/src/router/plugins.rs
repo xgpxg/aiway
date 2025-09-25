@@ -7,15 +7,14 @@
 //! - 缓存插件列表到内存以及本地。
 //! - 启动定时任务，每5秒从控制台拉取插件列表，校验hash值，如果不一致则更新本地插件列表。
 //!
-use crate::constants;
-use conreg_client::AppConfig;
-use dashmap::{DashMap, DashSet};
-use loadbalance::LoadBalance;
-use plugin::{AsyncTryInto, NetworkPlugin, Plugin, PluginManager};
+
+use crate::router::client::INNER_HTTP_CLIENT;
+use plugin::{AsyncTryInto, NetworkPlugin, Plugin};
+use protocol::gateway::Plugin as PluginConfig;
 use protocol::gateway::plugin::PluginPhase;
-use protocol::gateway::service::LbStrategy;
-use protocol::gateway::{Plugin as PluginConfig, Route};
+use std::process::exit;
 use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 use tokio::sync::RwLock;
 
 pub struct Plugins {
@@ -47,12 +46,15 @@ impl Plugins {
     ///
     /// 该方法为异步的，是因为插件需要从远程加载，需要异步的，不然在插件同步时会阻塞线程。
     pub async fn init() {
-        let plugins = Plugins::load().await;
-        PLUGINS.get_or_init(|| plugins);
+        if let Err(e) = Self::load().await {
+            log::error!("{}", e);
+            exit(1)
+        }
     }
 
-    pub async fn load() -> Self {
-        let list = Self::fetch_plugins();
+    pub async fn load() -> anyhow::Result<()> {
+        let list = Self::fetch_plugins().await?;
+        log::info!("loaded {} plugins", list.len());
 
         let mut global_pre_filter_plugins = Vec::new();
         let mut global_post_filter_plugins = Vec::new();
@@ -80,31 +82,42 @@ impl Plugins {
             );
         }
 
-        Self::watch();
-
-        Self {
+        let plugins = Self {
             global_pre_filter_plugins: Arc::new(RwLock::new(global_pre_filter_plugins)),
             global_post_filter_plugins: Arc::new(RwLock::new(global_post_filter_plugins)),
             pre_filter_plugins: Arc::new(RwLock::new(pre_filter_plugins)),
             post_filter_plugins: Arc::new(RwLock::new(post_filter_plugins)),
-        }
+        };
+
+        PLUGINS.get_or_init(|| plugins);
+
+        Self::watch();
+
+        Ok(())
     }
 
-    fn fetch_plugins() -> Vec<PluginConfig> {
-        // 从配置中心拿插件
-        let plugins = AppConfig::get::<Vec<PluginConfig>>("plugins").unwrap_or_default();
-        log::info!("fetched {} plugins", plugins.len());
-        log::debug!("plugins: {:?}", plugins);
-
-        plugins
+    async fn fetch_plugins() -> anyhow::Result<Vec<PluginConfig>> {
+        INNER_HTTP_CLIENT.fetch_plugins().await
     }
+
+    const INTERVAL: Duration = Duration::from_secs(5);
 
     fn watch() {
-        AppConfig::add_listener(constants::PLUGINS_CONFIG_ID, |_| {
-            tokio::spawn(async move {
-                let list = Self::fetch_plugins();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Self::INTERVAL);
 
-                // 全局实例
+            loop {
+                interval.tick().await;
+                let list = Self::fetch_plugins().await;
+
+                let list = match list {
+                    Ok(list) => list,
+                    Err(e) => {
+                        log::error!("{}", e);
+                        continue;
+                    }
+                };
+
                 let plugins = PLUGINS.get().unwrap();
 
                 let mut global_pre_filter_plugins = Vec::new();
@@ -150,7 +163,7 @@ impl Plugins {
                     let mut post = plugins.post_filter_plugins.write().await;
                     *post = post_filter_plugins;
                 }
-            });
+            }
         });
     }
 }
