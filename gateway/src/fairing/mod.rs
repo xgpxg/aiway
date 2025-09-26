@@ -30,7 +30,7 @@ pub mod security;
 #[macro_export]
 macro_rules! extract_api_path {
     ($req:expr) => {{
-        use crate::constants;
+        use $crate::constants;
         let uri_path = $req.uri().path().as_str();
         match uri_path.strip_prefix(constants::API_PREFIX) {
             Some(path) => path,

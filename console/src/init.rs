@@ -31,8 +31,11 @@ pub async fn init(args: &Args) {
     db::init().await.unwrap();
 
     // 初始化缓存
-    //cache::init_local_cache("cache/console").unwrap();
-    cache::init_single_redis_cache("redis://127.0.0.1:6379").unwrap();
+    #[cfg(feature = "cluster")]
+    cache::init_redis_cache(vec!["redis://127.0.0.1:6379"]).unwrap();
+    #[cfg(feature = "standalone")]
+    cache::init_share_cache().await.unwrap();
+
 }
 
 fn init_dir() -> anyhow::Result<()> {

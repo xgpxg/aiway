@@ -9,7 +9,7 @@ protocol = { path = "../lib/protocol", features = ["rocket", "api-key"] }
 logging = { path = "../lib/logging" }
 loadbalance = { path = "../lib/loadbalance" }
 plugin = { path = "../lib/plugin" }
-cache = { path = "../lib/cache", features = ["deadpool-redis"] }
+cache = { path = "../lib/cache", optional = true }
 pubsub = { path = "../lib/pubsub" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }
@@ -23,4 +23,8 @@ tokio-util = "0.7"
 reqwest = { version = "0.12", features = ["stream", "json"] }
 globset = "0.4.16"
 sys-info = "0.9"
-md5 = "0.8"
+
+[features]
+default = []
+standalone = ["cache/share-cache"]
+cluster = ["cache/redis-cache"]

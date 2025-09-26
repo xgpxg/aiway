@@ -14,3 +14,8 @@ async-trait = "0.1.89"
 serde_json = "1"
 deadpool-redis = { version = "0.22.0", features = ["cluster"], optional = true }
 strum_macros = "0.27"
+zbus = { version = "5.11.0", features = ["tokio"], optional = true }
+
+[features]
+redis-cache = ["deadpool-redis"]
+share-cache = ["zbus"]

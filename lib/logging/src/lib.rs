@@ -88,9 +88,8 @@ pub fn init_log() {
 pub fn init_log_with(writer: LogAppender, config: Config) {
     let mut guards = vec![];
 
-    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        "info,rocket=warn,rocket::response::debug=error,rocket::launch=error".into()
-    });
+    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| "info,rocket=warn,rocket::response::debug=error".into());
 
     let subscriber = Registry::default()
         .with(env_filter)

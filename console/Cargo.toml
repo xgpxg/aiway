@@ -5,12 +5,10 @@ edition = "2024"
 
 [dependencies]
 logging = { path = "../lib/logging" }
-cache = { path = "../lib/cache", features = ["deadpool-redis"] }
+cache = { path = "../lib/cache", optional = true }
 common = { path = "../lib/common" }
 protocol = { path = "../lib/protocol", features = ["rbatis"] }
-tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }
-#serde = "1.0"
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 rbatis = { version = "4.6", features = ["debug_mode"] }
@@ -30,3 +28,7 @@ reqwest = "0.12"
 bcrypt = "0.17"
 uuid = { version = "1.17.0", features = ["v4"] }
 
+[features]
+default = []
+standalone = ["cache/share-cache"]
+cluster = ["cache/redis-cache"]

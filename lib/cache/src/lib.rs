@@ -2,7 +2,7 @@
 //! 兼容本地缓存和Redis缓存。默认使用本地缓存。
 //!
 use crate::local_cache::LocalCache;
-#[cfg(feature = "deadpool-redis")]
+#[cfg(feature = "redis-cache")]
 use crate::redis_cache::{RedisCache, RedisClusterCache};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -12,9 +12,13 @@ use std::sync::OnceLock;
 
 mod local_cache;
 
-#[cfg(feature = "deadpool-redis")]
-mod redis_cache;
 pub mod caches;
+#[cfg(feature = "redis-cache")]
+mod redis_cache;
+#[cfg(feature = "share-cache")]
+mod share_cache;
+#[cfg(feature = "share-cache")]
+pub use share_cache::start_share_cache_server;
 
 #[allow(unused)]
 #[async_trait]
@@ -58,8 +62,24 @@ pub fn init_local_cache<P: AsRef<Path>>(dir: P) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "deadpool-redis")]
-pub fn init_single_redis_cache(url: &str) -> anyhow::Result<()> {
+#[cfg(feature = "redis-cache")]
+pub fn init_redis_cache<N: AsRef<str>>(nodes: Vec<N>) -> anyhow::Result<()> {
+    if nodes.is_empty() {
+        return Err(anyhow::anyhow!("redis nodes is empty"));
+    }
+    if nodes.len() == 1 {
+        return init_single_redis_cache(nodes[0].as_ref());
+    }
+    init_cluster_redis_cache(
+        nodes
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect::<Vec<_>>(),
+    )
+}
+
+#[cfg(feature = "redis-cache")]
+fn init_single_redis_cache(url: &str) -> anyhow::Result<()> {
     log::info!("init redis cache");
     CACHE
         .set(Box::new(RedisCache::new(url.to_string())?))
@@ -67,11 +87,20 @@ pub fn init_single_redis_cache(url: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "deadpool-redis")]
-pub fn init_cluster_redis_cache(nodes: Vec<String>) -> anyhow::Result<()> {
+#[cfg(feature = "redis-cache")]
+fn init_cluster_redis_cache(nodes: Vec<String>) -> anyhow::Result<()> {
     log::info!("init redis cache");
     CACHE
         .set(Box::new(RedisClusterCache::new(nodes)?))
+        .map_err(|_| anyhow::anyhow!("cache already initialized"))?;
+    Ok(())
+}
+
+#[cfg(feature = "share-cache")]
+pub async fn init_share_cache() -> anyhow::Result<()> {
+    log::info!("init share cache");
+    CACHE
+        .set(Box::new(share_cache::ShareCache::new().await?))
         .map_err(|_| anyhow::anyhow!("cache already initialized"))?;
     Ok(())
 }
