@@ -210,12 +210,13 @@ impl LocalCache {
     }
 
     /// 未过期的缓存写入到磁盘
-    fn sync_to_disk(&self) {
+    pub(crate) fn sync_to_disk(&self) {
         let db = self.disk_db.clone();
         for (key, entry) in self.memory_cache.iter() {
             if !self.is_expired(&entry) {
                 let serialized = serde_json::to_vec(&entry).unwrap();
                 db.insert(key.as_bytes(), serialized).unwrap();
+                db.flush().unwrap();
             }
         }
     }
