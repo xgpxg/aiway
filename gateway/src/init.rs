@@ -17,7 +17,9 @@ pub async fn init(_args: &Args) {
     //init_client(args).await;
 
     // 初始化缓存
-    cache::init_local_cache("cache/gateway").unwrap();
+    //cache::init_local_cache("cache/gateway").unwrap();
+    cache::init_single_redis_cache("redis://127.0.0.1:6379").unwrap();
+
 
     // 初始化发布订阅
     pubsub::init("127.0.0.1:4222").await.unwrap();

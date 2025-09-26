@@ -362,6 +362,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sled",
+ "strum_macros",
  "tokio",
 ]
 
@@ -498,23 +499,6 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "idgenerator",
-]
-
-[[package]]
-name = "conreg-client"
-version = "0.1.2"
-source = "git+https://github.com/xgpxg/conreg?branch=master#4c5a1d7f22d69d022f32474547608ef5a56a1466"
-dependencies = [
- "anyhow",
- "dashmap",
- "derive_builder",
- "fastrand",
- "log",
- "md5",
- "reqwest",
- "serde",
- "serde_yaml",
- "tokio",
 ]
 
 [[package]]
@@ -1167,6 +1151,7 @@ dependencies = [
  "anyhow",
  "cache",
  "clap",
+ "common",
  "dashmap",
  "globset",
  "loadbalance",
@@ -3556,7 +3541,6 @@ name = "test-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "conreg-client",
  "rocket",
  "tokio",
 ]
@@ -3661,7 +3645,6 @@ dependencies = [
  "io-uring",
  "libc",
  "mio",
- "parking_lot 0.12.4",
  "pin-project-lite",
  "signal-hook-registry",
  "slab",

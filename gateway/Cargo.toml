@@ -4,11 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+common = { path = "../lib/common" }
 protocol = { path = "../lib/protocol", features = ["rocket", "api-key"] }
 logging = { path = "../lib/logging" }
 loadbalance = { path = "../lib/loadbalance" }
 plugin = { path = "../lib/plugin" }
-cache = { path = "../lib/cache" }
+cache = { path = "../lib/cache", features = ["deadpool-redis"] }
 pubsub = { path = "../lib/pubsub" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }

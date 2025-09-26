@@ -5,4 +5,8 @@ pub enum CacheKey {
     /// 0: 用户Token
     #[strum(to_string = "aiway:user:token:{0}")]
     UserToken(String),
+
+    /// API Key
+    #[strum(to_string = "aiway:api:key:{0}")]
+    ApiKey(String),
 }

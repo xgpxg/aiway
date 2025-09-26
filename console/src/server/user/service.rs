@@ -1,4 +1,3 @@
-use crate::cache::caches::CacheKey;
 use crate::server::auth::UserPrincipal;
 use crate::server::db::models::user::User;
 use crate::server::db::models::user_auth::{IdentityType, UserAuth, UserAuthBuilder};
@@ -8,6 +7,7 @@ use crate::server::user::response::{LoginRes, OtherInfo, UserBaseInfo, UserCente
 use anyhow::bail;
 use rbs::value;
 use std::time::Duration;
+use cache::caches::CacheKey;
 
 pub(crate) async fn login(req: LoginReq) -> anyhow::Result<LoginRes> {
     let user_id = match req.login_type {

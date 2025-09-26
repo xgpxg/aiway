@@ -1,11 +1,11 @@
 //! Token验证
 
-use crate::cache::caches::CacheKey;
 use logging::log;
 use rocket::Request;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 use serde::{Deserialize, Serialize};
+use cache::caches::CacheKey;
 
 /// 已登录的用户信息
 #[derive(Debug, Clone, Serialize, Deserialize)]

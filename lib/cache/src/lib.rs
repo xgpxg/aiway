@@ -14,6 +14,7 @@ mod local_cache;
 
 #[cfg(feature = "deadpool-redis")]
 mod redis_cache;
+pub mod caches;
 
 #[allow(unused)]
 #[async_trait]

@@ -5,11 +5,14 @@
 //! 考虑是调用另外的服务验证，还是对API Key解密验证?
 //!
 use crate::context::Headers;
+use cache::caches::CacheKey;
+use common::constants::ENCRYPT_KEY;
 use protocol::gateway::ApiKey;
 use rocket::fairing::Fairing;
 use rocket::http::Method;
 use rocket::http::uri::Origin;
 use rocket::{Data, Request};
+use serde_json::Value;
 
 pub struct Authentication {}
 impl Authentication {
@@ -34,8 +37,6 @@ impl Fairing for Authentication {
 
         let bearer_token = req.headers().get_one(Headers::AUTHORIZATION);
 
-        log::error!("bearer_token: {}", bearer_token.unwrap());
-
         let api_key = match bearer_token {
             Some(api_key) => match api_key.strip_prefix(BEARER_PREFIX) {
                 Some(api_key) => api_key,
@@ -52,21 +53,20 @@ impl Fairing for Authentication {
             }
         };
 
-        if let Err(_) = ApiKey::decrypt(&[0; 32], api_key) {
+        if let Err(_) = ApiKey::decrypt(ENCRYPT_KEY, api_key) {
             req.set_method(Method::Get);
             req.set_uri(Origin::parse("/eep/401").unwrap());
             return;
         }
 
-        let api_key = cache::get::<String>(api_key).await.unwrap();
-        let _api_key = match api_key {
-            None => {
-                req.set_method(Method::Get);
-                req.set_uri(Origin::parse("/eep/401").unwrap());
-                return;
-            }
-            Some(v) => v,
-        };
+        let api_key = cache::get::<Value>(&CacheKey::ApiKey(api_key.to_string()).to_string())
+            .await
+            .unwrap();
+        if api_key.is_none() {
+            req.set_method(Method::Get);
+            req.set_uri(Origin::parse("/eep/401").unwrap());
+            return;
+        }
 
         //println!("{:?}", api_key.unwrap().principal);
     }

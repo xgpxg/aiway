@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 logging = { path = "../lib/logging" }
-cache = { path = "../lib/cache" }
+cache = { path = "../lib/cache", features = ["deadpool-redis"] }
 common = { path = "../lib/common" }
 protocol = { path = "../lib/protocol", features = ["rbatis"] }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
