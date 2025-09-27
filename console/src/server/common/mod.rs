@@ -4,8 +4,6 @@ use serde::{Deserializer, Serializer, de};
 #[allow(unused)]
 pub(crate) mod pool;
 
-pub mod page;
-
 /// 序列化时间
 ///
 /// 用于将rbatis映射的时间`DateTime`在传给前端时，序列化为字符串

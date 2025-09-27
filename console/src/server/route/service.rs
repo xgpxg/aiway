@@ -1,5 +1,4 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::common::page::RbPage;
 use crate::server::db::models::route;
 use crate::server::db::models::route::{Route, RouteStatus};
 use crate::server::db::{Pool, tools};
@@ -7,7 +6,7 @@ use crate::server::route::request::{RouteAddOrUpdateReq, RouteListReq};
 use crate::server::route::response::RouteListRes;
 use anyhow::{Context, bail};
 use common::id;
-use protocol::common::req::IdsReq;
+use protocol::common::req::{IdsReq, Pagination};
 use protocol::common::res::{IntoPageRes, PageRes};
 use rbs::value;
 

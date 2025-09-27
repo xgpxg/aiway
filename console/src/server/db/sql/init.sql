@@ -89,17 +89,18 @@ create table if not exists plugin
 create table if not exists api_key
 (
     id             bigint primary key,
-    principal      varchar(500),                    -- key所属的主体标识，可以为空
-    secret         varchar(100) not null,           -- 密钥
-    status         tinyint(1)   not null default 1, -- 状态：0禁用 1正常
-    eff_time       datetime     not null,           -- 生效时间，默认当前时间
-    exp_time       datetime,                        -- 失效时间，为空表示永久有效
-    create_user_id bigint,                          -- 创建人ID
-    update_user_id bigint,                          -- 修改人ID
-    create_time    datetime,                        -- 创建时间
-    update_time    datetime,                        -- 更新时间
-    remark         varchar(500),                    -- 备注
-    is_delete      tinyint(1)   not null default 0  -- 是否删除
+    name           varchar(100) not null,              -- 密钥名称
+    principal      varchar(500),                       -- 密钥所属的主体标识，可以为空
+    secret         varchar(100) not null,              -- 密钥
+    status         varchar(20)  not null default 'Ok', -- 状态：Disable | Ok
+    eff_time       datetime     not null,              -- 生效时间，默认当前时间
+    exp_time       datetime,                           -- 失效时间，为空表示永久有效
+    create_user_id bigint,                             -- 创建人ID
+    update_user_id bigint,                             -- 修改人ID
+    create_time    datetime,                           -- 创建时间
+    update_time    datetime,                           -- 更新时间
+    remark         varchar(500),                       -- 备注
+    is_delete      tinyint(1)   not null default 0     -- 是否删除
 );
 
 -- -------------------------------- 初始化用户 --------------------------------------

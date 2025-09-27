@@ -1,4 +1,3 @@
-use crate::impl_rb_page;
 use crate::server::db::models::route::Route;
 use protocol::common::req::PageReq;
 use protocol::impl_pagination;
@@ -70,4 +69,3 @@ pub struct RouteListReq {
     pub page: PageReq,
 }
 impl_pagination!(RouteListReq);
-impl_rb_page!(RouteListReq);

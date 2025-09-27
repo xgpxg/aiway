@@ -3,7 +3,6 @@ use protocol::gateway::service::LbStrategy;
 use rocket::serde::{Deserialize, Serialize};
 use protocol::common::req::PageReq;
 use protocol::impl_pagination;
-use crate::impl_rb_page;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceAddOrUpdateReq {
@@ -46,4 +45,3 @@ pub struct ServiceListReq {
     pub page: PageReq,
 }
 impl_pagination!(ServiceListReq);
-impl_rb_page!(ServiceListReq);
