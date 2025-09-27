@@ -10,7 +10,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// IP address
+    /// 配置文件，YAML格式
     #[arg(short, long, default_value = "config.yaml")]
     config: String,
 }

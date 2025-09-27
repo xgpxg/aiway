@@ -15,7 +15,7 @@ pub struct Plugin {
     pub description: Option<String>,
     /// 执行阶段
     pub phase: Option<PluginPhase>,
-    /// 下载地址
+    /// 下载地址，该地址用于gateway下载插件，需保证从gateway处可以访问。
     pub url: Option<String>,
     /// 版本，格式为0.1.0，只增不减
     pub version: Option<String>,

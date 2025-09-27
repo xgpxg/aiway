@@ -76,7 +76,7 @@ create table if not exists plugin
     name           varchar(100) not null,          -- 插件名称
     description    varchar(500),                   -- 插件描述
     phase          varchar(20)  not null,          -- 插件执行阶段
-    url            varchar(500) not null,          -- 下载地址
+    url            varchar(500) not null,          -- 下载地址，该地址用于gateway下载插件，需保证从gateway处可以访问。
     version        varchar(50)  not null,          -- 插件版本，格式为0.1.0
     create_user_id bigint,                         -- 创建人ID
     update_user_id bigint,                         -- 修改人ID

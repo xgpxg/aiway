@@ -8,10 +8,13 @@
 //! - 启动定时任务，每5秒从控制台拉取插件列表，校验hash值，如果不一致则更新本地插件列表。
 //!
 
+use crate::Args;
 use crate::router::client::INNER_HTTP_CLIENT;
+use clap::Parser;
 use plugin::{AsyncTryInto, NetworkPlugin, Plugin};
 use protocol::gateway::Plugin as PluginConfig;
 use protocol::gateway::plugin::PluginPhase;
+use std::fmt::format;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -26,6 +29,8 @@ pub struct Plugins {
     pub pre_filter_plugins: Arc<RwLock<Vec<(PluginConfig, Box<dyn Plugin>)>>>,
     /// 路由过滤器插件（响应阶段）
     pub post_filter_plugins: Arc<RwLock<Vec<(PluginConfig, Box<dyn Plugin>)>>>,
+
+    pub hash: Arc<RwLock<String>>,
 }
 
 pub static PLUGINS: OnceLock<Plugins> = OnceLock::new();
@@ -56,19 +61,60 @@ impl Plugins {
         let list = Self::fetch_plugins().await?;
         log::info!("loaded {} plugins", list.len());
 
+        let hash = md5::compute(serde_json::to_string(&list)?);
+        let hash = format!("{:x}", hash);
+
+        let (global_pre, global_post, pre, post) = Self::process_plugins(list).await?;
+
+        let plugins = Self {
+            global_pre_filter_plugins: Arc::new(RwLock::new(global_pre)),
+            global_post_filter_plugins: Arc::new(RwLock::new(global_post)),
+            pre_filter_plugins: Arc::new(RwLock::new(pre)),
+            post_filter_plugins: Arc::new(RwLock::new(post)),
+            hash: Arc::new(RwLock::new(hash)),
+        };
+
+        PLUGINS.get_or_init(|| plugins);
+
+        Self::watch();
+
+        Ok(())
+    }
+
+    async fn process_plugins(
+        list: Vec<PluginConfig>,
+    ) -> anyhow::Result<(
+        Vec<(PluginConfig, Box<dyn Plugin>)>,
+        Vec<(PluginConfig, Box<dyn Plugin>)>,
+        Vec<(PluginConfig, Box<dyn Plugin>)>,
+        Vec<(PluginConfig, Box<dyn Plugin>)>,
+    )> {
+        let args = Args::parse();
         let mut global_pre_filter_plugins = Vec::new();
         let mut global_post_filter_plugins = Vec::new();
         let mut pre_filter_plugins = Vec::new();
         let mut post_filter_plugins = Vec::new();
 
         for plugin in list.into_iter() {
-            let plugin_instance = match NetworkPlugin(plugin.url.clone()).async_try_into().await {
+            let url = if plugin.is_relative_download_url() {
+                plugin.build_url_with_console(&args.console)
+            } else {
+                plugin.url.clone()
+            };
+
+            let plugin_instance = match NetworkPlugin(url.clone()).async_try_into().await {
                 Ok(instance) => instance,
                 Err(e) => {
-                    log::error!("plugin {} load failed: ", e);
+                    log::error!(
+                        "plugin {} load failed: {}, download url: {}",
+                        plugin.name,
+                        e,
+                        url
+                    );
                     continue;
                 }
             };
+
             distribute_plugin!(
                 plugin.phase,
                 plugin,
@@ -82,18 +128,12 @@ impl Plugins {
             );
         }
 
-        let plugins = Self {
-            global_pre_filter_plugins: Arc::new(RwLock::new(global_pre_filter_plugins)),
-            global_post_filter_plugins: Arc::new(RwLock::new(global_post_filter_plugins)),
-            pre_filter_plugins: Arc::new(RwLock::new(pre_filter_plugins)),
-            post_filter_plugins: Arc::new(RwLock::new(post_filter_plugins)),
-        };
-
-        PLUGINS.get_or_init(|| plugins);
-
-        Self::watch();
-
-        Ok(())
+        Ok((
+            global_pre_filter_plugins,
+            global_post_filter_plugins,
+            pre_filter_plugins,
+            post_filter_plugins,
+        ))
     }
 
     async fn fetch_plugins() -> anyhow::Result<Vec<PluginConfig>> {
@@ -105,7 +145,6 @@ impl Plugins {
     fn watch() {
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Self::INTERVAL);
-
             loop {
                 interval.tick().await;
                 let list = Self::fetch_plugins().await;
@@ -113,55 +152,43 @@ impl Plugins {
                 let list = match list {
                     Ok(list) => list,
                     Err(e) => {
-                        log::error!("{}", e);
+                        log::error!("fetch plugins error: {}", e);
                         continue;
                     }
                 };
 
                 let plugins = PLUGINS.get().unwrap();
 
-                let mut global_pre_filter_plugins = Vec::new();
-                let mut global_post_filter_plugins = Vec::new();
-                let mut pre_filter_plugins = Vec::new();
-                let mut post_filter_plugins = Vec::new();
-
-                for plugin in list.into_iter() {
-                    let plugin_instance =
-                        match NetworkPlugin(plugin.url.clone()).async_try_into().await {
-                            Ok(instance) => instance,
-                            Err(e) => {
-                                log::error!("plugin {} load failed: {}", plugin.name, e);
-                                continue;
-                            }
-                        };
-                    distribute_plugin!(
-                        plugin.phase,
-                        plugin,
-                        plugin_instance,
-                        {
-                            GlobalPre => global_pre_filter_plugins,
-                            GlobalPost => global_post_filter_plugins,
-                            Pre => pre_filter_plugins,
-                            Post => post_filter_plugins
-                        }
-                    );
+                let hash = md5::compute(serde_json::to_string(&list).unwrap());
+                let hash = format!("{:x}", hash);
+                if hash == *plugins.hash.read().await {
+                    log::debug!("plugins not changed, wait next interval");
+                    continue;
                 }
 
+                log::info!("loaded {} plugins", list.len());
+
+                let (global_pre, global_post, pre, post) =
+                    Self::process_plugins(list).await.unwrap();
+
                 {
-                    let mut global_pre = plugins.global_pre_filter_plugins.write().await;
-                    *global_pre = global_pre_filter_plugins;
+                    let mut global_pre_plugins = plugins.global_pre_filter_plugins.write().await;
+                    *global_pre_plugins = global_pre;
                 }
                 {
-                    let mut global_post = plugins.global_post_filter_plugins.write().await;
-                    *global_post = global_post_filter_plugins;
+                    let mut global_post_plugins = plugins.global_post_filter_plugins.write().await;
+                    *global_post_plugins = global_post;
                 }
                 {
-                    let mut pre = plugins.pre_filter_plugins.write().await;
-                    *pre = pre_filter_plugins;
+                    let mut pre_plugins = plugins.pre_filter_plugins.write().await;
+                    *pre_plugins = pre;
                 }
                 {
-                    let mut post = plugins.post_filter_plugins.write().await;
-                    *post = post_filter_plugins;
+                    let mut post_plugins = plugins.post_filter_plugins.write().await;
+                    *post_plugins = post;
+                }
+                {
+                    plugins.hash.write().await.clone_from(&hash);
                 }
             }
         });

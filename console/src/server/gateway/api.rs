@@ -25,6 +25,8 @@ async fn all_services() -> Res<Vec<protocol::gateway::Service>> {
 }
 
 /// 查询插件
+///
+/// 需返回稳定有序列表
 #[get("/gateway/plugins")]
 async fn all_plugins() -> Res<Vec<protocol::gateway::Plugin>> {
     match plugin::plugins().await {

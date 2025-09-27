@@ -88,6 +88,7 @@ mod plugin;
 mod route;
 mod service;
 mod user;
+mod file;
 
 pub async fn start_http_server() -> anyhow::Result<()> {
     let config = &AppConfig::server();
@@ -110,6 +111,8 @@ pub async fn start_http_server() -> anyhow::Result<()> {
     builder = builder.mount("/api/service", service::api::routes());
     builder = builder.mount("/api/key", key::api::routes());
     builder = builder.mount("/api/plugin", plugin::api::routes());
+
+    builder = builder.mount("/file/", file::api::routes());
 
     builder.launch().await?;
 

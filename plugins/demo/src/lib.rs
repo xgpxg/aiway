@@ -18,7 +18,7 @@ impl Plugin for DemoPlugin {
 
     // 实现插件逻辑
     async fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
-        //println!("run demo plugin, context: {:?}", context);
+        println!("run demo plugin, context: {:?}", context);
         Ok(())
     }
 }

@@ -27,6 +27,7 @@ semver = "1.0"
 reqwest = "0.12"
 bcrypt = "0.17"
 uuid = { version = "1.17.0", features = ["v4"] }
+nanoid = "0.4.0"
 
 [features]
 default = []
