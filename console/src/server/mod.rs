@@ -67,13 +67,12 @@
 //! 系统级配置，配置项待定。
 //!
 //! # 系统交互
-//! 【控制台】 调用 【Mysql】【Redis】【Conreg】
+//! 【控制台】 调用 【Mysql】【Redis】
 //!
 //! 【控制台】 监听 【message】
 //!
-//! 【网关】 调用 【Conreg】【Redis】
+//! 【网关】 调用 【Redis】
 //!
-//! 【网关】 监听 【Conreg】
 
 use crate::config::config::AppConfig;
 use rocket::data::{ByteUnit, Limits};
@@ -85,6 +84,7 @@ mod common;
 pub mod db;
 mod gateway;
 mod key;
+mod plugin;
 mod route;
 mod service;
 mod user;
@@ -109,6 +109,7 @@ pub async fn start_http_server() -> anyhow::Result<()> {
     builder = builder.mount("/api/route", route::api::routes());
     builder = builder.mount("/api/service", service::api::routes());
     builder = builder.mount("/api/key", key::api::routes());
+    builder = builder.mount("/api/plugin", plugin::api::routes());
 
     builder.launch().await?;
 
