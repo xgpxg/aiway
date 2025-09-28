@@ -17,8 +17,9 @@ impl Plugin for DemoPlugin {
     }
 
     // 实现插件逻辑
-    async fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
+    async fn execute(&self, context: &HttpContext, config: &serde_json::Value) -> Result<(), PluginError> {
         println!("run demo plugin, context: {:?}", context);
+        println!("config: {:?}", config);
         Ok(())
     }
 }

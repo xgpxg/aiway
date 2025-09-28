@@ -47,17 +47,24 @@ impl Fairing for GlobalPreFilter {
         let config = GATEWAY_CONFIG.get().unwrap().config.read().await;
         let plugins = &config.pre_filters;
 
-        for name in plugins.iter() {
-            log::debug!("execute global post filter plugin: {}", name);
+        for configured_plugin in plugins.iter() {
+            log::debug!(
+                "execute global post filter plugin: {}",
+                configured_plugin.name
+            );
             let result = PLUGINS
                 .get()
                 .unwrap() // SAFE: 在启动时已经初始化
-                .execute(name, context.as_ref())
+                .execute(configured_plugin, context.as_ref())
                 .await;
             match result {
                 Ok(_) => {}
                 Err(e) => {
-                    log::error!("execute global pre filter plugin {} error: {}", name, e);
+                    log::error!(
+                        "execute global pre filter plugin {} error: {}",
+                        configured_plugin.name,
+                        e
+                    );
                     req.set_method(Method::Get);
                     req.set_uri(Origin::parse("/eep/502").unwrap());
                     return;
@@ -88,17 +95,24 @@ impl Fairing for GlobalPostFilter {
         let config = GATEWAY_CONFIG.get().unwrap().config.read().await;
         let plugins = &config.post_filters;
 
-        for name in plugins.iter() {
-            log::debug!("execute global post filter plugin: {}", name);
+        for configured_plugin in plugins.iter() {
+            log::debug!(
+                "execute global post filter plugin: {}",
+                configured_plugin.name
+            );
             let result = PLUGINS
                 .get()
                 .unwrap() // SAFE: 在启动时已经初始化
-                .execute(name, context.as_ref())
+                .execute(configured_plugin, context.as_ref())
                 .await;
             match result {
                 Ok(_) => {}
                 Err(e) => {
-                    log::error!("execute global post filter plugin {} error: {}", name, e);
+                    log::error!(
+                        "execute global post filter plugin {} error: {}",
+                        configured_plugin.name,
+                        e
+                    );
                     res.set_status(rocket::http::Status::InternalServerError);
                     return;
                 }

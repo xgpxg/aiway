@@ -16,9 +16,14 @@ impl PluginManager {
         self.plugins.insert(plugin.name().to_string(), plugin);
     }
 
-    pub async fn run(&self, name: &str, context: &HttpContext) -> Result<(), PluginError> {
+    pub async fn run(
+        &self,
+        name: &str,
+        context: &HttpContext,
+        config: &serde_json::Value,
+    ) -> Result<(), PluginError> {
         if let Some(plugin) = self.plugins.get(name) {
-            plugin.execute(context).await
+            plugin.execute(context, config).await
         } else {
             Err(PluginError::NotFound(name.to_string()))
         }

@@ -1,5 +1,6 @@
+use crate::gateway::plugin::ConfiguredPlugin;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -34,14 +35,14 @@ pub struct Route {
     pub query: BTreeMap<String, String>,
     /// 前置过滤器插件，在请求阶段执行，多个按顺序串联执行
     #[serde(default = "Vec::default", alias = "pre_filters", alias = "pre-filters")]
-    pub pre_filters: Vec<String>,
+    pub pre_filters: Vec<ConfiguredPlugin>,
     /// 后置过滤器插件，在响应阶段执行，多个按顺序串联执行
     #[serde(
         default = "Vec::default",
         alias = "post_filters",
         alias = "post-filters"
     )]
-    pub post_filters: Vec<String>,
+    pub post_filters: Vec<ConfiguredPlugin>,
 }
 
 impl Route {

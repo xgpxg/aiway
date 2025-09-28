@@ -1,5 +1,6 @@
 use crate::server::db::models::route::Route;
 use protocol::common::req::PageReq;
+use protocol::gateway::plugin::ConfiguredPlugin;
 use protocol::impl_pagination;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -30,10 +31,10 @@ pub struct RouteAddOrUpdateReq {
     pub query: BTreeMap<String, String>,
     /// 前置过滤器
     #[serde(default = "Default::default")]
-    pub pre_filters: Vec<String>,
+    pub pre_filters: Vec<ConfiguredPlugin>,
     /// 后置过滤器
     #[serde(default = "Default::default")]
-    pub post_filters: Vec<String>,
+    pub post_filters: Vec<ConfiguredPlugin>,
 }
 
 impl From<RouteAddOrUpdateReq> for Route {

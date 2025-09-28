@@ -1,5 +1,6 @@
 use crate::server::route::RouteListReq;
 use derive_builder::Builder;
+use protocol::gateway::plugin::ConfiguredPlugin;
 use rbatis::rbdc::DateTime;
 use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
@@ -35,9 +36,9 @@ pub struct Route {
     /// 按请求参数匹配
     pub query: Option<BTreeMap<String, String>>,
     /// 请求阶段过滤器，JSON数组
-    pub pre_filters: Option<Vec<String>>,
+    pub pre_filters: Option<Vec<ConfiguredPlugin>>,
     /// 响应阶段过滤器，JSON数组
-    pub post_filters: Option<Vec<String>>,
+    pub post_filters: Option<Vec<ConfiguredPlugin>>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

@@ -4,10 +4,9 @@ use crate::server::db::{Pool, tools};
 use crate::server::file::file_util::{make_download_file, make_save_file};
 use crate::server::plugin::request::PluginAddOrUpdateReq;
 use anyhow::bail;
-use common::{data_dir, id};
+use common::id;
 use protocol::common::req::IdsReq;
 use rbs::value;
-use rocket::tokio::fs;
 
 pub async fn add(req: PluginAddOrUpdateReq<'_>, user: UserPrincipal) -> anyhow::Result<()> {
     let mut plugin = PluginBuilder::default()
@@ -15,10 +14,16 @@ pub async fn add(req: PluginAddOrUpdateReq<'_>, user: UserPrincipal) -> anyhow::
         .name(Some(req.name))
         .description(Some(req.description))
         .version(Some(req.version))
-        .phase(Some(req.phase))
         .create_user_id(Some(user.id))
         .create_time(Some(tools::now()))
         .build()?;
+
+    let default_config = match req.default_config {
+        Some(config) => serde_yaml::Value::from(config),
+        None => serde_yaml::Value::default(),
+    };
+
+    plugin.default_config = Some(default_config);
 
     // 名称唯一
     let name = plugin.name.as_ref().unwrap();

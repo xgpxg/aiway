@@ -102,8 +102,11 @@ pub trait Plugin: Send + Sync {
     /// 插件名称
     fn name(&self) -> &str;
     /// 执行插件
-    /// TODO 考虑增加一个插件配置参数
-    async fn execute(&self, context: &HttpContext) -> Result<(), PluginError>;
+    async fn execute(
+        &self,
+        context: &HttpContext,
+        config: &serde_json::Value,
+    ) -> Result<(), PluginError>;
 }
 
 /// 从本地磁盘加载插件
@@ -148,8 +151,12 @@ impl Plugin for LibraryPluginWrapper {
         self.plugin.name()
     }
 
-    async fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
-        self.plugin.execute(context).await
+    async fn execute(
+        &self,
+        context: &HttpContext,
+        config: &serde_json::Value,
+    ) -> Result<(), PluginError> {
+        self.plugin.execute(context, config).await
     }
 }
 
@@ -225,7 +232,10 @@ mod tests {
             "http://192.168.1.242:10000/aiway/test/plugins/libdemo_plugin.so".to_string(),
         );
         let plugin: Box<dyn Plugin> = p.async_try_into().await.unwrap();
-        plugin.execute(&HttpContext::default()).await.unwrap();
+        plugin
+            .execute(&HttpContext::default(), serde_json::Value::Null)
+            .await
+            .unwrap();
     }
     #[tokio::test]
     async fn test_plugin_manager() {

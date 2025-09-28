@@ -41,17 +41,24 @@ impl Fairing for PreFilter {
         // SAFE：在routing时已经设置
         let route = context.request.get_route().unwrap();
         let pre_filters = &route.pre_filters;
-        for name in pre_filters.iter() {
-            log::debug!("execute route pre filter plugin: {}", name);
+        for configured_plugin in pre_filters.iter() {
+            log::debug!(
+                "execute route pre filter plugin: {}",
+                configured_plugin.name
+            );
             let result = PLUGINS
                 .get()
                 .unwrap() // SAFE: 在启动时已经初始化
-                .execute(name, context.as_ref())
+                .execute(configured_plugin, context.as_ref())
                 .await;
             match result {
                 Ok(_) => {}
                 Err(e) => {
-                    log::error!("execute global pre filter plugin {} error: {}", name, e);
+                    log::error!(
+                        "execute global pre filter plugin {} error: {}",
+                        configured_plugin.name,
+                        e
+                    );
                     req.set_method(Method::Get);
                     req.set_uri(Origin::parse("/eep/502").unwrap());
                     return;
@@ -85,17 +92,24 @@ impl Fairing for PostFilter {
         let route = context.request.get_route().unwrap();
         let plugins = &route.post_filters;
 
-        for name in plugins.iter() {
-            log::debug!("execute route post filter plugin: {}", name);
+        for configured_plugin in plugins.iter() {
+            log::debug!(
+                "execute route post filter plugin: {}",
+                configured_plugin.name
+            );
             let result = PLUGINS
                 .get()
                 .unwrap() // SAFE: 在启动时已经初始化
-                .execute(name, context.as_ref())
+                .execute(configured_plugin, context.as_ref())
                 .await;
             match result {
                 Ok(_) => {}
                 Err(e) => {
-                    log::error!("execute route post filter plugin {} error: {}", name, e);
+                    log::error!(
+                        "execute route post filter plugin {} error: {}",
+                        configured_plugin.name,
+                        e
+                    );
                     res.set_status(rocket::http::Status::InternalServerError);
                     return;
                 }

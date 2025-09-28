@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 plugin = { path = "../../lib/plugin" }
 protocol = { path = "../../lib/protocol" }
+serde_json = "1"
 
 [lib]
 name = "demo_plugin"

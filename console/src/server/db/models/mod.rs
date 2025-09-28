@@ -1,5 +1,5 @@
 pub mod route;
-pub mod setting;
+pub mod system_config;
 pub mod user;
 pub mod user_auth;
 pub mod service;

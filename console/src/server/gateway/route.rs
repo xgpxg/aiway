@@ -1,5 +1,5 @@
-use crate::server::db::models::route::Route;
 use crate::server::db::Pool;
+use crate::server::db::models::route::Route;
 
 pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
     let routes = Route::select_all(Pool::get()?).await?;
@@ -17,5 +17,31 @@ pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
             post_filters: route.post_filters.unwrap_or_default(),
         });
     }
+
+    // pre_filters和post_filters中对应的插件配置已经由前端传入，不需要再组装插件的默认配置。
+    // 插件的配置应该在控制台构建，而不应该在网关构建，网关仅负责执行。
+
     Ok(list)
+}
+
+#[cfg(test)]
+mod tests {
+    use config::{Config, FileFormat};
+    #[test]
+    fn test_config() {
+        let config = Config::builder()
+            .add_source(config::File::from_str(
+                "name: aaa\naddress: \n  city: 123",
+                FileFormat::Yaml,
+            ))
+            .add_source(config::File::from_str(
+                "name: bbb\naddress: \n  city: 123",
+                FileFormat::Yaml,
+            ))
+            .build()
+            .unwrap();
+        let config = config.try_deserialize::<serde_json::Value>().unwrap();
+        println!("{:?}", config);
+        println!("{:?}", config);
+    }
 }

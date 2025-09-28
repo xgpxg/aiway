@@ -16,6 +16,7 @@ use anyhow::bail;
 use clap::Parser;
 use dashmap::DashMap;
 use plugin::{AsyncTryInto, NetworkPlugin, Plugin};
+use protocol::gateway::plugin::ConfiguredPlugin;
 use protocol::gateway::{HttpContext, Plugin as PluginConfig};
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
@@ -135,14 +136,22 @@ impl PluginFactory {
         });
     }
 
-    pub async fn execute(&self, name: &str, context: &HttpContext) -> anyhow::Result<()> {
-        match self.plugins.get(name) {
+    /// 调用插件
+    pub async fn execute(
+        &self,
+        configured_plugin: &ConfiguredPlugin,
+        context: &HttpContext,
+    ) -> anyhow::Result<()> {
+        match self.plugins.get(&configured_plugin.name) {
             Some(plugin) => plugin
                 .1
-                .execute(context)
+                .execute(context, &configured_plugin.config)
                 .await
                 .map_err(|e| anyhow::anyhow!(e)),
-            None => bail!("plugin {} not found in plugin factory", name),
+            None => bail!(
+                "plugin {} not found in plugin factory",
+                &configured_plugin.name
+            ),
         }
     }
 }

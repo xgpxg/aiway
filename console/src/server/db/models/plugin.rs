@@ -1,5 +1,4 @@
 use derive_builder::Builder;
-use protocol::gateway::plugin::PluginPhase;
 use rbatis::crud;
 use rbatis::rbdc::DateTime;
 use rocket::serde::{Deserialize, Serialize};
@@ -13,12 +12,12 @@ pub struct Plugin {
     pub name: Option<String>,
     /// 描述
     pub description: Option<String>,
-    /// 执行阶段
-    pub phase: Option<PluginPhase>,
     /// 下载地址，该地址用于gateway下载插件，需保证从gateway处可以访问。
     pub url: Option<String>,
     /// 版本，格式为0.1.0，只增不减
     pub version: Option<String>,
+    /// 默认配置，YAML格式
+    pub default_config: Option<serde_yaml::Value>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

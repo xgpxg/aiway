@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 /// 插件配置
 ///
 /// 注意：插件应无状态化
-#[derive(Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Plugin {
     /// 插件名称，全局唯一
     pub name: String,
@@ -16,29 +16,45 @@ pub struct Plugin {
     pub url: String,
     /// 插件版本，只增不减的语义化版本号。
     pub version: String,
+    // /// 插件配置
+    // pub config: serde_json::Value,
 }
-#[derive(Debug, Clone, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
-#[cfg_attr(feature = "rocket", derive(rocket::FromFormField))]
-pub enum PluginPhase {
-    /// 全局有效，请求阶段执行
-    GlobalPre,
-    /// 全局有效，响应阶段执行
-    GlobalPost,
-    /// 路由有效，请求阶段执行
-    Pre,
-    /// 路由有效，响应阶段执行
-    Post,
+
+/// 已配置的插件
+///
+/// 该类型在具体的插件配置和运行时使用。
+///
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfiguredPlugin {
+    /// 插件名称
+    pub name: String,
+    /// 插件配置
+    pub config: serde_json::Value,
 }
-impl Display for PluginPhase {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PluginPhase::GlobalPre => write!(f, "GlobalPre"),
-            PluginPhase::GlobalPost => write!(f, "GlobalPost"),
-            PluginPhase::Pre => write!(f, "Pre"),
-            PluginPhase::Post => write!(f, "Post"),
-        }
-    }
-}
+//
+// #[derive(Debug, Clone, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
+// #[cfg_attr(feature = "rocket", derive(rocket::FromFormField))]
+// #[deprecated]
+// pub enum PluginPhase {
+//     /// 全局有效，请求阶段执行
+//     GlobalPre,
+//     /// 全局有效，响应阶段执行
+//     GlobalPost,
+//     /// 路由有效，请求阶段执行
+//     Pre,
+//     /// 路由有效，响应阶段执行
+//     Post,
+// }
+// impl Display for PluginPhase {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             PluginPhase::GlobalPre => write!(f, "GlobalPre"),
+//             PluginPhase::GlobalPost => write!(f, "GlobalPost"),
+//             PluginPhase::Pre => write!(f, "Pre"),
+//             PluginPhase::Post => write!(f, "Post"),
+//         }
+//     }
+// }
 
 impl Plugin {
     /// 通过控制台地址，构建下载地址。

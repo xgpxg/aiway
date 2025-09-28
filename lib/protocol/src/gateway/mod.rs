@@ -21,6 +21,7 @@ pub mod service;
 pub use api_key::ApiKey;
 pub use configuration::Configuration;
 pub use http_context::HttpContext;
+pub use plugin::ConfiguredPlugin;
 pub use plugin::Plugin;
 pub use request_context::RequestContext;
 pub use response_context::ResponseContext;
