@@ -39,7 +39,7 @@
 //!     }
 //!
 //!     // 实现插件逻辑
-//!     async fn execute(&self, context: &HttpContext) -> Result<(), PluginError> {
+//!     async fn execute(&self, context: &HttpContext, config: &Value) -> Result<(), PluginError> {
 //!         println!("run demo plugin, context: {:?}", context);
 //!         Ok(())
 //!     }
@@ -59,6 +59,7 @@ pub use async_trait::async_trait;
 use libloading::Symbol;
 pub use manager::PluginManager;
 use protocol::gateway::HttpContext;
+use serde_json::Value;
 use std::env::temp_dir;
 use std::fs;
 use std::fs::File;
@@ -102,11 +103,7 @@ pub trait Plugin: Send + Sync {
     /// 插件名称
     fn name(&self) -> &str;
     /// 执行插件
-    async fn execute(
-        &self,
-        context: &HttpContext,
-        config: &serde_json::Value,
-    ) -> Result<(), PluginError>;
+    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<(), PluginError>;
 }
 
 /// 从本地磁盘加载插件
@@ -151,11 +148,7 @@ impl Plugin for LibraryPluginWrapper {
         self.plugin.name()
     }
 
-    async fn execute(
-        &self,
-        context: &HttpContext,
-        config: &serde_json::Value,
-    ) -> Result<(), PluginError> {
+    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<(), PluginError> {
         self.plugin.execute(context, config).await
     }
 }
@@ -233,7 +226,7 @@ mod tests {
         );
         let plugin: Box<dyn Plugin> = p.async_try_into().await.unwrap();
         plugin
-            .execute(&HttpContext::default(), serde_json::Value::Null)
+            .execute(&HttpContext::default(), &Value::Null)
             .await
             .unwrap();
     }
@@ -245,6 +238,9 @@ mod tests {
         let plugin: Box<dyn Plugin> = p.async_try_into().await.unwrap();
         let mut manager = PluginManager::new();
         manager.register(plugin);
-        manager.run("demo", &HttpContext::default()).await.unwrap();
+        manager
+            .run("demo", &HttpContext::default(), &Value::Null)
+            .await
+            .unwrap();
     }
 }
