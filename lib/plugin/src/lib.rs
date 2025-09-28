@@ -102,6 +102,7 @@ pub trait Plugin: Send + Sync {
     /// 插件名称
     fn name(&self) -> &str;
     /// 执行插件
+    /// TODO 考虑增加一个插件配置参数
     async fn execute(&self, context: &HttpContext) -> Result<(), PluginError>;
 }
 

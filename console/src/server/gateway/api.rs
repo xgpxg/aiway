@@ -1,9 +1,10 @@
+use crate::server;
 use crate::server::gateway::{plugin, route, service};
 use protocol::common::res::Res;
 use rocket::{get, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![all_routes, all_services, all_plugins]
+    routes![all_routes, all_services, all_plugins,configuration]
 }
 
 /// 查询路由表
@@ -30,6 +31,15 @@ async fn all_services() -> Res<Vec<protocol::gateway::Service>> {
 #[get("/gateway/plugins")]
 async fn all_plugins() -> Res<Vec<protocol::gateway::Plugin>> {
     match plugin::plugins().await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 查询配置
+#[get("/gateway/configuration")]
+async fn configuration() -> Res<protocol::gateway::Configuration> {
+    match server::gateway::configuration::configuration().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
     }

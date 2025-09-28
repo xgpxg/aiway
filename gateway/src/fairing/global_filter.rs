@@ -12,11 +12,13 @@
 //! 注意：该过滤器全局有效，针对每个API的过滤器需使用`PreFilter`
 //!
 //! ## 过滤器加载
-//! 过滤器逻辑使用插件实现，从conreg获取全局过滤器配置，调用插件加载逻辑即可。
+//! 1. 从控制台加载全局的网关配置
+//! 2. 获取过滤器
+//! 3. 按顺序执行
 //!
 
 use crate::context::HCM;
-use crate::router::PLUGINS;
+use crate::router::{GATEWAY_CONFIG, PLUGINS};
 use rocket::fairing::Fairing;
 use rocket::http::Method;
 use rocket::http::uri::Origin;
@@ -42,23 +44,20 @@ impl Fairing for GlobalPreFilter {
         let _ = crate::extract_api_path!(req);
 
         let context = HCM.get_from_request(req);
-        let plugins = PLUGINS
-            .get()
-            .unwrap() // SAFE: 在启动时已经初始化
-            .global_pre_filter_plugins
-            .read()
-            .await;
+        let config = GATEWAY_CONFIG.get().unwrap().config.read().await;
+        let plugins = &config.pre_filters;
 
-        for (_, plugin) in plugins.iter() {
-            log::debug!("execute global pre filter plugin: {}", plugin.name());
-            match plugin.execute(&context).await {
+        for name in plugins.iter() {
+            log::debug!("execute global post filter plugin: {}", name);
+            let result = PLUGINS
+                .get()
+                .unwrap() // SAFE: 在启动时已经初始化
+                .execute(name, context.as_ref())
+                .await;
+            match result {
                 Ok(_) => {}
                 Err(e) => {
-                    log::error!(
-                        "execute global pre filter plugin {} error: {}",
-                        plugin.name(),
-                        e
-                    );
+                    log::error!("execute global pre filter plugin {} error: {}", name, e);
                     req.set_method(Method::Get);
                     req.set_uri(Origin::parse("/eep/502").unwrap());
                     return;
@@ -84,11 +83,26 @@ impl Fairing for GlobalPostFilter {
         }
     }
 
-    async fn on_response<'r>(&self, _req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
-        // 1. 加载全局插件
+    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
+        let context = HCM.get_from_request(req);
+        let config = GATEWAY_CONFIG.get().unwrap().config.read().await;
+        let plugins = &config.post_filters;
 
-        // 2. 执行过滤器
-
-        //println!("Run GlobalPostFilter on response");
+        for name in plugins.iter() {
+            log::debug!("execute global post filter plugin: {}", name);
+            let result = PLUGINS
+                .get()
+                .unwrap() // SAFE: 在启动时已经初始化
+                .execute(name, context.as_ref())
+                .await;
+            match result {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("execute global post filter plugin {} error: {}", name, e);
+                    res.set_status(rocket::http::Status::InternalServerError);
+                    return;
+                }
+            }
+        }
     }
 }

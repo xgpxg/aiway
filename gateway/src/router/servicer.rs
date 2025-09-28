@@ -1,15 +1,4 @@
 //! # 服务
-//! 负责从配置中心加载服务并缓存。
-//!
-//! 实现流程：
-//! - 初始化时，从配置中心获取配置key为`services`的配置项
-//! - 反序列化为[`Vec<Servicer>`]
-//! - 缓存服务
-//! - 监听配置`routes.yaml`变更，重写获取服务并缓存
-//!
-//! TODO 以上内容需重写
-//!
-//! # 服务
 //! 负责从控制台加载服务配置并缓存。
 //!
 //! 实现流程：
@@ -27,14 +16,14 @@ use dashmap::DashMap;
 use loadbalance::LoadBalance;
 use protocol::gateway;
 use protocol::gateway::service::LbStrategy;
-use std::collections::BTreeMap;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
+use tokio::sync::RwLock;
 
 pub struct Servicer {
-    /// 服务表
     services: DashMap<String, Arc<LbService>>,
+    hash: Arc<RwLock<String>>,
 }
 
 pub static SERVICES: OnceLock<Servicer> = OnceLock::new();
@@ -50,6 +39,20 @@ impl Servicer {
         let list = Self::fetch_services().await?;
         log::info!("loaded {} services", list.len());
 
+        let hash = md5::compute(serde_json::to_string(&list)?);
+        let hash = format!("{:x}", hash);
+
+        SERVICES.get_or_init(|| Self {
+            services: Self::process_services(list),
+            hash: Arc::new(RwLock::new(hash)),
+        });
+
+        Self::watch();
+
+        Ok(())
+    }
+
+    fn process_services(list: Vec<gateway::Service>) -> DashMap<String, Arc<LbService>> {
         let services = DashMap::new();
         for service in list.into_iter() {
             let lb_strategy = service.lb.clone();
@@ -58,12 +61,7 @@ impl Servicer {
                 Arc::new(LbService::new(service, lb_strategy)),
             );
         }
-
-        SERVICES.get_or_init(|| Self { services });
-
-        Self::watch();
-
-        Ok(())
+        services
     }
 
     async fn fetch_services() -> anyhow::Result<Vec<gateway::Service>> {
@@ -87,43 +85,27 @@ impl Servicer {
                     }
                 };
 
-                let old_services = {
-                    SERVICES
-                        .get()
-                        .unwrap()
-                        .services
-                        .iter()
-                        .map(|item| (item.key().clone(), item.value().service.clone()))
-                        .collect::<BTreeMap<String, gateway::Service>>()
-                };
-                let new_services = {
-                    list.iter()
-                        .map(|item| (item.name.clone(), item.clone()))
-                        .collect::<BTreeMap<String, gateway::Service>>()
-                };
+                let hash = md5::compute(serde_json::to_string(&list).unwrap());
+                let hash = format!("{:x}", hash);
 
-                let old = serde_json::to_string(&old_services).unwrap();
-                let new = serde_json::to_string(&new_services).unwrap();
-
-                if old == new {
-                    log::debug!("services not changed");
+                let old_services = SERVICES.get().unwrap();
+                if hash == *old_services.hash.read().await {
+                    log::debug!("services not changed, wait next interval");
                     continue;
                 }
 
                 log::info!("loaded {} services", list.len());
 
-                SERVICES
-                    .get()
-                    .unwrap()
-                    .services
-                    .retain(|_, item| list.iter().any(|s| s.name == item.service.name));
+                let new_services = Self::process_services(list);
+                {
+                    old_services
+                        .services
+                        .retain(|name, _| new_services.contains_key(name));
 
-                for service in list.into_iter() {
-                    let lb_strategy = service.lb.clone();
-                    SERVICES.get().unwrap().services.insert(
-                        service.name.clone(),
-                        Arc::new(LbService::new(service, lb_strategy)),
-                    );
+                    new_services.into_iter().for_each(|(name, service)| {
+                        old_services.services.insert(name, service.clone());
+                    });
+                    *old_services.hash.write().await = hash;
                 }
             }
         });

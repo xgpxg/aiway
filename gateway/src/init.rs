@@ -1,5 +1,5 @@
-use crate::router::{Plugins, Router, Servicer};
-use crate::{Args, VERSION};
+use crate::Args;
+use crate::router::{ConfigFactory, PluginFactory, Router, Servicer};
 use logging::LogAppender;
 
 pub async fn init(_args: &Args) {
@@ -25,20 +25,17 @@ pub async fn init(_args: &Args) {
     // 初始化发布订阅
     pubsub::init("127.0.0.1:4222").await.unwrap();
 
+    // 初始化网关配置
+    ConfigFactory::init().await;
+
     // 初始化插件
-    Plugins::init().await;
+    PluginFactory::init().await;
 
     // 初始化路由
     Router::init().await;
 
     // 初始化服务
     Servicer::init().await;
-
-    print_banner();
-}
-
-fn print_banner() {
-    log::info!("aiway is ready, current version: {}", VERSION);
 }
 
 // async fn init_client(args: &Args) {

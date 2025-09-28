@@ -2,12 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 /// 插件配置
+///
+/// 注意：插件应无状态化
 #[derive(Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Plugin {
     /// 插件名称，全局唯一
     pub name: String,
     /// 插件执行阶段
-    pub phase: PluginPhase,
+    //pub phase: PluginPhase,
     /// 下载地址
     /// - 相对地址：从网关下载，如`/file/download/xxx.so`
     /// - 绝对地址：从给定的地址下载，如`https://xxx.com/xxx.so`

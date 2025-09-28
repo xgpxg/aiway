@@ -36,6 +36,7 @@
 use crate::openapi::eep;
 use crate::{Args, fairing, openapi};
 use rocket::data::{ByteUnit, Limits};
+use rocket::fairing::AdHoc;
 use rocket::{Config, routes};
 use std::net::IpAddr;
 use std::str::FromStr;
@@ -53,35 +54,56 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
         ..Config::debug_default()
     });
 
-    // 前置基础安全校验（不提取body数据）
+    ////////////////////////////////// 请求阶段 //////////////////////////////////
+    // 前置基础安全校验，仅校验基本参数，不提取body数据验证。
     builder = builder.attach(fairing::security::PreSecurity::new());
-    // 鉴权（前置安全校验后，提取请求数据前执行）
+    // 鉴权，即验证API Key
     builder = builder.attach(fairing::auth::Authentication::new());
-    // 提取请求上下文（鉴权通过后，全局过滤器执行开始前执行）
+    // 提取请求上下文，放在鉴权之后，防止无效的上下文提取
     builder = builder.attach(fairing::request::RequestData::new());
-    // 全局前置过滤器（收到请求后，到达具体API接口前执行），可自由配置，串联执行
+    // 全局前置过滤器，可自由配置，串联执行，对整个网关生效
     builder = builder.attach(fairing::global_filter::GlobalPreFilter::new());
-    // 路由前置过滤器，可自由配置，串联执行
-    builder = builder.attach(fairing::filter::PreFilter::new());
     // 路由匹配
     builder = builder.attach(fairing::routing::Routing::new());
-    // 负载均衡
+    // 路由前置过滤器，可自由配置，串联执行，对单个路由生效，由于插件本身要求设计为无状态，所以，理论上各个路由的相同插件互不影响
+    // 注意：是在路由匹配之后执行，因为要先匹配到路由，才能获取路由对应的插件，这点可能和命名有点歧义。
+    builder = builder.attach(fairing::filter::PreFilter::new());
+    // 负载均衡，通过路由配置对应的服务，进行负载，然后路由到具体的服务执行
     builder = builder.attach(fairing::lb::LoadBalance::new());
+
+    ////////////////////////////////// 响应阶段 //////////////////////////////////
     // 路由后置过滤器，可自由配置，串联执行
     builder = builder.attach(fairing::filter::PostFilter::new());
     // 全局后置过滤器（API接口执行完成后，响应客户端前执行），可自由配置，串联执行
     builder = builder.attach(fairing::global_filter::GlobalPostFilter::new());
-    // 设置响应（响应客户端前执行）
+    // 设置响应，必须执行
     builder = builder.attach(fairing::response::ResponseData::new());
-    // 日志记录（响应客户端前执行）
+    // 日志记录，必须执行
     builder = builder.attach(fairing::logger::Logger::new());
-    // 清理
+    // 清理，必须执行
     builder = builder.attach(fairing::cleanup::Cleaner::new());
 
     builder = builder.mount("/openapi/v1", routes![openapi::call]);
     builder = builder.mount("/eep", eep::routes());
 
+    builder = builder.attach(AdHoc::on_liftoff("Print Banner", |_| {
+        Box::pin(async {
+            print_banner();
+        })
+    }));
+
     builder.launch().await?;
 
     Ok(())
+}
+
+fn print_banner() {
+    use clap::Parser;
+    let args = Args::parse();
+    log::info!(
+        "aiway started success, current version: {}, listening on: {}:{}",
+        crate::VERSION,
+        args.address,
+        args.port
+    );
 }

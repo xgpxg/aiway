@@ -1,15 +1,4 @@
 //! # 路由
-//! 负责从配置中心加载路由表并缓存。
-//!
-//! 实现流程：
-//! - 初始化时，从配置中心获取配置key为`routes`的配置项
-//! - 反序列化为[`Vec<Route>`]
-//! - 缓存路由表
-//! - 监听配置`routes.yaml`变更，重写获取路由表并缓存
-//!
-//! TODO 以上内容需重写
-//!
-//! # 路由
 //! 负责从控制台加载路由表并缓存。
 //!
 //! 实现流程：
@@ -20,8 +9,6 @@
 //! - 启动定时任务，每5秒从控制台拉取路由表，校验hash值，如果不一致则更新本地路由表。
 //!
 //! 路由定义：[`Route`]
-//!
-//!
 //!
 
 use crate::router::client::INNER_HTTP_CLIENT;
@@ -116,7 +103,7 @@ impl Router {
                 let new = serde_json::to_string(&routes).unwrap();
 
                 if old == new {
-                    log::debug!("routes not changed");
+                    log::debug!("routes not changed, wait next interval");
                     continue;
                 }
 
@@ -128,8 +115,6 @@ impl Router {
 
                 {
                     *ROUTER.get().unwrap().routes.write().unwrap() = routes;
-                }
-                {
                     *ROUTER.get().unwrap().matcher.write().unwrap() = matcher;
                 }
             }

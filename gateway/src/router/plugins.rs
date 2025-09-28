@@ -7,49 +7,29 @@
 //! - 缓存插件列表到内存以及本地。
 //! - 启动定时任务，每5秒从控制台拉取插件列表，校验hash值，如果不一致则更新本地插件列表。
 //!
+//! 注意：该组件会保存所有有效的插件实例，如果需要调用插件，必须通过插件名称获取实例后执行。
+//!
 
 use crate::Args;
 use crate::router::client::INNER_HTTP_CLIENT;
+use anyhow::bail;
 use clap::Parser;
+use dashmap::DashMap;
 use plugin::{AsyncTryInto, NetworkPlugin, Plugin};
-use protocol::gateway::Plugin as PluginConfig;
-use protocol::gateway::plugin::PluginPhase;
-use std::fmt::format;
+use protocol::gateway::{HttpContext, Plugin as PluginConfig};
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tokio::sync::RwLock;
 
-pub struct Plugins {
-    /// 全局过滤器插件（请求阶段）
-    pub global_pre_filter_plugins: Arc<RwLock<Vec<(PluginConfig, Box<dyn Plugin>)>>>,
-    /// 全局过滤器插件（响应阶段）
-    pub global_post_filter_plugins: Arc<RwLock<Vec<(PluginConfig, Box<dyn Plugin>)>>>,
-    /// 路由过滤器插件（请求阶段）
-    pub pre_filter_plugins: Arc<RwLock<Vec<(PluginConfig, Box<dyn Plugin>)>>>,
-    /// 路由过滤器插件（响应阶段）
-    pub post_filter_plugins: Arc<RwLock<Vec<(PluginConfig, Box<dyn Plugin>)>>>,
-
+pub struct PluginFactory {
+    pub plugins: DashMap<String, (PluginConfig, Box<dyn Plugin>)>,
     pub hash: Arc<RwLock<String>>,
 }
 
-pub static PLUGINS: OnceLock<Plugins> = OnceLock::new();
+pub static PLUGINS: OnceLock<PluginFactory> = OnceLock::new();
 
-macro_rules! distribute_plugin {
-    ($phase:expr, $plugin:expr, $instance:expr, { $($variant:ident => $vec:expr),* $(,)? }) => {
-        match $phase {
-            $(
-                PluginPhase::$variant => {
-                    $vec.push(($plugin, $instance));
-                }
-            )*
-        }
-    };
-}
-impl Plugins {
-    /// 初始化插件
-    ///
-    /// 该方法为异步的，是因为插件需要从远程加载，需要异步的，不然在插件同步时会阻塞线程。
+impl PluginFactory {
     pub async fn init() {
         if let Err(e) = Self::load().await {
             log::error!("{}", e);
@@ -59,22 +39,18 @@ impl Plugins {
 
     pub async fn load() -> anyhow::Result<()> {
         let list = Self::fetch_plugins().await?;
+
         log::info!("loaded {} plugins", list.len());
 
         let hash = md5::compute(serde_json::to_string(&list)?);
         let hash = format!("{:x}", hash);
 
-        let (global_pre, global_post, pre, post) = Self::process_plugins(list).await?;
+        let plugins = Self::process_plugins(list).await?;
 
-        let plugins = Self {
-            global_pre_filter_plugins: Arc::new(RwLock::new(global_pre)),
-            global_post_filter_plugins: Arc::new(RwLock::new(global_post)),
-            pre_filter_plugins: Arc::new(RwLock::new(pre)),
-            post_filter_plugins: Arc::new(RwLock::new(post)),
+        PLUGINS.get_or_init(|| Self {
+            plugins,
             hash: Arc::new(RwLock::new(hash)),
-        };
-
-        PLUGINS.get_or_init(|| plugins);
+        });
 
         Self::watch();
 
@@ -83,18 +59,9 @@ impl Plugins {
 
     async fn process_plugins(
         list: Vec<PluginConfig>,
-    ) -> anyhow::Result<(
-        Vec<(PluginConfig, Box<dyn Plugin>)>,
-        Vec<(PluginConfig, Box<dyn Plugin>)>,
-        Vec<(PluginConfig, Box<dyn Plugin>)>,
-        Vec<(PluginConfig, Box<dyn Plugin>)>,
-    )> {
+    ) -> anyhow::Result<DashMap<String, (PluginConfig, Box<dyn Plugin>)>> {
         let args = Args::parse();
-        let mut global_pre_filter_plugins = Vec::new();
-        let mut global_post_filter_plugins = Vec::new();
-        let mut pre_filter_plugins = Vec::new();
-        let mut post_filter_plugins = Vec::new();
-
+        let plugins = DashMap::new();
         for plugin in list.into_iter() {
             let url = if plugin.is_relative_download_url() {
                 plugin.build_url_with_console(&args.console)
@@ -114,26 +81,10 @@ impl Plugins {
                     continue;
                 }
             };
-
-            distribute_plugin!(
-                plugin.phase,
-                plugin,
-                plugin_instance,
-                {
-                    GlobalPre => global_pre_filter_plugins,
-                    GlobalPost => global_post_filter_plugins,
-                    Pre => pre_filter_plugins,
-                    Post => post_filter_plugins
-                }
-            );
+            plugins.insert(plugin.name.clone(), (plugin, plugin_instance));
         }
 
-        Ok((
-            global_pre_filter_plugins,
-            global_post_filter_plugins,
-            pre_filter_plugins,
-            post_filter_plugins,
-        ))
+        Ok(plugins)
     }
 
     async fn fetch_plugins() -> anyhow::Result<Vec<PluginConfig>> {
@@ -157,40 +108,41 @@ impl Plugins {
                     }
                 };
 
-                let plugins = PLUGINS.get().unwrap();
-
                 let hash = md5::compute(serde_json::to_string(&list).unwrap());
                 let hash = format!("{:x}", hash);
-                if hash == *plugins.hash.read().await {
+
+                let old_plugins = PLUGINS.get().unwrap();
+
+                if hash == *old_plugins.hash.read().await {
                     log::debug!("plugins not changed, wait next interval");
                     continue;
                 }
 
                 log::info!("loaded {} plugins", list.len());
 
-                let (global_pre, global_post, pre, post) =
-                    Self::process_plugins(list).await.unwrap();
+                let new_plugins = Self::process_plugins(list).await.unwrap();
+                {
+                    old_plugins
+                        .plugins
+                        .retain(|name, _| new_plugins.contains_key(name));
+                    new_plugins.into_iter().for_each(|(name, plugin)| {
+                        old_plugins.plugins.insert(name, plugin);
+                    });
 
-                {
-                    let mut global_pre_plugins = plugins.global_pre_filter_plugins.write().await;
-                    *global_pre_plugins = global_pre;
-                }
-                {
-                    let mut global_post_plugins = plugins.global_post_filter_plugins.write().await;
-                    *global_post_plugins = global_post;
-                }
-                {
-                    let mut pre_plugins = plugins.pre_filter_plugins.write().await;
-                    *pre_plugins = pre;
-                }
-                {
-                    let mut post_plugins = plugins.post_filter_plugins.write().await;
-                    *post_plugins = post;
-                }
-                {
-                    plugins.hash.write().await.clone_from(&hash);
+                    *old_plugins.hash.write().await = hash;
                 }
             }
         });
+    }
+
+    pub async fn execute(&self, name: &str, context: &HttpContext) -> anyhow::Result<()> {
+        match self.plugins.get(name) {
+            Some(plugin) => plugin
+                .1
+                .execute(context)
+                .await
+                .map_err(|e| anyhow::anyhow!(e)),
+            None => bail!("plugin {} not found in plugin factory", name),
+        }
     }
 }

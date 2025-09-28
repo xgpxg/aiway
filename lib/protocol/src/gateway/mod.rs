@@ -9,6 +9,7 @@
 
 #[cfg(feature = "api-key")]
 mod api_key;
+mod configuration;
 pub mod http_context;
 pub mod plugin;
 pub mod request_context;
@@ -18,6 +19,7 @@ pub mod service;
 
 #[cfg(feature = "api-key")]
 pub use api_key::ApiKey;
+pub use configuration::Configuration;
 pub use http_context::HttpContext;
 pub use plugin::Plugin;
 pub use request_context::RequestContext;

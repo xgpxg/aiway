@@ -7,7 +7,11 @@
 //! - 默认不执行任何过滤器，由用户自行配置
 //! - 需要支持自定义脚本执行
 //!
+use crate::context::HCM;
+use crate::router::PLUGINS;
 use rocket::fairing::Fairing;
+use rocket::http::Method;
+use rocket::http::uri::Origin;
 use rocket::{Data, Request};
 
 pub struct PreFilter {}
@@ -32,14 +36,28 @@ impl Fairing for PreFilter {
     /// - 默认不执行任何过滤器，由用户自行配置
     /// - 可在此处修改请求参数
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
-        // 1. 获取path，匹配路由
         let _path = crate::extract_api_path!(req);
-
-        // 2. 加载插件
-
-        // 3. 按顺序执行插件
-
-        //println!("Run PreFilter on request");
+        let context = HCM.get_from_request(req);
+        // SAFE：在routing时已经设置
+        let route = context.request.get_route().unwrap();
+        let pre_filters = &route.pre_filters;
+        for name in pre_filters.iter() {
+            log::debug!("execute route pre filter plugin: {}", name);
+            let result = PLUGINS
+                .get()
+                .unwrap() // SAFE: 在启动时已经初始化
+                .execute(name, context.as_ref())
+                .await;
+            match result {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("execute global pre filter plugin {} error: {}", name, e);
+                    req.set_method(Method::Get);
+                    req.set_uri(Origin::parse("/eep/502").unwrap());
+                    return;
+                }
+            }
+        }
     }
 }
 
@@ -59,15 +77,29 @@ impl Fairing for PostFilter {
         }
     }
 
-    async fn on_response<'r>(&self, req: &'r Request<'_>, _res: &mut rocket::Response<'r>) {
+    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
         // 1. 获取path，匹配路由
-        let _path = req.uri().path().as_str();
 
-        // 2. 加载插件
+        let context = HCM.get_from_request(req);
 
-        // 3. 按顺序执行插件
+        let route = context.request.get_route().unwrap();
+        let plugins = &route.post_filters;
 
-        //println!("path: {}", context.get_path());
-        //println!("Run PostFilter on response");
+        for name in plugins.iter() {
+            log::debug!("execute route post filter plugin: {}", name);
+            let result = PLUGINS
+                .get()
+                .unwrap() // SAFE: 在启动时已经初始化
+                .execute(name, context.as_ref())
+                .await;
+            match result {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("execute route post filter plugin {} error: {}", name, e);
+                    res.set_status(rocket::http::Status::InternalServerError);
+                    return;
+                }
+            }
+        }
     }
 }

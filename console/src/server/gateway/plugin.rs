@@ -7,7 +7,7 @@ pub(crate) async fn plugins() -> anyhow::Result<Vec<protocol::gateway::Plugin>> 
     for plugin in plugins {
         list.push(protocol::gateway::Plugin {
             name: plugin.name.unwrap(),
-            phase: plugin.phase.unwrap(),
+            //phase: plugin.phase.unwrap(),
             url: plugin.url.unwrap(),
             version: plugin.version.unwrap(),
         });

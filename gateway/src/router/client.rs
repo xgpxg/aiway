@@ -4,7 +4,7 @@ use crate::Args;
 use anyhow::bail;
 use clap::Parser;
 use protocol::common::res::Res;
-use protocol::gateway::{Plugin, Route, Service};
+use protocol::gateway::{Configuration, Plugin, Route, Service};
 use reqwest::{Client, ClientBuilder};
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -63,7 +63,10 @@ impl InnerHttpClient {
             Ok(response) => {
                 let res = response.json::<Res<Vec<Service>>>().await?;
                 if res.is_success() {
-                    Ok(res.data.unwrap_or_default())
+                    let mut list = res.data.unwrap_or_default();
+                    // 排序，防止因顺序导致hash验证不一致
+                    list.sort_by(|a, b| a.name.cmp(&b.name));
+                    Ok(list)
                 } else {
                     bail!("console return error: {}", res.msg);
                 }
@@ -80,7 +83,30 @@ impl InnerHttpClient {
             Ok(response) => {
                 let res = response.json::<Res<Vec<Plugin>>>().await?;
                 if res.is_success() {
-                    Ok(res.data.unwrap_or_default())
+                    let mut list = res.data.unwrap_or_default();
+                    // 排序，防止因顺序导致hash验证不一致
+                    list.sort_by(|a, b| a.name.cmp(&b.name));
+                    Ok(list)
+                } else {
+                    bail!("console return error: {}", res.msg);
+                }
+            }
+            Err(e) => {
+                bail!("fetch routes error: {}", e);
+            }
+        }
+    }
+
+    pub async fn fetch_configuration(&self) -> anyhow::Result<Configuration> {
+        let endpoint = format!("http://{}/api/v1/gateway/configuration", self.args.console);
+        match self.get(endpoint, HashMap::new()).await {
+            Ok(response) => {
+                if let Err(e) = response.error_for_status_ref() {
+                    bail!("fetch configuration error: {}", e);
+                }
+                let res = response.json::<Res<Configuration>>().await?;
+                if res.is_success() {
+                    Ok(res.data.unwrap())
                 } else {
                     bail!("console return error: {}", res.msg);
                 }
