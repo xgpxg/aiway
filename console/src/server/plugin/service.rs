@@ -1,12 +1,17 @@
 use crate::server::auth::UserPrincipal;
+use crate::server::db;
 use crate::server::db::models::plugin::{Plugin, PluginBuilder};
+use crate::server::db::models::service;
 use crate::server::db::{Pool, tools};
 use crate::server::file::file_util::{make_download_file, make_save_file};
-use crate::server::plugin::request::PluginAddOrUpdateReq;
+use crate::server::plugin::request::{PluginAddOrUpdateReq, PluginListReq};
+use crate::server::plugin::response::PluginListRes;
 use anyhow::bail;
 use common::id;
-use protocol::common::req::IdsReq;
+use protocol::common::req::{IdsReq, Pagination};
+use protocol::common::res::{IntoPageRes, PageRes};
 use rbs::value;
+use rocket::serde::json::Json;
 
 pub async fn add(req: PluginAddOrUpdateReq<'_>, user: UserPrincipal) -> anyhow::Result<()> {
     let mut plugin = PluginBuilder::default()
@@ -64,6 +69,17 @@ async fn check_exists(plugin: &Plugin, exclude_id: Option<i64>) -> anyhow::Resul
 }
 
 pub async fn delete(req: IdsReq) -> anyhow::Result<()> {
+    //TODO 删除文件
     Plugin::delete_by_map(Pool::get()?, value! { "id": req.ids}).await?;
     Ok(())
+}
+
+pub async fn list(req: PluginListReq) -> anyhow::Result<PageRes<PluginListRes>> {
+    let page = db::models::plugin::list_page(Pool::get()?, &req.to_rb_page(), &req).await?;
+    let list = page.convert_to_page_res(|list| {
+        list.into_iter()
+            .map(|item| PluginListRes { inner: item })
+            .collect::<Vec<_>>()
+    });
+    Ok(list)
 }

@@ -28,7 +28,7 @@ pub async fn add(req: ApiKeyAddOrUpdateReq, user: UserPrincipal) -> anyhow::Resu
         .secret(Some(ak))
         .status(Some(ApiKeyStatus::Ok))
         .eff_time(Some(tools::now()))
-        .exp_time(None)
+        .exp_time(req.exp_time)
         .create_user_id(Some(user.id))
         .create_time(Some(tools::now()))
         .build()?;

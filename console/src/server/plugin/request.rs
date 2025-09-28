@@ -1,6 +1,8 @@
-use protocol::gateway;
+use protocol::common::req::PageReq;
+use protocol::{gateway, impl_pagination};
 use rocket::form::FromForm;
 use rocket::fs::TempFile;
+use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, FromForm)]
 pub struct PluginAddOrUpdateReq<'a> {
@@ -17,3 +19,11 @@ pub struct PluginAddOrUpdateReq<'a> {
     /// - 该配置仅可在插件管理处修改
     pub default_config: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginListReq {
+    /// 模糊搜索：插件名称、描述
+    pub filter_text: String,
+    page: PageReq,
+}
+impl_pagination!(PluginListReq);

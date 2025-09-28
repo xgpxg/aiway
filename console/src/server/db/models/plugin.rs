@@ -1,7 +1,8 @@
 use derive_builder::Builder;
-use rbatis::crud;
+use rbatis::{crud, htmlsql_select_page};
 use rbatis::rbdc::DateTime;
 use rocket::serde::{Deserialize, Serialize};
+use crate::server::plugin::PluginListReq;
 
 /// 路由配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -33,3 +34,5 @@ pub struct Plugin {
 }
 
 crud!(Plugin {});
+htmlsql_select_page!(list_page(param: &PluginListReq) -> Plugin => "src/server/db/mapper/plugin.html");
+
