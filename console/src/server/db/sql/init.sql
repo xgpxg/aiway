@@ -103,6 +103,60 @@ create table if not exists api_key
     is_delete      tinyint(1)   not null default 0     -- 是否删除
 );
 
+/*
+create table if not exists gateway_node
+(
+    id                    bigint primary key,
+    node_id               varchar(100) not null,
+    node_name             varchar(100),
+    ip                    varchar(100) not null,
+    port                  int          not null,
+    status                varchar(50)  not null,           -- 节点状态：Online | Offline | Unknown
+    status_msg            varchar(500),                    -- 节点状态信息
+    system_status         varchar(50),                     -- 系统状态: Health | Overload | Unhealthy
+    request_count         bigint       not null default 0, -- 累计请求数
+    request_invalid_count bigint       not null default 0, -- 累计无效请求数
+    response_2xx_count    bigint       not null default 0, -- 累计2xx响应数
+    response_3xx_count    bigint       not null default 0, -- 累计3xx响应数
+    response_4xx_count    bigint       not null default 0, -- 累计4xx响应数
+    response_5xx_count    bigint       not null default 0, -- 累计5xx响应数
+    create_user_id        bigint,                          -- 创建人ID
+    update_user_id        bigint,                          -- 修改人ID
+    create_time           datetime,                        -- 创建时间
+    update_time           datetime,                        -- 更新时间
+    remark                varchar(500),                    -- 备注
+    is_delete             tinyint(1)   not null default 0  -- 是否删除
+);
+
+
+create table if not exists gateway_node_state_log
+(
+    id                    bigint primary key,
+    node_id               varchar(100) not null,           -- 节点ID
+    ts                    bigint       not null,           -- 毫秒时间戳
+    os                    varchar(50),                     -- 操作系统及版本，如: Ubuntu 22.04
+    host_name             varchar(100),                    -- 主机名
+    cpu_usage             float        not null default 0, -- cpu 使用率
+    mem_total             bigint       not null default 0, -- 内存状态 - 总内存，单位：Bytes
+    mem_free              bigint       not null default 0, -- 内存状态 - 空闲内存，单位：Bytes
+    mem_used              bigint       not null default 0, -- 内存状态 - 使用内存，单位：Bytes
+    disk_total            bigint       not null default 0, -- 磁盘状态 - 总空间，单位：Bytes
+    disk_free             bigint       not null default 0, -- 磁盘状态 - 空闲空间，单位：Bytes
+    net_rx                bigint       not null default 0, -- 网络状态 - 接收的字节数
+    net_tx                bigint       not null default 0, -- 网络状态 - 发送的字节数
+    net_tcp_conn_count    bigint       not null default 0, -- 网络状态 - TCP连接数
+    request_count         bigint       not null default 0, -- 累计请求数
+    request_invalid_count bigint       not null default 0, -- 累计无效请求数
+    response_2xx_count    bigint       not null default 0, -- 累计2xx响应数
+    response_3xx_count    bigint       not null default 0, -- 累计3xx响应数
+    response_4xx_count    bigint       not null default 0, -- 累计4xx响应数
+    response_5xx_count    bigint       not null default 0, -- 累计5xx响应数
+    qps                   bigint       not null default 0, -- QPS
+    create_time           datetime                         -- 创建时间
+);
+create index if not exists idx_node_id on gateway_node_state_log (node_id);
+create index if not exists idx_ts on gateway_node_state_log (ts);*/
+
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');

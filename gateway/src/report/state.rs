@@ -1,7 +1,7 @@
 use protocol::gateway::state::{DiskState, MemState, NetState, State, SystemState};
 use std::fs;
 use std::sync::{Arc, LazyLock, Mutex};
-use sysinfo::{Disks, Networks, Pid, ProcessesToUpdate, System};
+use sysinfo::{Disks, Networks, System};
 
 #[derive(Debug, Default)]
 pub struct GatewayState {
@@ -22,6 +22,7 @@ impl GatewayState {
             timestamp: chrono::Local::now().timestamp_millis(),
             system_state,
             counter: Default::default(),
+            moment_counter: old.moment_counter.clone(),
         };
 
         old
@@ -83,7 +84,6 @@ impl GatewayState {
 
     fn get_http_connections() -> Result<usize, std::io::Error> {
         let content = fs::read_to_string("/proc/net/sockstat")?;
-        // 解析内容获取TCP连接数
         for line in content.lines() {
             if line.starts_with("TCP:") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
@@ -100,7 +100,7 @@ impl GatewayState {
         self.state.lock().unwrap().counter.request_count += n;
     }
 
-    pub fn update_status_request_count(&self, status_code: u16, n: usize) {
+    pub fn inc_status_request_count(&self, status_code: u16, n: usize) {
         match status_code {
             200..300 => self.state.lock().unwrap().counter.response_2xx_count += n,
             300..400 => self.state.lock().unwrap().counter.response_3xx_count += n,
@@ -110,8 +110,12 @@ impl GatewayState {
         }
     }
 
-    pub fn update_response_time(&self, time: usize) {
+    pub fn inc_response_time(&self, time: usize) {
         self.state.lock().unwrap().counter.response_time_since_last += time;
+    }
+
+    pub fn inc_http_connect_count(&self, n: isize) {
+        self.state.lock().unwrap().moment_counter.http_connect_count += n;
     }
 }
 

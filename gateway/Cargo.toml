@@ -10,7 +10,7 @@ logging = { path = "../lib/logging" }
 loadbalance = { path = "../lib/loadbalance" }
 plugin = { path = "../lib/plugin" }
 cache = { path = "../lib/cache", optional = true }
-pubsub = { path = "../lib/pubsub" }
+#pubsub = { path = "../lib/pubsub" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }
 serde_json = "1.0"

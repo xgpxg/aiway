@@ -11,6 +11,7 @@
 //!
 
 use crate::context::HCM;
+use crate::report::STATE;
 use protocol::SV;
 use protocol::gateway::{HttpContext, RequestContext, ResponseContext};
 use rocket::data::ToByteUnit;

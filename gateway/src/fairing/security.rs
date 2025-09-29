@@ -29,7 +29,12 @@ impl Fairing for PreSecurity {
     }
 
     async fn on_request(&self, _req: &mut Request<'_>, _data: &mut Data<'_>) {
+        // 请求计数
         STATE.inc_request_count(1);
+        // http连接计数
+        // 该计数会在cleaner以及panic hook中-1
+        STATE.inc_http_connect_count(1);
+
         //println!("Run PreSecurity on request");
     }
 }

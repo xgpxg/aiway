@@ -49,7 +49,10 @@ fn set_panic_hook() {
     let hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         log::error!("{}", info);
-        STATE.update_status_request_count(500, 1);
+
+        STATE.inc_status_request_count(500, 1);
+        STATE.inc_http_connect_count(-1);
+
         hook(info);
     }));
 }

@@ -56,8 +56,8 @@ impl Fairing for ResponseData {
             Headers::get_request_id(req),
         ));
 
-        STATE.update_status_request_count(res.status().code, 1);
-        STATE.update_response_time(
+        STATE.inc_status_request_count(res.status().code, 1);
+        STATE.inc_response_time(
             (response_context.get_response_ts() - request_context.get_request_ts()) as usize,
         );
         //println!("ResponseData: {:?}", res);

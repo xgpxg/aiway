@@ -1424,7 +1424,6 @@ dependencies = [
  "md5",
  "plugin",
  "protocol",
- "pubsub",
  "reqwest",
  "rocket",
  "serde_json",

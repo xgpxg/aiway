@@ -7,6 +7,8 @@ pub struct State {
     pub system_state: SystemState,
     /// 计数器
     pub counter: Counter,
+    /// 瞬时计数器
+    pub moment_counter: MomentCounter,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -90,6 +92,18 @@ pub struct Counter {
     ///
     /// 统计周期内的平均响应时间 = response_time_since_last / request_count
     pub response_time_since_last: usize,
+}
+
+/// 瞬时计数器
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MomentCounter {
+    /// 统计时刻的http连接数
+    /// 该值用于记录在上报时，仍处于连接状态的http请求的数量。
+    /// 统计范围：
+    /// - 所有请求
+    /// - 请求时，+1，清理或发生panic时，-1
+    ///
+    pub http_connect_count: isize,
 }
 
 impl State {
