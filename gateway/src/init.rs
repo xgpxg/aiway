@@ -1,8 +1,9 @@
-use crate::Args;
+use crate::report::STATE;
 use crate::router::{ConfigFactory, PluginFactory, Router, Servicer};
+use crate::{Args, report};
 use logging::LogAppender;
 
-pub async fn init(_args: &Args) {
+pub async fn init(args: &Args) {
     // 初始化日志
     logging::init_log_with(
         LogAppender::all(),
@@ -23,7 +24,7 @@ pub async fn init(_args: &Args) {
     cache::init_share_cache().await.unwrap();
 
     // 初始化发布订阅
-    pubsub::init("127.0.0.1:4222").await.unwrap();
+    //pubsub::init("127.0.0.1:4222").await.unwrap();
 
     // 初始化网关配置
     ConfigFactory::init().await;
@@ -36,6 +37,21 @@ pub async fn init(_args: &Args) {
 
     // 初始化服务
     Servicer::init().await;
+
+    // 初始化监控
+    report::init(args);
+
+    // 设置panic hook
+    set_panic_hook();
+}
+
+fn set_panic_hook() {
+    let hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        log::error!("{}", info);
+        STATE.update_status_request_count(500, 1);
+        hook(info);
+    }));
 }
 
 // async fn init_client(args: &Args) {

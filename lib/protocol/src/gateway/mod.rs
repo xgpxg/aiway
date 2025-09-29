@@ -16,6 +16,7 @@ pub mod request_context;
 pub mod response_context;
 pub mod route;
 pub mod service;
+pub mod state;
 
 #[cfg(feature = "api-key")]
 pub use api_key::ApiKey;

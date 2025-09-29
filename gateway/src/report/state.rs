@@ -1,41 +1,118 @@
-pub struct State {
-    pub os: String,
-    pub cpu_usage: f64,
-    pub mem_state: MemState,
-    pub disk_state: DiskState,
-    pub net_state: NetState,
-    pub counter: Counter,
+use protocol::gateway::state::{DiskState, MemState, NetState, State, SystemState};
+use std::fs;
+use std::sync::{Arc, LazyLock, Mutex};
+use sysinfo::{Disks, Networks, Pid, ProcessesToUpdate, System};
+
+#[derive(Debug, Default)]
+pub struct GatewayState {
+    pub state: Arc<Mutex<State>>,
+}
+impl GatewayState {
+    /// 刷新状态，并清空计数器。返回旧状态。
+    pub fn refresh(&self) -> State {
+        let system_state = self.build_system_state();
+
+        // 锁定
+        let mut state_guard = self.state.lock().unwrap();
+        // 旧状态
+        let old = state_guard.clone();
+
+        // 更新状态并重置计数器
+        *state_guard = State {
+            timestamp: chrono::Local::now().timestamp_millis(),
+            system_state,
+            counter: Default::default(),
+        };
+
+        old
+    }
+
+    fn build_system_state(&self) -> SystemState {
+        let mut system_state = SystemState::default();
+
+        let mut sys = System::new();
+
+        sys.refresh_memory();
+        sys.refresh_cpu_all();
+
+        system_state.os = format!(
+            "{} {}",
+            System::name().unwrap_or_default(),
+            System::os_version().unwrap_or_default()
+        );
+        system_state.host_name = System::host_name().unwrap_or_default();
+
+        system_state.cpu_usage = sys.global_cpu_usage();
+        system_state.mem_state = MemState {
+            total: sys.total_memory(),
+            free: sys.free_memory(),
+            used: sys.used_memory(),
+        };
+
+        let disks = Disks::new_with_refreshed_list();
+        let root_disk = disks
+            .list()
+            .iter()
+            .find(|d| d.mount_point().to_str() == Some("/"));
+        if let Some(root_disk) = root_disk {
+            system_state.disk_state = DiskState {
+                total: root_disk.total_space(),
+                free: root_disk.available_space(),
+            };
+        }
+
+        let networks = Networks::new_with_refreshed_list();
+        let net = networks.list().get("eth0");
+        if let Some(net) = net {
+            system_state.net_state = NetState {
+                rx: net.total_received(),
+                tx: net.total_transmitted(),
+                tcp_conn_count: Self::get_http_connections().unwrap_or(0),
+            };
+        }
+        // let pid = std::process::id();
+        // let pid = Pid::from_u32(pid);
+        // sys.refresh_processes(ProcessesToUpdate::Some(&[pid]), true);
+        // let process = sys.process(pid);
+        // if let Some(process) = process {
+        //     println!("{:?}", process.open_files());
+        // }
+
+        system_state
+    }
+
+    fn get_http_connections() -> Result<usize, std::io::Error> {
+        let content = fs::read_to_string("/proc/net/sockstat")?;
+        // 解析内容获取TCP连接数
+        for line in content.lines() {
+            if line.starts_with("TCP:") {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 3 {
+                    return Ok(parts[2].parse().unwrap_or(0));
+                }
+            }
+        }
+        Ok(0)
+    }
+
+    /// 更新请求计数
+    pub fn inc_request_count(&self, n: usize) {
+        self.state.lock().unwrap().counter.request_count += n;
+    }
+
+    pub fn update_status_request_count(&self, status_code: u16, n: usize) {
+        match status_code {
+            200..300 => self.state.lock().unwrap().counter.response_2xx_count += n,
+            300..400 => self.state.lock().unwrap().counter.response_3xx_count += n,
+            400..500 => self.state.lock().unwrap().counter.response_4xx_count += n,
+            500..600 => self.state.lock().unwrap().counter.response_5xx_count += n,
+            _ => {}
+        }
+    }
+
+    pub fn update_response_time(&self, time: usize) {
+        self.state.lock().unwrap().counter.response_time_since_last += time;
+    }
 }
 
-/// 内存状态
-struct MemState {
-    total: u64,
-    free: u64,
-    used: u64,
-}
-
-/// 磁盘状态
-struct DiskState {
-    total: u64,
-    free: u64,
-}
-
-/// 网络状态
-struct NetState {
-    /// 接收的字节数
-    rx: u64,
-    /// 发送的字节数
-    tx: u64,
-}
-
-/// 计数器
-struct Counter {
-    /// 总请求数
-    request_count: u64,
-    /// 响应时间
-    response_time: f64,
-    /// 错误数
-    error_count: u64,
-}
-
-impl State {}
+pub static STATE: LazyLock<GatewayState> = LazyLock::new(|| GatewayState::default());

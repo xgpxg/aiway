@@ -23,6 +23,7 @@ pub mod request;
 pub mod response;
 pub mod routing;
 pub mod security;
+pub mod catchers;
 
 /// 在请求fairing阶段，提取不含网关前缀的API路径
 ///

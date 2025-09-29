@@ -1,8 +1,9 @@
-use dashmap::DashMap;
 use crate::SV;
+use dashmap::DashMap;
 
 #[derive(Debug, Default)]
 pub struct ResponseContext {
+    pub response_ts: SV<i64>,
     /// 响应状态码
     pub status: SV<Option<u16>>,
     /// 响应头
@@ -11,8 +12,14 @@ pub struct ResponseContext {
     pub body: SV<Vec<u8>>,
 }
 
-
 impl ResponseContext {
+    pub fn set_response_ts(&self, ts: i64) {
+        self.response_ts.set(ts);
+    }
+
+    pub fn get_response_ts(&self) -> i64 {
+        *self.response_ts.get().unwrap_or(&0)
+    }
     pub fn set_status(&self, status: u16) {
         self.status.set(Some(status));
     }

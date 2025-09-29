@@ -46,6 +46,7 @@ impl Fairing for RequestData {
         // 请求上下文
         let request_context = RequestContext {
             request_id: request_id.clone(),
+            request_ts: chrono::Local::now().timestamp_millis(),
             method: SV::new(req.method().as_str().into()),
             path: SV::new(req.uri().path().to_string()),
             headers: Default::default(),

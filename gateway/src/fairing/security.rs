@@ -8,6 +8,7 @@
 //! - 当验证失败时，更改uri到指定端点，返回错误信息。
 //! - 不应涉及任何网络请求及IO操作，需要在5ms内完成
 //!
+use crate::report::STATE;
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
 
@@ -28,6 +29,7 @@ impl Fairing for PreSecurity {
     }
 
     async fn on_request(&self, _req: &mut Request<'_>, _data: &mut Data<'_>) {
+        STATE.inc_request_count(1);
         //println!("Run PreSecurity on request");
     }
 }

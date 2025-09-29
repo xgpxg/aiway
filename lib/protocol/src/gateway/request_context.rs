@@ -15,6 +15,8 @@ use std::sync::Arc;
 pub struct RequestContext {
     /// 请求ID
     pub request_id: String,
+    /// 收到请求的时间戳，毫秒
+    pub request_ts: i64,
     /// 请求方法
     pub method: SV<Method>,
     /// 请求头
@@ -40,6 +42,9 @@ pub struct RequestContext {
 }
 
 impl RequestContext {
+    pub fn get_request_ts(&self) -> i64 {
+        self.request_ts
+    }
     pub fn set_path(&self, path: &str) {
         self.path.set(path.to_string());
     }

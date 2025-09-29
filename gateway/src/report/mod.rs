@@ -1,30 +1,76 @@
 //! # 状态上报
-//! ## 运行状态
-//! 上报基础状态数据，如CPU、内存、磁盘使用情况，网络流量等。
+//! ## 系统运行状态
+//! 基础状态数据，如CPU、内存、磁盘使用情况，网络流量等。
 //!
-//! ## 监控指标
-//! - 频繁鉴权失败
+//! ## 计数器
+//! 详情：[`protocol::gateway::state::Counter`]
 //!
 
 mod state;
 
+use crate::Args;
+use protocol::gateway::state::State;
+pub use state::STATE;
+use std::ops::Deref;
 use std::time::Duration;
 
 pub struct Reporter {
     interval: Duration,
+    client: reqwest::Client,
 }
 
 impl Reporter {
     pub fn new(interval: Duration) -> Self {
-        Self { interval }
+        let client = reqwest::ClientBuilder::default()
+            .connect_timeout(Duration::from_secs(5))
+            .build()
+            .unwrap();
+        Self { interval, client }
     }
 
-    pub fn run(&self) {
-        loop {
-            self.report();
-            std::thread::sleep(self.interval);
+    async fn report(&self, addr: &str, state: &State) {
+        match self.client.post(addr).json(state).send().await {
+            Ok(resp) => {
+                if !resp.status().is_success() {
+                    log::error!("report failed, code: {}", resp.status());
+                    // TODO 考虑写入到本地文件，按当前时间索引
+                }
+            }
+            Err(e) => {
+                log::error!("report failed: {}", e);
+            }
         }
     }
+}
+pub fn init(args: &Args) {
+    let console_addr = format!("http://{}/api/v1/gateway/report", args.console);
+    tokio::spawn(async move {
+        // TODO 考虑15秒上报一次
+        let reporter = Reporter::new(Duration::from_secs(5));
+        let mut timer = tokio::time::interval(Duration::from_secs(5));
+        STATE.refresh();
+        loop {
+            timer.tick().await;
+            {
+                let state = STATE.refresh();
+                reporter.report(&console_addr, &state).await;
+            };
+        }
+    });
+}
 
-    fn report(&self) {}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_report() {
+        let args = Args {
+            address: "".to_string(),
+            port: 0,
+            console: "127.0.0.1:8080".to_string(),
+        };
+        init(&args);
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
 }

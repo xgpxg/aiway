@@ -38,8 +38,6 @@ where
         self.code == 0
     }
 
-    #[allow(unused)]
-    #[cfg(feature = "serde_json")]
     pub fn to_json_string(&self) -> String {
         serde_json::json!(&self).to_string()
     }
@@ -61,8 +59,6 @@ pub struct PageRes<T> {
     pub list: Vec<T>,
 }
 
-
-
 #[allow(unused)]
 pub trait IntoPageRes<I, T>
 where
@@ -73,7 +69,6 @@ where
     where
         F: Fn(Vec<I>) -> Vec<T>;
 }
-
 
 #[cfg(feature = "rbatis")]
 impl<I, T> IntoPageRes<I, T> for rbatis::page::Page<I>
@@ -95,7 +90,6 @@ where
     }
 }
 
-
 #[cfg(feature = "rbatis")]
 impl<I> Into<PageRes<I>> for rbatis::page::Page<I>
 where
@@ -110,5 +104,3 @@ where
         }
     }
 }
-
-

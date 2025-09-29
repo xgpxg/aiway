@@ -54,29 +54,3 @@ impl IntoHeaderMap for DashMap<String, String> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use conreg_client::conf::{ClientConfigBuilder, ConRegConfigBuilder, DiscoveryConfigBuilder};
-    use conreg_client::init_with;
-
-    #[tokio::test]
-    async fn test_http_client() {
-        init_with(
-            ConRegConfigBuilder::default()
-                .client(ClientConfigBuilder::default().port(8001).build().unwrap())
-                .discovery(
-                    DiscoveryConfigBuilder::default()
-                        .server_addr("127.0.0.1:8000")
-                        .build()
-                        .unwrap(),
-                )
-                .build()
-                .unwrap(),
-        )
-        .await;
-        let url = "lb://test-server/hello";
-        let client = HTTP_CLIENT.get(url, Default::default()).await;
-        println!("{:?}", client);
-    }
-}
