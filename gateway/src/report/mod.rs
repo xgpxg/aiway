@@ -11,9 +11,7 @@ mod state;
 use crate::Args;
 use protocol::gateway::state::State;
 pub use state::STATE;
-use std::ops::Deref;
 use std::time::Duration;
-
 pub struct Reporter {
     interval: Duration,
     client: reqwest::Client,

@@ -103,7 +103,15 @@ create table if not exists api_key
     is_delete      tinyint(1)   not null default 0     -- 是否删除
 );
 
-/*
+-- 网关状态
+create table if not exists gateway_state
+(
+    id            bigint primary key,
+    request_count bigint not null default 0 -- 累计请求数（所有除安全拦截外的请求数）
+
+);
+
+-- 网关节点
 create table if not exists gateway_node
 (
     id                    bigint primary key,
@@ -114,7 +122,7 @@ create table if not exists gateway_node
     status                varchar(50)  not null,           -- 节点状态：Online | Offline | Unknown
     status_msg            varchar(500),                    -- 节点状态信息
     system_status         varchar(50),                     -- 系统状态: Health | Overload | Unhealthy
-    request_count         bigint       not null default 0, -- 累计请求数
+    request_count         bigint       not null default 0, -- 累计请求数（不含无效请求）
     request_invalid_count bigint       not null default 0, -- 累计无效请求数
     response_2xx_count    bigint       not null default 0, -- 累计2xx响应数
     response_3xx_count    bigint       not null default 0, -- 累计3xx响应数
@@ -155,7 +163,7 @@ create table if not exists gateway_node_state_log
     create_time           datetime                         -- 创建时间
 );
 create index if not exists idx_node_id on gateway_node_state_log (node_id);
-create index if not exists idx_ts on gateway_node_state_log (ts);*/
+create index if not exists idx_ts on gateway_node_state_log (ts);
 
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)

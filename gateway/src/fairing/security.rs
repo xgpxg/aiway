@@ -1,6 +1,7 @@
 //! # 安全验证
 //! ## 主要功能
 //! 对原始请求进行基本的安全验证。
+//!
 //! ## 基本准则
 //! - 由网关系统内置，可通过系统级别的配置开启或关闭。
 //! - 需最先执行，以拦截恶意请求。
@@ -8,7 +9,16 @@
 //! - 当验证失败时，更改uri到指定端点，返回错误信息。
 //! - 不应涉及任何网络请求及IO操作，需要在5ms内完成
 //!
+//! ## 校验规则
+//! - IP访问策略：allow:127.0.0.1, deny:1.1.1.1, allow:192.168.0.0/16
+//! - Referer策略：allow:https://aaa.com, deny:https://bbb.com
+//! - QPS策略：127.0.0.1:8080/1000, */2000
+//!
+//! ## 获取规则
+//! 从控制台定时拉取网关配置，取其中的firewall配置
 use crate::report::STATE;
+use crate::router::Firewalld;
+use crate::set_error;
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
 
@@ -28,8 +38,19 @@ impl Fairing for PreSecurity {
         }
     }
 
-    async fn on_request(&self, _req: &mut Request<'_>, _data: &mut Data<'_>) {
-        // 请求计数
+    async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        // TODO 校验请求
+        let ip = req.client_ip().unwrap();
+        let referer = req.headers().get_one("Referer").unwrap_or_default();
+        if let Err(e) = Firewalld::check(&ip.to_string(), referer).await {
+            // 拦截请求后，无效请求数+1
+            STATE.inc_request_invalid_count(1);
+            // 跳过后续的fairing处理
+            set_error!(req, 403, e.to_string());
+            return;
+        }
+
+        // 请求计数（不含无效请求）
         STATE.inc_request_count(1);
         // http连接计数
         // 该计数会在cleaner以及panic hook中-1

@@ -5,3 +5,5 @@ pub mod user_auth;
 pub mod service;
 pub mod plugin;
 pub mod api_key;
+pub mod gateway_node;
+mod gateway_node_state_log;

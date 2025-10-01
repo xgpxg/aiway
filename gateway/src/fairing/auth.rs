@@ -5,12 +5,11 @@
 //! 考虑是调用另外的服务验证，还是对API Key解密验证?
 //!
 use crate::context::Headers;
+use crate::{set_error, skip_if_error};
 use cache::caches::CacheKey;
 use common::constants::ENCRYPT_KEY;
 use protocol::gateway::ApiKey;
 use rocket::fairing::Fairing;
-use rocket::http::Method;
-use rocket::http::uri::Origin;
 use rocket::{Data, Request};
 use serde_json::Value;
 
@@ -33,29 +32,33 @@ impl Fairing for Authentication {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        skip_if_error!(req);
         let _ = crate::extract_api_path!(req);
-
         let bearer_token = req.headers().get_one(Headers::AUTHORIZATION);
 
         let api_key = match bearer_token {
             Some(api_key) => match api_key.strip_prefix(BEARER_PREFIX) {
                 Some(api_key) => api_key,
                 None => {
-                    req.set_method(Method::Get);
-                    req.set_uri(Origin::parse("/eep/401").unwrap());
+                    set_error!(req, 401, "Unauthorized");
+                    // req.set_method(Method::Get);
+                    // req.set_uri(Origin::parse("/eep/401").unwrap());
                     return;
                 }
             },
             None => {
-                req.set_method(Method::Get);
-                req.set_uri(Origin::parse("/eep/401").unwrap());
+                set_error!(req, 401, "Unauthorized");
+
+                // req.set_method(Method::Get);
+                // req.set_uri(Origin::parse("/eep/401").unwrap());
                 return;
             }
         };
 
         if let Err(_) = ApiKey::decrypt(ENCRYPT_KEY, api_key) {
-            req.set_method(Method::Get);
-            req.set_uri(Origin::parse("/eep/401").unwrap());
+            set_error!(req, 401, "Unauthorized");
+            // req.set_method(Method::Get);
+            // req.set_uri(Origin::parse("/eep/401").unwrap());
             return;
         }
 
@@ -63,8 +66,9 @@ impl Fairing for Authentication {
             .await
             .unwrap();
         if api_key.is_none() {
-            req.set_method(Method::Get);
-            req.set_uri(Origin::parse("/eep/401").unwrap());
+            set_error!(req, 401, "Unauthorized");
+            // req.set_method(Method::Get);
+            // req.set_uri(Origin::parse("/eep/401").unwrap());
             return;
         }
 

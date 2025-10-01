@@ -5,6 +5,7 @@
 use crate::context::HCM;
 use rocket::Request;
 use rocket::fairing::Fairing;
+use crate::skip_if_error;
 
 pub struct Logger {}
 impl Logger {
@@ -23,6 +24,7 @@ impl Fairing for Logger {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, _res: &mut rocket::Response<'r>) {
+        skip_if_error!(req);
         // 提取RequestContext
         let _context = HCM.get_from_request(&req);
 

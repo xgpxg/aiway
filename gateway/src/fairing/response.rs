@@ -12,6 +12,8 @@ use rocket::Request;
 use rocket::fairing::Fairing;
 use rocket::http::{Header, Status};
 use std::io::Cursor;
+use rocket::yansi::Paint;
+use crate::skip_if_error;
 
 pub struct ResponseData {}
 impl ResponseData {
@@ -30,6 +32,7 @@ impl Fairing for ResponseData {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
+        skip_if_error!(req);
         let request_context = &HCM.get_from_request(&req).request;
         let response_context = &HCM.get_from_request(&req).response;
         response_context.set_response_ts(chrono::Local::now().timestamp_millis());

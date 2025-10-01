@@ -19,9 +19,8 @@
 
 use crate::context::HCM;
 use crate::router::{GATEWAY_CONFIG, PLUGINS};
+use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
-use rocket::http::Method;
-use rocket::http::uri::Origin;
 use rocket::{Data, Request};
 
 pub struct GlobalPreFilter {}
@@ -41,6 +40,7 @@ impl Fairing for GlobalPreFilter {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        skip_if_error!(req);
         let _ = crate::extract_api_path!(req);
 
         let context = HCM.get_from_request(req);
@@ -65,8 +65,9 @@ impl Fairing for GlobalPreFilter {
                         configured_plugin.name,
                         e
                     );
-                    req.set_method(Method::Get);
-                    req.set_uri(Origin::parse("/eep/502").unwrap());
+                    set_error!(req, 502, "BadGateway");
+                    // req.set_method(Method::Get);
+                    // req.set_uri(Origin::parse("/eep/502").unwrap());
                     return;
                 }
             }
@@ -91,6 +92,7 @@ impl Fairing for GlobalPostFilter {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
+        skip_if_error!(req);
         let context = HCM.get_from_request(req);
         let config = GATEWAY_CONFIG.get().unwrap().config.read().await;
         let plugins = &config.post_filters;

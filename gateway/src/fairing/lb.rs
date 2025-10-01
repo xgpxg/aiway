@@ -3,9 +3,8 @@
 use crate::context::HCM;
 use crate::router::SERVICES;
 use rocket::fairing::Fairing;
-use rocket::http::Method;
-use rocket::http::uri::Origin;
 use rocket::{Data, Request};
+use crate::{set_error, skip_if_error};
 
 pub struct LoadBalance {}
 impl LoadBalance {
@@ -24,6 +23,7 @@ impl Fairing for LoadBalance {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        skip_if_error!(req);
         let context = HCM.get_from_request(req);
         let route = context.request.get_route();
         if route.is_none() {
@@ -47,7 +47,7 @@ impl Fairing for LoadBalance {
                 }
             }
         }
-        req.set_method(Method::Get);
-        req.set_uri(Origin::parse("/eep/502").unwrap());
+
+        set_error!(req, 502, "BadGateway");
     }
 }

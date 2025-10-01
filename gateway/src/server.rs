@@ -37,7 +37,7 @@ use crate::openapi::eep;
 use crate::{Args, fairing, openapi};
 use rocket::data::{ByteUnit, Limits};
 use rocket::fairing::AdHoc;
-use rocket::{Config, routes};
+use rocket::{Config, catchers, routes};
 use std::net::IpAddr;
 use std::str::FromStr;
 
@@ -49,7 +49,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
             .limit("json", ByteUnit::Mebibyte(5))
             .limit("data-form", ByteUnit::Mebibyte(100))
             .limit("file", ByteUnit::Mebibyte(100)),
-        log_level: rocket::config::LogLevel::Critical,
+        log_level: rocket::config::LogLevel::Off,
         cli_colors: false,
         ..Config::debug_default()
     });
@@ -91,6 +91,15 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
             print_banner();
         })
     }));
+
+    builder = builder.register(
+        "/",
+        catchers![
+            fairing::catchers::catch_401,
+            fairing::catchers::catch_403,
+            fairing::catchers::catch_404
+        ],
+    );
 
     builder.launch().await?;
 

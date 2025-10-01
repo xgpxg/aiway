@@ -1,6 +1,9 @@
+//! # 网关响应定义
+//! 执行顺序：respond_to -> response fairing
 use crate::openapi::error::GatewayError;
 use reqwest::header;
 use rocket::Request;
+use rocket::http::Status;
 use rocket::response::Responder;
 use rocket::serde::json::serde_json;
 use std::io::Cursor;
@@ -8,7 +11,7 @@ use tokio::io::AsyncRead;
 use tokio_util::bytes::Bytes;
 
 pub enum GatewayResponse {
-    Raw(Bytes),
+    Raw(u16, Bytes),
     /// JSON响应
     Json(serde_json::Value),
     /// 流式响应，以纯文本返回
@@ -22,8 +25,9 @@ pub enum GatewayResponse {
 impl<'r> Responder<'r, 'r> for GatewayResponse {
     fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'r> {
         match self {
-            GatewayResponse::Raw(bytes) => rocket::response::Response::build()
+            GatewayResponse::Raw(status, bytes) => rocket::response::Response::build()
                 .sized_body(bytes.len(), Cursor::new(bytes.to_vec()))
+                .status(Status::new(status))
                 .ok(),
             GatewayResponse::Json(data) => {
                 let json = serde_json::to_string(&data).unwrap();

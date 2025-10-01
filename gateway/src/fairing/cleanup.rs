@@ -24,9 +24,13 @@ impl Fairing for Cleaner {
         }
     }
 
-    async fn on_response<'r>(&self, req: &'r Request<'_>, _res: &mut rocket::Response<'r>) {
-        let request_id = req.headers().get_one(context::Headers::REQUEST_ID).unwrap();
-        HCM.remove(request_id);
+    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
+        if let Some(request_id) = req.headers().get_one(context::Headers::REQUEST_ID) {
+            HCM.remove(request_id);
+        }
+
+        res.remove_header(context::Headers::ERROR_CODE);
+        res.remove_header(context::Headers::ERROR_MESSAGE);
 
         STATE.inc_http_connect_count(-1);
     }

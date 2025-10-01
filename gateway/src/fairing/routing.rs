@@ -3,9 +3,8 @@
 //!
 use crate::context::HCM;
 use crate::router::ROUTER;
+use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
-use rocket::http::Method;
-use rocket::http::uri::Origin;
 use rocket::{Data, Request};
 
 pub struct Routing {}
@@ -25,16 +24,15 @@ impl Fairing for Routing {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        skip_if_error!(req);
         // 获取path
         let path = crate::extract_api_path!(req);
 
         let route = match ROUTER.get().unwrap().matches(path) {
             Some(r) => r,
             None => {
-                // 没有匹配到路由，修改uri，转发到502端点
-                log::warn!("No route matched for path: {}", path);
-                req.set_method(Method::Get);
-                req.set_uri(Origin::parse("/eep/502").unwrap());
+                // 没有匹配到路由，返回404
+                set_error!(req, 404, "NotFound");
                 return;
             }
         };

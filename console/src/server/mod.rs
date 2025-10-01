@@ -37,7 +37,7 @@
 //! 主要配置项：
 //! - 插件基本信息
 //! - 下载地址
-//! - TODO 插件本身的配置如何做？
+//! - 插件默认配置
 //!
 //! 插件（这里指全局插件）变更后，推送到conreg，网关在监听到插件列表变化时重新加载。
 //!
@@ -75,20 +75,21 @@
 //!
 
 use crate::config::config::AppConfig;
+use rocket::Config;
 use rocket::data::{ByteUnit, Limits};
-use rocket::{Config, routes};
 use std::net::IpAddr;
 use std::str::FromStr;
 mod auth;
 mod common;
 pub mod db;
+mod file;
 mod gateway;
 mod key;
+mod metrics;
 mod plugin;
 mod route;
 mod service;
 mod user;
-mod file;
 
 pub async fn start_http_server() -> anyhow::Result<()> {
     let config = &AppConfig::server();

@@ -10,9 +10,8 @@
 use crate::context::HCM;
 use crate::router::PLUGINS;
 use rocket::fairing::Fairing;
-use rocket::http::Method;
-use rocket::http::uri::Origin;
 use rocket::{Data, Request};
+use crate::{set_error, skip_if_error};
 
 pub struct PreFilter {}
 impl PreFilter {
@@ -36,6 +35,7 @@ impl Fairing for PreFilter {
     /// - 默认不执行任何过滤器，由用户自行配置
     /// - 可在此处修改请求参数
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        skip_if_error!(req);
         let _path = crate::extract_api_path!(req);
         let context = HCM.get_from_request(req);
         // SAFE：在routing时已经设置
@@ -59,8 +59,9 @@ impl Fairing for PreFilter {
                         configured_plugin.name,
                         e
                     );
-                    req.set_method(Method::Get);
-                    req.set_uri(Origin::parse("/eep/502").unwrap());
+                    set_error!(req, 502, "BadGateway");
+                    // req.set_method(Method::Get);
+                    // req.set_uri(Origin::parse("/eep/502").unwrap());
                     return;
                 }
             }
@@ -85,11 +86,10 @@ impl Fairing for PostFilter {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
-        // 1. 获取path，匹配路由
+        skip_if_error!(req);
 
         let context = HCM.get_from_request(req);
 
-        //TODO 当发生错误时，这里是没有路由的
         let route = context.request.get_route().unwrap();
         let plugins = &route.post_filters;
 

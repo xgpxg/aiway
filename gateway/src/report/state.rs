@@ -117,6 +117,14 @@ impl GatewayState {
     pub fn inc_http_connect_count(&self, n: isize) {
         self.state.lock().unwrap().moment_counter.http_connect_count += n;
     }
+
+    pub fn inc_request_invalid_count(&self, n: usize) {
+        self.state.lock().unwrap().counter.request_invalid_count += n;
+    }
+
+    pub fn get_http_connect_count(&self) -> isize {
+        self.state.lock().unwrap().moment_counter.http_connect_count
+    }
 }
 
 pub static STATE: LazyLock<GatewayState> = LazyLock::new(|| GatewayState::default());

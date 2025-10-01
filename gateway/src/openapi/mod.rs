@@ -1,4 +1,5 @@
 mod client;
+#[deprecated]
 pub mod eep;
 mod error;
 mod response;
@@ -71,6 +72,7 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
             // 返回响应
             Ok(response) => {
                 // TODO 要不要透传状态码？？
+                let status = response.status();
                 // 处理SSE流
                 if response.is_sse() {
                     let stream = response.bytes_stream();
@@ -80,7 +82,7 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
                         }));
                     return GatewayResponse::SSE(Box::new(stream_reader));
                 }
-                GatewayResponse::Raw(response.bytes().await.unwrap())
+                GatewayResponse::Raw(status.as_u16(), response.bytes().await.unwrap())
             }
             // 服务本身错误，如无响应等
             Err(e) => {

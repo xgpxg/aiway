@@ -11,7 +11,6 @@
 //!
 
 use crate::context::HCM;
-use crate::report::STATE;
 use protocol::SV;
 use protocol::gateway::{HttpContext, RequestContext, ResponseContext};
 use rocket::data::ToByteUnit;
@@ -20,6 +19,7 @@ use rocket::http::Header;
 use rocket::{Data, Request};
 use std::sync::Arc;
 use uuid::Uuid;
+use crate::skip_if_error;
 
 pub struct RequestData {}
 impl RequestData {
@@ -38,6 +38,7 @@ impl Fairing for RequestData {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, data: &mut Data<'_>) {
+        skip_if_error!(req);
         // 请求ID，应仅在此处生成一次，后续通过该ID获取上下文
         let request_id = Uuid::new_v4().to_string();
 

@@ -1,3 +1,4 @@
+use rocket::http::Status;
 use rocket::response::stream::{Event, EventStream};
 use rocket::{Config, get, routes};
 use std::net::IpAddr;
