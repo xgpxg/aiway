@@ -20,7 +20,7 @@ pub struct Reporter {
 impl Reporter {
     pub fn new(interval: Duration) -> Self {
         let client = reqwest::ClientBuilder::default()
-            .connect_timeout(Duration::from_secs(5))
+            .connect_timeout(Duration::from_secs(common::constants::REPORT_STATE_INTERVAL))
             .build()
             .unwrap();
         Self { interval, client }

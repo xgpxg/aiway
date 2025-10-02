@@ -76,7 +76,7 @@ pub async fn report(req: State) -> anyhow::Result<()> {
             0
         })
         .avg_qps(if req.counter.response_time_since_last > 0 {
-            req.counter.request_count / 5
+            req.counter.request_count / common::constants::REPORT_STATE_INTERVAL as usize
         } else {
             0
         })
