@@ -5,10 +5,10 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 pub async fn start() -> anyhow::Result<()> {
     let sched = JobScheduler::new().await?;
 
-    let sync_gateway_state = Job::new_async("every 10 seconds", |_, _| {
-        Box::pin(state::sync_gateway_state())
+    let update_heartbeat = Job::new_async("every 5 seconds", |_, _| {
+        Box::pin(state::update_timeout_heartbeat_node())
     })?;
-    sched.add(sync_gateway_state).await?;
+    sched.add(update_heartbeat).await?;
 
     sched.start().await?;
 

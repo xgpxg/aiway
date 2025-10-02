@@ -1,4 +1,3 @@
-use rbatis::rbdc::DateTime;
 use rocket::serde::{Deserialize, Serialize};
 
 /// 网关节点信息
@@ -10,16 +9,16 @@ pub struct GatewayState {
     pub node_count: usize,
     /// 运行中节点个数
     /// 取值：gateway_node表的运行中节点数量
-    pub running_node_count: usize,
+    pub online_node_count: usize,
     /// 宕机节点个数
     /// 取值：gateway_node表的宕机节点数量
-    pub down_node_count: usize,
+    pub offline_node_count: usize,
     /// 平均QPS
     /// 取值：sum(运行中的节点的avg_qps)
-    pub avg_qps: f64,
-    /// 平均响应时间（gateway_node表中的avg_qps求和）
-    /// 取值：sum(运行中的节点的avg_response_time)
-    pub avg_response_time: f64,
+    pub avg_qps: usize,
+    /// 平均响应时间
+    /// 取值：sum(运行中的节点的avg_response_time) / 节点个数 取整
+    pub avg_response_time: usize,
     /// 累计请求次数
     pub request_count: usize,
     /// 累计无效请求次数
@@ -35,7 +34,4 @@ pub struct GatewayState {
     /// 当前连接总数
     /// 取值：gateway_node表的所有节点的连接总数
     pub http_connect_count: usize,
-    /// 更新时间
-    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
-    pub update_time: Option<DateTime>,
 }

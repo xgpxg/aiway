@@ -9,9 +9,9 @@ use rocket::serde::{Deserialize, Serialize};
 pub struct GatewayNodeState {
     pub id: Option<i64>,
     /// 节点ID
-    pub node_id: Option<String>,
+    pub node_id: String,
     /// 状态产生时的时间戳，单位毫秒
-    pub ts: Option<i64>,
+    pub ts: i64,
     ///  操作系统信息
     pub os: Option<String>,
     /// 节点名称

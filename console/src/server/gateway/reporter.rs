@@ -51,8 +51,8 @@ pub async fn report(req: State) -> anyhow::Result<()> {
 
     let gateway_state_log = GatewayNodeStateBuilder::default()
         .id(Some(id::next()))
-        .node_id(Some(node_id.clone()))
-        .ts(Some(req.timestamp))
+        .node_id(node_id.clone())
+        .ts(req.timestamp)
         .os(Some(req.system_state.os))
         .cpu_usage(req.system_state.cpu_usage)
         .mem_total(req.system_state.mem_state.total)

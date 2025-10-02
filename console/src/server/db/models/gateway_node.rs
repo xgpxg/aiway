@@ -43,4 +43,19 @@ pub enum GatewayNodeStatus {
     Unknown,
 }
 
+impl GatewayNode {
+    pub fn is_online(&self) -> bool {
+        match self.status {
+            Some(GatewayNodeStatus::Online) => true,
+            _ => false,
+        }
+    }
+    pub fn is_offline(&self) -> bool {
+        match self.status {
+            Some(GatewayNodeStatus::Offline) => true,
+            _ => false,
+        }
+    }
+}
+
 crud!(GatewayNode {});
