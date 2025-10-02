@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 pub struct State {
     /// 时间戳，单位毫秒
     pub timestamp: i64,
+    /// 节点信息
+    pub node_info: NodeInfo,
     /// 系统状态
     pub system_state: SystemState,
     /// 计数器
@@ -12,6 +14,12 @@ pub struct State {
     pub moment_counter: MomentCounter,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct NodeInfo {
+    pub node_id: String,
+    pub ip: String,
+    pub port: u16,
+}
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SystemState {
     /// 操作系统及版本，如: Ubuntu 22.04

@@ -1,7 +1,7 @@
-use crate::server::db::models::gateway_state::GatewayState;
 use crate::server::metrics::service;
 use protocol::common::res::Res;
 use rocket::{get, routes};
+use crate::server::metrics::response::GatewayState;
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![gateway_state]

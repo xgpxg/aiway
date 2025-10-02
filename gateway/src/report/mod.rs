@@ -9,7 +9,7 @@
 mod state;
 
 use crate::Args;
-use protocol::gateway::state::State;
+use protocol::gateway::state::{NodeInfo, State};
 pub use state::STATE;
 use std::time::Duration;
 pub struct Reporter {
@@ -41,17 +41,21 @@ impl Reporter {
     }
 }
 pub fn init(args: &Args) {
-    let node_id = args.node_id();
-    let console_addr = format!("http://{}/api/v1/gateway/report/{}", args.console, node_id);
+    let console_addr = format!("http://{}/api/v1/gateway/report", args.console);
+    let node_info = NodeInfo {
+        node_id: args.node_id(),
+        ip: args.address.clone(),
+        port: args.port.clone(),
+    };
     tokio::spawn(async move {
         // TODO 考虑15秒上报一次
         let reporter = Reporter::new(Duration::from_secs(5));
         let mut timer = tokio::time::interval(Duration::from_secs(5));
-        STATE.refresh();
+        STATE.refresh(node_info.clone());
         loop {
             timer.tick().await;
             {
-                let state = STATE.refresh();
+                let state = STATE.refresh(node_info.clone());
                 reporter.report(&console_addr, &state).await;
             };
         }

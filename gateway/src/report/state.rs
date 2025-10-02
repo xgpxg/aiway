@@ -1,4 +1,4 @@
-use protocol::gateway::state::{DiskState, MemState, NetState, State, SystemState};
+use protocol::gateway::state::{DiskState, MemState, NetState, NodeInfo, State, SystemState};
 use std::fs;
 use std::sync::{Arc, LazyLock, Mutex};
 use sysinfo::{Disks, Networks, System};
@@ -9,7 +9,7 @@ pub struct GatewayState {
 }
 impl GatewayState {
     /// 刷新状态，并清空计数器。返回旧状态。
-    pub fn refresh(&self) -> State {
+    pub fn refresh(&self,node_info: NodeInfo) -> State {
         let system_state = self.build_system_state();
 
         // 锁定
@@ -20,6 +20,7 @@ impl GatewayState {
         // 更新状态并重置计数器
         *state_guard = State {
             timestamp: chrono::Local::now().timestamp_millis(),
+            node_info,
             system_state,
             counter: Default::default(),
             moment_counter: old.moment_counter.clone(),

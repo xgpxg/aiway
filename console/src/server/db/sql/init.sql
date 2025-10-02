@@ -103,48 +103,28 @@ create table if not exists api_key
     is_delete      tinyint(1)   not null default 0     -- 是否删除
 );
 
--- 网关状态汇总
-create table if not exists gateway_state
-(
-    id                     bigint primary key,
-    node_count             int    not null default 0, -- 节点数
-    running_node_count     int    not null default 0, -- 运行中的节点数
-    down_node_count        int    not null default 0, -- 宕机中的节点数
-    total_connection_count int    not null default 0, -- 总连接数
-    today_request_count    int    not null default 0, -- 今日请求数（排除安全拦截的）
-    total_request_count    bigint not null default 0, -- 累计请求数（排除安全拦截的）
-    avg_qps                bigint not null default 0, -- QPS（取各个运行中的节点的QPS之和）
-    avg_response_time      bigint not null default 0, -- 平均响应时间
-    update_time            datetime                   -- 更新时间
-);
 
 -- 网关节点
 create table if not exists gateway_node
 (
-    id                    bigint primary key,
-    node_id               varchar(100) not null,
-    node_name             varchar(100),
-    ip                    varchar(100) not null,
-    port                  int          not null,
-    status                varchar(50)  not null,           -- 节点状态：Online | Offline | Unknown
-    status_msg            varchar(500),                    -- 节点状态信息
-    system_status         varchar(50),                     -- 系统状态: Health | Overload | Unhealthy
-    request_count         bigint       not null default 0, -- 累计请求数（不含无效请求）
-    request_invalid_count bigint       not null default 0, -- 累计无效请求数
-    response_2xx_count    bigint       not null default 0, -- 累计2xx响应数
-    response_3xx_count    bigint       not null default 0, -- 累计3xx响应数
-    response_4xx_count    bigint       not null default 0, -- 累计4xx响应数
-    response_5xx_count    bigint       not null default 0, -- 累计5xx响应数
-    create_user_id        bigint,                          -- 创建人ID
-    update_user_id        bigint,                          -- 修改人ID
-    create_time           datetime,                        -- 创建时间
-    update_time           datetime,                        -- 更新时间
-    remark                varchar(500),                    -- 备注
-    is_delete             tinyint(1)   not null default 0  -- 是否删除
+    id                  bigint primary key,
+    node_id             varchar(100) not null,          -- 节点ID，md5(ip:port)后取前8位
+    node_name           varchar(100),                   -- 节点名称
+    ip                  varchar(100) not null,          -- IP
+    port                int          not null,          -- 端口
+    status              varchar(50)  not null,          -- 节点状态：Online | Offline | Unknown
+    status_msg          varchar(500),                   -- 节点状态信息
+    last_heartbeat_time datetime,                       -- 最后一次心跳时间
+    create_user_id      bigint,                         -- 创建人ID
+    update_user_id      bigint,                         -- 修改人ID
+    create_time         datetime,                       -- 创建时间
+    update_time         datetime,                       -- 更新时间
+    remark              varchar(500),                   -- 备注
+    is_delete           tinyint(1)   not null default 0 -- 是否删除
 );
 
-
-create table if not exists gateway_node_state_log
+-- 网关节点状态
+create table if not exists gateway_node_state
 (
     id                    bigint primary key,
     node_id               varchar(100) not null,           -- 节点ID
@@ -166,11 +146,14 @@ create table if not exists gateway_node_state_log
     response_3xx_count    bigint       not null default 0, -- 累计3xx响应数
     response_4xx_count    bigint       not null default 0, -- 累计4xx响应数
     response_5xx_count    bigint       not null default 0, -- 累计5xx响应数
-    qps                   bigint       not null default 0, -- QPS
+    http_connect_count    bigint       not null default 0, -- 累计http连接数
+    avg_response_time     bigint       not null default 0, -- 平均响应时间
+    avg_qps               bigint       not null default 0, -- 平均QPS
     create_time           datetime                         -- 创建时间
 );
-create index if not exists idx_node_id on gateway_node_state_log (node_id);
-create index if not exists idx_ts on gateway_node_state_log (ts);
+create index if not exists idx_node_id on gateway_node_state (node_id);
+create index if not exists idx_ts on gateway_node_state (ts);
+
 
 create table if not exists message
 (
@@ -188,6 +171,3 @@ values (1, 'admin');
 insert or ignore into user_auth(id, user_id, type, identity, secret)
 values (1, 1, 1, 'admin', '$2b$12$uMYLbc5X3VIPkBxBKa7w9OrLwQEzyhCZe8.aGVxtQmpqCx4okFMoW');
 
--- -------------------------------- 初始化网关状态 --------------------------------------
-insert or ignore into gateway_state(id, update_time)
-values (1, datetime('now', 'localtime'));

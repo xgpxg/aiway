@@ -46,9 +46,9 @@ async fn configuration() -> Res<protocol::gateway::Configuration> {
     }
 }
 
-#[post("/gateway/report/<node_id>", data = "<req>")]
-async fn report(node_id: String, req: Json<protocol::gateway::state::State>) -> Res<()> {
-    match reporter::report(node_id,req.0).await {
+#[post("/gateway/report", data = "<req>")]
+async fn report(req: Json<protocol::gateway::state::State>) -> Res<()> {
+    match reporter::report(req.0).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),
     }

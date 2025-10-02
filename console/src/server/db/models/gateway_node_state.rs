@@ -6,7 +6,7 @@ use rocket::serde::{Deserialize, Serialize};
 /// 网关节点状态记录
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
 #[builder(default)]
-pub struct GatewayNodeStateLog {
+pub struct GatewayNodeState {
     pub id: Option<i64>,
     /// 节点ID
     pub node_id: Option<String>,
@@ -17,47 +17,43 @@ pub struct GatewayNodeStateLog {
     /// 节点名称
     pub host_name: Option<u16>,
     /// CPU使用率
-    pub cpu_usage: Option<f32>,
+    pub cpu_usage: f32,
     /// 内存总大小
-    pub mem_total: Option<u64>,
+    pub mem_total: u64,
     /// 可用内存
-    pub mem_free: Option<u64>,
+    pub mem_free: u64,
     /// 已用内存
-    pub mem_used: Option<u64>,
+    pub mem_used: u64,
     /// 磁盘总容量
-    pub disk_total: Option<u64>,
+    pub disk_total: u64,
     /// 可用磁盘容量
-    pub disk_free: Option<u64>,
+    pub disk_free: u64,
     /// 网络接收字节数
-    pub net_rx: Option<u64>,
+    pub net_rx: u64,
     /// 网络发送字节数
-    pub net_tx: Option<u64>,
+    pub net_tx: u64,
     /// TCP连接数
-    pub net_tcp_conn_count: Option<usize>,
+    pub net_tcp_conn_count: usize,
     /// 累计请求次数
-    pub request_count: Option<usize>,
+    pub request_count: usize,
     /// 累计无效请求次数
-    pub request_invalid_count: Option<usize>,
+    pub request_invalid_count: usize,
     /// 累计响应成功次数
-    pub response_2xx_count: Option<usize>,
+    pub response_2xx_count: usize,
     /// 累计3xx响应次数
-    pub response_3xx_count: Option<usize>,
+    pub response_3xx_count: usize,
     /// 累计4xx响应次数
-    pub response_4xx_count: Option<usize>,
+    pub response_4xx_count: usize,
     /// 累计5xx响应次数
-    pub response_5xx_count: Option<usize>,
-    /// 创建人ID
-    pub create_user_id: Option<i64>,
-    /// 修改人ID
-    pub update_user_id: Option<i64>,
+    pub response_5xx_count: usize,
+    /// HTTP连接数
+    pub http_connect_count: isize,
+    /// 平均QPS(统计周期内)
+    pub avg_qps: usize,
+    /// 平均响应时间，单位：毫秒
+    pub avg_response_time: usize,
     /// 创建时间
     pub create_time: Option<DateTime>,
-    /// 更新时间
-    pub update_time: Option<DateTime>,
-    /// 备注
-    pub remark: Option<String>,
-    /// 是否删除
-    pub is_delete: Option<i8>,
 }
 
-crud!(GatewayNodeStateLog {});
+crud!(GatewayNodeState {});

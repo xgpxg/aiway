@@ -20,18 +20,8 @@ pub struct GatewayNode {
     pub status: Option<GatewayNodeStatus>,
     /// 节点状态信息
     pub status_msg: Option<String>,
-    /// 累计请求次数
-    pub request_count: Option<usize>,
-    /// 累计无效请求次数
-    pub request_invalid_count: Option<usize>,
-    /// 累计响应成功次数
-    pub response_2xx_count: Option<usize>,
-    /// 累计3xx响应次数
-    pub response_3xx_count: Option<usize>,
-    /// 累计4xx响应次数
-    pub response_4xx_count: Option<usize>,
-    /// 累计5xx响应次数
-    pub response_5xx_count: Option<usize>,
+    /// 最后一次心跳时间
+    pub last_heartbeat_time: Option<DateTime>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID
