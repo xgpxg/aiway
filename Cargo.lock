@@ -708,6 +708,7 @@ dependencies = [
  "serde_yaml",
  "strum",
  "strum_macros",
+ "tokio-cron-scheduler",
  "uuid",
 ]
 
@@ -766,6 +767,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "croner"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c344b0690c1ad1c7176fe18eb173e0c927008fdaaa256e40dfd43ddd149c0843"
+dependencies = [
+ "chrono",
 ]
 
 [[package]]
@@ -1107,6 +1117,15 @@ name = "endi"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3d8a32ae18130a3c84dd492d4215c3d913c3b07c6b63c2eb3eb7ff1101ab7bf"
+
+[[package]]
+name = "english-to-cron"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e26fb7377cbec9a94f60428e6e6afbe10c699a14639b4d3d4b67b25c0bbe0806"
+dependencies = [
+ "regex",
+]
 
 [[package]]
 name = "enumflags2"
@@ -2387,6 +2406,17 @@ name = "num-conv"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51d515d32fb182ee37cda2ccdcb92950d6a3c2893aa280e540671c2cd0f3b1d9"
+
+[[package]]
+name = "num-derive"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "num-integer"
@@ -4087,6 +4117,22 @@ dependencies = [
  "tokio-macros",
  "tracing",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "tokio-cron-scheduler"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a5597b569b4712cf78aa0c9ae29742461b7bda1e49c2a5fdad1d79bf022f8f0"
+dependencies = [
+ "chrono",
+ "croner",
+ "english-to-cron",
+ "num-derive",
+ "num-traits",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

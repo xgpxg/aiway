@@ -103,12 +103,19 @@ create table if not exists api_key
     is_delete      tinyint(1)   not null default 0     -- 是否删除
 );
 
--- 网关状态
+-- 网关状态汇总
 create table if not exists gateway_state
 (
-    id            bigint primary key,
-    request_count bigint not null default 0 -- 累计请求数（所有除安全拦截外的请求数）
-
+    id                     bigint primary key,
+    node_count             int    not null default 0, -- 节点数
+    running_node_count     int    not null default 0, -- 运行中的节点数
+    down_node_count        int    not null default 0, -- 宕机中的节点数
+    total_connection_count int    not null default 0, -- 总连接数
+    today_request_count    int    not null default 0, -- 今日请求数（排除安全拦截的）
+    total_request_count    bigint not null default 0, -- 累计请求数（排除安全拦截的）
+    avg_qps                bigint not null default 0, -- QPS（取各个运行中的节点的QPS之和）
+    avg_response_time      bigint not null default 0, -- 平均响应时间
+    update_time            datetime                   -- 更新时间
 );
 
 -- 网关节点
@@ -165,8 +172,22 @@ create table if not exists gateway_node_state_log
 create index if not exists idx_node_id on gateway_node_state_log (node_id);
 create index if not exists idx_ts on gateway_node_state_log (ts);
 
+create table if not exists message
+(
+    id          bigint primary key,
+    type        varchar(50) not null,           -- 消息类型：system | alert
+    level       varchar(50) not null,           -- 消息级别：info | warn | error
+    title       varchar(500),                   -- 标题
+    content     text        not null,           --  内容
+    read_status tinyint(1)  not null default 0, -- 0未读 1已读
+    create_time datetime    not null
+);
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');
 insert or ignore into user_auth(id, user_id, type, identity, secret)
 values (1, 1, 1, 'admin', '$2b$12$uMYLbc5X3VIPkBxBKa7w9OrLwQEzyhCZe8.aGVxtQmpqCx4okFMoW');
+
+-- -------------------------------- 初始化网关状态 --------------------------------------
+insert or ignore into gateway_state(id, update_time)
+values (1, datetime('now', 'localtime'));

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct State {
+    /// 时间戳，单位毫秒
     pub timestamp: i64,
     /// 系统状态
     pub system_state: SystemState,

@@ -1,12 +1,17 @@
+use crate::server::db::models::gateway_state::GatewayState;
+use crate::server::metrics::service;
 use protocol::common::res::Res;
-use rocket::routes;
+use rocket::{get, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![]
+    routes![gateway_state]
 }
 
 // 网关整体运行状态
-async fn gateway_global_state() -> Res<()> {
-
-    Res::success(())
+#[get("/gateway/state")]
+async fn gateway_state() -> Res<GatewayState> {
+    match service::gateway_state().await {
+        Ok(state) => Res::success(state),
+        Err(e) => Res::error(&e.to_string()),
+    }
 }

@@ -1,6 +1,6 @@
 use crate::Args;
 use crate::config::config;
-use crate::server::db;
+use crate::server::{db, task};
 use anyhow::Context;
 use common::dir::AppDir;
 use common::id;
@@ -36,6 +36,8 @@ pub async fn init(args: &Args) {
     #[cfg(feature = "standalone")]
     cache::init_share_cache().await.unwrap();
 
+    // 初始化定时任务
+    task::start().await.unwrap();
 }
 
 fn init_dir() -> anyhow::Result<()> {

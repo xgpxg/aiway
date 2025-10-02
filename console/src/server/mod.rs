@@ -89,6 +89,7 @@ mod metrics;
 mod plugin;
 mod route;
 mod service;
+pub mod task;
 mod user;
 
 pub async fn start_http_server() -> anyhow::Result<()> {
@@ -112,6 +113,7 @@ pub async fn start_http_server() -> anyhow::Result<()> {
     builder = builder.mount("/api/service", service::api::routes());
     builder = builder.mount("/api/key", key::api::routes());
     builder = builder.mount("/api/plugin", plugin::api::routes());
+    builder = builder.mount("/api/metrics", metrics::api::routes());
 
     builder = builder.mount("/file/", file::api::routes());
 

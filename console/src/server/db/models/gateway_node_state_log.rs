@@ -3,7 +3,7 @@ use rbatis::crud;
 use rbatis::rbdc::DateTime;
 use rocket::serde::{Deserialize, Serialize};
 
-/// 网关节点信息
+/// 网关节点状态记录
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
 #[builder(default)]
 pub struct GatewayNodeStateLog {
@@ -11,7 +11,7 @@ pub struct GatewayNodeStateLog {
     /// 节点ID
     pub node_id: Option<String>,
     /// 状态产生时的时间戳，单位毫秒
-    pub ts: Option<String>,
+    pub ts: Option<i64>,
     ///  操作系统信息
     pub os: Option<String>,
     /// 节点名称
@@ -19,19 +19,19 @@ pub struct GatewayNodeStateLog {
     /// CPU使用率
     pub cpu_usage: Option<f32>,
     /// 内存总大小
-    pub mem_total: Option<usize>,
+    pub mem_total: Option<u64>,
     /// 可用内存
-    pub mem_free: Option<usize>,
+    pub mem_free: Option<u64>,
     /// 已用内存
-    pub mem_used: Option<usize>,
+    pub mem_used: Option<u64>,
     /// 磁盘总容量
-    pub disk_total: Option<usize>,
+    pub disk_total: Option<u64>,
     /// 可用磁盘容量
-    pub disk_free: Option<usize>,
+    pub disk_free: Option<u64>,
     /// 网络接收字节数
-    pub net_rx: Option<usize>,
+    pub net_rx: Option<u64>,
     /// 网络发送字节数
-    pub net_tx: Option<usize>,
+    pub net_tx: Option<u64>,
     /// TCP连接数
     pub net_tcp_conn_count: Option<usize>,
     /// 累计请求次数

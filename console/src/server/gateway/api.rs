@@ -1,11 +1,11 @@
 use crate::server;
 use crate::server::gateway::{plugin, reporter, route, service};
 use protocol::common::res::Res;
-use rocket::{get, post, routes};
 use rocket::serde::json::Json;
+use rocket::{get, post, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![all_routes, all_services, all_plugins,configuration,report]
+    routes![all_routes, all_services, all_plugins, configuration, report]
 }
 
 /// 查询路由表
@@ -46,9 +46,9 @@ async fn configuration() -> Res<protocol::gateway::Configuration> {
     }
 }
 
-#[post("/gateway/report",data="<req>")]
-async fn report(req: Json<protocol::gateway::state::State>) -> Res<()> {
-    match reporter::report(req.0).await {
+#[post("/gateway/report/<node_id>", data = "<req>")]
+async fn report(node_id: String, req: Json<protocol::gateway::state::State>) -> Res<()> {
+    match reporter::report(node_id,req.0).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),
     }

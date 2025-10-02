@@ -1,2 +1,2 @@
-mod api;
-mod gateway_global_state;
+pub mod api;
+mod service;

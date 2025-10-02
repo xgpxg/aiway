@@ -41,7 +41,8 @@ impl Reporter {
     }
 }
 pub fn init(args: &Args) {
-    let console_addr = format!("http://{}/api/v1/gateway/report", args.console);
+    let node_id = args.node_id();
+    let console_addr = format!("http://{}/api/v1/gateway/report/{}", args.console, node_id);
     tokio::spawn(async move {
         // TODO 考虑15秒上报一次
         let reporter = Reporter::new(Duration::from_secs(5));

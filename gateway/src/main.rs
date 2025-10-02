@@ -27,6 +27,13 @@ struct Args {
     console: String,
 }
 
+impl Args {
+    pub fn node_id(&self) -> String {
+        let digest = md5::compute(format!("{}:{}", self.address, self.port));
+        format!("{:x}", digest)[..8].to_string()
+    }
+}
+
 #[rocket::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
