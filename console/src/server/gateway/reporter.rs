@@ -63,22 +63,37 @@ pub async fn report(req: State) -> anyhow::Result<()> {
         .net_rx(req.system_state.net_state.rx)
         .net_tx(req.system_state.net_state.tx)
         .net_tcp_conn_count(req.system_state.net_state.tcp_conn_count)
+        .http_connect_count(req.moment_counter.http_connect_count)
+        .avg_qps(if req.counter.response_time_since_last > 0 {
+            req.counter.request_count / common::constants::REPORT_STATE_INTERVAL as usize
+        } else {
+            0
+        })
+        // 上报区间内的统计
+        .interval_request_count(req.counter.request_count)
+        .interval_request_invalid_count(req.counter.request_invalid_count)
+        .interval_response_2xx_count(req.counter.response_2xx_count)
+        .interval_response_3xx_count(req.counter.response_3xx_count)
+        .interval_response_4xx_count(req.counter.response_4xx_count)
+        .interval_response_5xx_count(req.counter.response_5xx_count)
+        .interval_avg_response_time(if req.counter.request_count > 0 {
+            req.counter.response_time_since_last / req.counter.request_count
+        } else {
+            0
+        })
+        // 累计统计
         .request_count(req.counter.request_count + last.request_count)
         .request_invalid_count(req.counter.request_invalid_count + last.request_invalid_count)
         .response_2xx_count(req.counter.response_2xx_count + last.response_2xx_count)
         .response_3xx_count(req.counter.response_3xx_count + last.response_3xx_count)
         .response_4xx_count(req.counter.response_4xx_count + last.response_4xx_count)
         .response_5xx_count(req.counter.response_5xx_count + last.response_5xx_count)
-        .http_connect_count(req.moment_counter.http_connect_count)
         .avg_response_time(if req.counter.request_count > 0 {
-            req.counter.response_time_since_last / req.counter.request_count
+            (req.counter.response_time_since_last / req.counter.request_count
+                + last.avg_response_time)
+                / 2
         } else {
-            0
-        })
-        .avg_qps(if req.counter.response_time_since_last > 0 {
-            req.counter.request_count / common::constants::REPORT_STATE_INTERVAL as usize
-        } else {
-            0
+            last.avg_response_time
         })
         .create_time(Some(tools::now()))
         .build()?;

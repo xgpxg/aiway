@@ -126,30 +126,38 @@ create table if not exists gateway_node
 -- 网关节点状态
 create table if not exists gateway_node_state
 (
-    id                    bigint primary key,
-    node_id               varchar(100) not null,           -- 节点ID
-    ts                    bigint       not null,           -- 毫秒时间戳
-    os                    varchar(50),                     -- 操作系统及版本，如: Ubuntu 22.04
-    host_name             varchar(100),                    -- 主机名
-    cpu_usage             float        not null default 0, -- cpu 使用率
-    mem_total             bigint       not null default 0, -- 内存状态 - 总内存，单位：Bytes
-    mem_free              bigint       not null default 0, -- 内存状态 - 空闲内存，单位：Bytes
-    mem_used              bigint       not null default 0, -- 内存状态 - 使用内存，单位：Bytes
-    disk_total            bigint       not null default 0, -- 磁盘状态 - 总空间，单位：Bytes
-    disk_free             bigint       not null default 0, -- 磁盘状态 - 空闲空间，单位：Bytes
-    net_rx                bigint       not null default 0, -- 网络状态 - 接收的字节数
-    net_tx                bigint       not null default 0, -- 网络状态 - 发送的字节数
-    net_tcp_conn_count    bigint       not null default 0, -- 网络状态 - TCP连接数
-    request_count         bigint       not null default 0, -- 累计请求数
-    request_invalid_count bigint       not null default 0, -- 累计无效请求数
-    response_2xx_count    bigint       not null default 0, -- 累计2xx响应数
-    response_3xx_count    bigint       not null default 0, -- 累计3xx响应数
-    response_4xx_count    bigint       not null default 0, -- 累计4xx响应数
-    response_5xx_count    bigint       not null default 0, -- 累计5xx响应数
-    http_connect_count    bigint       not null default 0, -- 累计http连接数
-    avg_response_time     bigint       not null default 0, -- 平均响应时间
-    avg_qps               bigint       not null default 0, -- 平均QPS
-    create_time           datetime                         -- 创建时间
+    id                             bigint primary key,
+    node_id                        varchar(100) not null,           -- 节点ID
+    ts                             bigint       not null,           -- 毫秒时间戳
+    os                             varchar(50),                     -- 操作系统及版本，如: Ubuntu 22.04
+    host_name                      varchar(100),                    -- 主机名
+    cpu_usage                      float        not null default 0, -- cpu 使用率
+    mem_total                      bigint       not null default 0, -- 内存状态 - 总内存，单位：Bytes
+    mem_free                       bigint       not null default 0, -- 内存状态 - 空闲内存，单位：Bytes
+    mem_used                       bigint       not null default 0, -- 内存状态 - 使用内存，单位：Bytes
+    disk_total                     bigint       not null default 0, -- 磁盘状态 - 总空间，单位：Bytes
+    disk_free                      bigint       not null default 0, -- 磁盘状态 - 空闲空间，单位：Bytes
+    net_rx                         bigint       not null default 0, -- 网络状态 - 接收的字节数
+    net_tx                         bigint       not null default 0, -- 网络状态 - 发送的字节数
+    net_tcp_conn_count             bigint       not null default 0, -- 网络状态 - TCP连接数
+    avg_qps                        bigint       not null default 0, -- 平均QPS
+    interval_request_count         bigint       not null default 0, -- 区间内请求数
+    interval_request_invalid_count bigint       not null default 0, -- 区间内无效请求数
+    interval_response_2xx_count    bigint       not null default 0, -- 区间内2xx响应数
+    interval_response_3xx_count    bigint       not null default 0, -- 区间内3xx响应数
+    interval_response_4xx_count    bigint       not null default 0, -- 区间内4xx响应数
+    interval_response_5xx_count    bigint       not null default 0, -- 区间内5xx响应数
+    interval_http_connect_count    bigint       not null default 0, -- 区间内http连接数
+    interval_avg_response_time     bigint       not null default 0, -- 区间内平均响应时间
+    request_count                  bigint       not null default 0, -- 累计请求数
+    request_invalid_count          bigint       not null default 0, -- 累计无效请求数
+    response_2xx_count             bigint       not null default 0, -- 累计2xx响应数
+    response_3xx_count             bigint       not null default 0, -- 累计3xx响应数
+    response_4xx_count             bigint       not null default 0, -- 累计4xx响应数
+    response_5xx_count             bigint       not null default 0, -- 累计5xx响应数
+    http_connect_count             bigint       not null default 0, -- 累计http连接数
+    avg_response_time              bigint       not null default 0, -- 累计平均响应时间
+    create_time                    datetime                         -- 创建时间
 );
 create index if not exists idx_node_id on gateway_node_state (node_id);
 create index if not exists idx_ts on gateway_node_state (ts);

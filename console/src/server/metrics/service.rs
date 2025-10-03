@@ -69,15 +69,14 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
         .unwrap()
         .timestamp_millis();
 
-    state.request_today_count  = tx
+    state.request_today_count = tx
         .query_decode::<u64>(
             r#"
-           select sum(gns.request_count) request_today_count from gateway_node_state gns inner join (
-                select max(id) as id from gateway_node_state where ts >= ? group by node_id
-            ) as t on t.id = gns.id
+           select sum(interval_request_count) from gateway_node_state where ts >= ? group by node_id
             "#,
             vec![value!(start_of_day)],
-        ).await? as usize;
+        )
+        .await? as usize;
 
     state.request_count = node_states.iter().map(|s| s.request_count).sum::<usize>();
     state.request_invalid_count = node_states

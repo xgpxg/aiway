@@ -45,8 +45,10 @@ pub struct Route {
     /// 修改人ID
     pub update_user_id: Option<i64>,
     /// 创建时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub create_time: Option<DateTime>,
     /// 更新时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub update_time: Option<DateTime>,
     /// 备注
     pub remark: Option<String>,
