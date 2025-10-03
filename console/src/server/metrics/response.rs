@@ -19,6 +19,8 @@ pub struct GatewayState {
     /// 平均响应时间
     /// 取值：sum(运行中的节点的avg_response_time) / 节点个数 取整
     pub avg_response_time: usize,
+    /// 今日请求数
+    pub request_today_count: usize,
     /// 累计请求次数
     pub request_count: usize,
     /// 累计无效请求次数

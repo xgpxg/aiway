@@ -2,6 +2,8 @@ use crate::server::db::Pool;
 use crate::server::db::models::gateway_node::GatewayNode;
 use crate::server::db::models::gateway_node_state::GatewayNodeState;
 use crate::server::metrics::response::GatewayState;
+use chrono::Timelike;
+use rbs::value;
 
 pub async fn gateway_state() -> anyhow::Result<GatewayState> {
     let mut state = GatewayState::default();
@@ -29,18 +31,11 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
     // 每个节点最新状态
     let node_states: Vec<GatewayNodeState> = tx
         .query_decode(
-            &format!(
-                r#"
+            r#"
             select gns.* from gateway_node_state gns inner join (
-                select max(id) as id from gateway_node_state where node_id in ({}) group by node_id
+                select max(id) as id from gateway_node_state group by node_id
             ) as t on t.id = gns.id
             "#,
-                &node_ids
-                    .iter()
-                    .map(|id| format!("'{}'", id))
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
             vec![],
         )
         .await?;
@@ -62,6 +57,28 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
             / online_node_ids.len();
     }
 
+    // 今日请求数
+    let start_of_day = chrono::Local::now()
+        .with_hour(0)
+        .unwrap()
+        .with_minute(0)
+        .unwrap()
+        .with_second(0)
+        .unwrap()
+        .with_nanosecond(0)
+        .unwrap()
+        .timestamp_millis();
+
+    state.request_today_count  = tx
+        .query_decode::<u64>(
+            r#"
+           select sum(gns.request_count) request_today_count from gateway_node_state gns inner join (
+                select max(id) as id from gateway_node_state where ts >= ? group by node_id
+            ) as t on t.id = gns.id
+            "#,
+            vec![value!(start_of_day)],
+        ).await? as usize;
+
     state.request_count = node_states.iter().map(|s| s.request_count).sum::<usize>();
     state.request_invalid_count = node_states
         .iter()
@@ -82,6 +99,10 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
     state.response_5xx_count = node_states
         .iter()
         .map(|s| s.response_5xx_count)
+        .sum::<usize>();
+    state.http_connect_count = node_states
+        .iter()
+        .map(|s| s.http_connect_count as usize)
         .sum::<usize>();
 
     Ok(state)

@@ -30,6 +30,7 @@ uuid = { version = "1.17.0", features = ["v4"] }
 nanoid = "0.4.0"
 config = { version = "0.15", default-features = false, features = ["json", "yaml"] }
 tokio-cron-scheduler = { version = "0.13.0", features = ["english"] }
+chrono = "0.4"
 
 [features]
 default = []
