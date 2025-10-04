@@ -13,7 +13,7 @@
 
 use crate::router::client::INNER_HTTP_CLIENT;
 use globset::{Glob, GlobSet, GlobSetBuilder};
-use protocol::gateway::Route;
+use protocol::gateway::{HttpContext, Route};
 use std::process::exit;
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;
@@ -121,14 +121,34 @@ impl Router {
         });
     }
 
-    pub fn matches(&self, path: &str) -> Option<Arc<Route>> {
+    pub fn matches(&self, context: Arc<HttpContext>) -> Option<Arc<Route>> {
         if let Ok(matcher) = self.matcher.read() {
-            let indexes = matcher.matches(path);
-            // 多个匹配，优先选择第一个
-            // TODO header、query匹配
-            if let Some(&index) = indexes.first() {
+            let indexes = matcher.matches(context.request.get_path());
+            let host = &context.request.host;
+            for index in indexes.iter() {
                 if let Ok(routes) = self.routes.read() {
-                    return routes.get(index).cloned();
+                    // 先按路径匹配，减小范围
+                    if let Some(route) = routes.get(*index) {
+                        // Host匹配
+                        if route.host.as_ref() != Some(host) {
+                            continue;
+                        }
+                        // Header匹配
+                        let mut matched = true;
+                        for (key, value) in route.header.iter() {
+                            if context.request.get_header(key).as_ref() != Some(value) {
+                                log::debug!("header not matched: {:?}", route);
+                                matched = false;
+                                break;
+                            }
+                        }
+                        if !matched {
+                            continue;
+                        }
+
+                        log::debug!("matched route: {:?}", route);
+                        return Some(route.clone());
+                    }
                 }
             }
         }

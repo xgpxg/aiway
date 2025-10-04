@@ -28,6 +28,9 @@ pub mod security;
 /// 在请求fairing阶段，提取不含网关前缀的API路径
 ///
 /// 如果原始路径不含前缀，则直接返回，不执行后续逻辑。
+///
+/// **废弃**
+#[deprecated]
 #[macro_export]
 macro_rules! extract_api_path {
     ($req:expr) => {{

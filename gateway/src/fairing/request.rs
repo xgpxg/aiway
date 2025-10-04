@@ -11,6 +11,8 @@
 //!
 
 use crate::context::HCM;
+use crate::skip_if_error;
+use dashmap::DashMap;
 use protocol::SV;
 use protocol::gateway::{HttpContext, RequestContext, ResponseContext};
 use rocket::data::ToByteUnit;
@@ -19,7 +21,6 @@ use rocket::http::Header;
 use rocket::{Data, Request};
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::skip_if_error;
 
 pub struct RequestData {}
 impl RequestData {
@@ -45,18 +46,28 @@ impl Fairing for RequestData {
         // 请求体
         let body_data = data.peek(100.mebibytes().as_u64() as usize).await;
 
+        // 注意Key为小写
+        let mut headers = req
+            .headers()
+            .iter()
+            // 移除不需要透传到下游服务的Header
+            .filter(|h| h.name().ne("content-length") && h.name().ne("authorization"))
+            .map(|h| (h.name().to_string(), h.value().to_string()))
+            .collect::<DashMap<String, String>>();
+
         // 请求上下文
         let request_context = RequestContext {
             request_id: request_id.clone(),
             request_ts: chrono::Local::now().timestamp_millis(),
             method: SV::new(req.method().as_str().into()),
             path: SV::new(req.uri().path().to_string()),
-            headers: Default::default(),
+            headers,
             query: SV::new(req.uri().query().map(|v| v.to_string())),
             body: SV::new(body_data.to_vec()),
             state: Default::default(),
             route: SV::empty(),
             routing_url: SV::empty(),
+            host: req.host().unwrap().to_string(),
         };
 
         // 响应上下文

@@ -33,5 +33,7 @@ impl Fairing for Cleaner {
         res.remove_header(context::Headers::ERROR_MESSAGE);
 
         STATE.inc_http_connect_count(-1);
+
+        log::debug!("cleaner: {}", req.uri());
     }
 }

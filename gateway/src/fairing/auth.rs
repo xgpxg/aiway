@@ -33,7 +33,7 @@ impl Fairing for Authentication {
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         skip_if_error!(req);
-        let _ = crate::extract_api_path!(req);
+
         let bearer_token = req.headers().get_one(Headers::AUTHORIZATION);
 
         let api_key = match bearer_token {

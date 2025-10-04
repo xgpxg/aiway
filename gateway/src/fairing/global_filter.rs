@@ -41,7 +41,6 @@ impl Fairing for GlobalPreFilter {
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         skip_if_error!(req);
-        let _ = crate::extract_api_path!(req);
 
         let context = HCM.get_from_request(req);
         let config = GATEWAY_CONFIG.get().unwrap().config.read().await;

@@ -7,9 +7,9 @@ use std::str::FromStr;
 pub struct Route {
     /// 名称
     pub name: String,
-    // 域名
-    // 暂不实现域名匹配，由Nginx处理
-    //pub host: String,
+    /// Host
+    /// TODO 必须的还是可选呢？？
+    pub host: Option<String>,
     /// 前缀，必须以"/"开头，全局唯一。
     pub prefix: Option<String>,
     /// 路径，支持通配符，必须以"/"开头，全局唯一。

@@ -19,6 +19,11 @@ pub struct RequestContext {
     pub request_ts: i64,
     /// 请求方法
     pub method: SV<Method>,
+    /// Host
+    ///
+    /// http1.1及以前版本，取Header里的Host，
+    /// http2中，取:authority
+    pub host: String,
     /// 请求头
     pub headers: DashMap<String, String>,
     /// 请求路径。

@@ -25,10 +25,8 @@ impl Fairing for Routing {
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         skip_if_error!(req);
-        // 获取path
-        let path = crate::extract_api_path!(req);
-
-        let route = match ROUTER.get().unwrap().matches(path) {
+        let context = HCM.get_from_request(req);
+        let route = match ROUTER.get().unwrap().matches(context.clone()) {
             Some(r) => r,
             None => {
                 // 没有匹配到路由，返回404
@@ -36,7 +34,6 @@ impl Fairing for Routing {
                 return;
             }
         };
-        let context = HCM.get_from_request(req);
         context.request.set_route(route);
     }
 }

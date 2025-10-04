@@ -12,7 +12,7 @@ pub struct RouteAddOrUpdateReq {
     pub name: String,
     /// 描述
     pub description: Option<String>,
-    /// 域名匹配
+    /// host匹配
     pub host: Option<String>,
     /// 前缀
     pub prefix: Option<String>,

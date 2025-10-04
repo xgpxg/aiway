@@ -9,9 +9,9 @@
 //!
 use crate::context::HCM;
 use crate::router::PLUGINS;
+use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
-use crate::{set_error, skip_if_error};
 
 pub struct PreFilter {}
 impl PreFilter {
@@ -36,7 +36,6 @@ impl Fairing for PreFilter {
     /// - 可在此处修改请求参数
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         skip_if_error!(req);
-        let _path = crate::extract_api_path!(req);
         let context = HCM.get_from_request(req);
         // SAFE：在routing时已经设置
         let route = context.request.get_route().unwrap();
