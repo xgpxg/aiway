@@ -12,8 +12,10 @@
 //!
 
 use crate::router::client::INNER_HTTP_CLIENT;
+use dashmap::DashMap;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use protocol::gateway::{HttpContext, Route};
+use std::collections::BTreeMap;
 use std::process::exit;
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;
@@ -125,24 +127,21 @@ impl Router {
         if let Ok(matcher) = self.matcher.read() {
             let indexes = matcher.matches(context.request.get_path());
             let host = &context.request.host;
+            let query = &context.request.query;
             for index in indexes.iter() {
                 if let Ok(routes) = self.routes.read() {
                     // 先按路径匹配，减小范围
                     if let Some(route) = routes.get(*index) {
                         // Host匹配
-                        if route.host.as_ref() != Some(host) {
+                        if !Self::matches_host(&route, host) {
                             continue;
                         }
                         // Header匹配
-                        let mut matched = true;
-                        for (key, value) in route.header.iter() {
-                            if context.request.get_header(key).as_ref() != Some(value) {
-                                log::debug!("header not matched: {:?}", route);
-                                matched = false;
-                                break;
-                            }
+                        if !Self::matches_headers(route, &context) {
+                            continue;
                         }
-                        if !matched {
+                        // Query匹配
+                        if !Self::matches_query(route, query) {
                             continue;
                         }
 
@@ -153,5 +152,22 @@ impl Router {
             }
         }
         None
+    }
+    fn matches_host(route: &Route, host: &String) -> bool {
+        route.host.as_ref() == Some(host)
+    }
+
+    fn matches_headers(route: &Route, context: &HttpContext) -> bool {
+        route
+            .header
+            .iter()
+            .all(|(key, value)| context.request.get_header(key).as_ref() == Some(value))
+    }
+
+    fn matches_query(route: &Route, query: &DashMap<String, String>) -> bool {
+        route
+            .query
+            .iter()
+            .all(|(key, value)| query.get(key).map(|v| v.value() == value).unwrap_or(false))
     }
 }

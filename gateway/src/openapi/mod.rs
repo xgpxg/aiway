@@ -9,12 +9,12 @@ use crate::context::HttpContextWrapper;
 use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::{GatewayResponse, ResponseExt};
+use dashmap::DashMap;
 use reqwest::Url;
 use rocket::futures::StreamExt;
 use rocket::post;
 use std::io;
 use std::path::PathBuf;
-use dashmap::DashMap;
 use tokio_util::io::StreamReader;
 
 /// OpenAPI统一入口
@@ -52,17 +52,17 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
     };
 
     // 添加query参数，如果有的话
-    if let Some(query) = context.query.get() {
-        if let Some(query) = query {
-            url.set_query(Some(query));
+    {
+        let mut query_pairs = url.query_pairs_mut();
+        query_pairs.clear();
+        for q in context.query.iter() {
+            query_pairs.append_pair(q.key(), q.value());
         }
     }
 
     // 请求头
     let headers = context.headers.clone();
 
-    // 最终请求的url
-    let url = url.as_str();
     //log::info!("最终请求地址：{} {}", context.method, url);
 
     // 转发请求

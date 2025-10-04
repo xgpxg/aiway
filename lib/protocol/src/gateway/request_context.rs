@@ -24,12 +24,12 @@ pub struct RequestContext {
     /// http1.1及以前版本，取Header里的Host，
     /// http2中，取:authority
     pub host: String,
-    /// 请求头
-    pub headers: DashMap<String, String>,
     /// 请求路径。
     pub path: SV<String>,
+    /// 请求头
+    pub headers: DashMap<String, String>,
     /// 请求参数
-    pub query: SV<Option<String>>,
+    pub query: DashMap<String, String>,
     /// 请求体
     ///
     /// 理论上，大部分请求体都是Json，可以使用serde_json序列化
@@ -70,15 +70,15 @@ impl RequestContext {
         self.headers.remove(key);
     }
 
-    pub fn set_query(&self, query: &str) {
+    /*  pub fn set_query(&self, query: &str) {
         self.query.set(Some(query.to_string()));
-    }
+    }*/
 
-    pub fn get_query(&self) -> Option<&str> {
+    /*  pub fn get_query(&self) -> Option<&str> {
         self.query
             .get()
             .and_then(|opt| opt.as_ref().map(|s| s.as_str()))
-    }
+    }*/
 
     pub fn set_body(&self, body: Vec<u8>) {
         self.body.set(body)

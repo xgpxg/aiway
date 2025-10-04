@@ -1,6 +1,6 @@
 use dashmap::DashMap;
 use reqwest::header::{HeaderMap, HeaderName};
-use reqwest::{Client, ClientBuilder};
+use reqwest::{Client, ClientBuilder, Url};
 use std::str::FromStr;
 use std::sync::LazyLock;
 
@@ -23,12 +23,12 @@ impl HttpClient {
     /// - headers 请求头
     pub async fn get(
         &self,
-        url: impl Into<String>,
+        url: Url,
         headers: DashMap<String, String>,
     ) -> anyhow::Result<reqwest::Result<reqwest::Response>> {
         Ok(self
             .client
-            .get(url.into().as_str())
+            .get(url)
             .headers(headers.into_header_map())
             .send()
             .await)
