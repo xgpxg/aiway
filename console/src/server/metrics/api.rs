@@ -1,3 +1,4 @@
+use crate::server::auth::UserPrincipal;
 use crate::server::metrics::response::GatewayState;
 use crate::server::metrics::service;
 use protocol::common::res::Res;
@@ -9,7 +10,7 @@ pub fn routes() -> Vec<rocket::Route> {
 
 /// 网关状态
 #[get("/gateway/state")]
-async fn gateway_state() -> Res<GatewayState> {
+async fn gateway_state(_user: UserPrincipal) -> Res<GatewayState> {
     match service::gateway_state().await {
         Ok(state) => Res::success(state),
         Err(e) => Res::error(&e.to_string()),

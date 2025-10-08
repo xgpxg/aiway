@@ -45,6 +45,15 @@ impl<T> SingleValue<T> {
         unsafe { (*self.value.get()).as_ref() }
     }
 
+    #[inline]
+    #[allow(unused)]
+    pub fn take(&self) -> Option<T> {
+        unsafe {
+            let option_ref = &mut *self.value.get();
+            option_ref.take()
+        }
+    }
+
     // #[inline]
     // pub fn get_flat<U>(&self) -> Option<&U>
     // where

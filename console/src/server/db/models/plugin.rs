@@ -1,8 +1,8 @@
-use derive_builder::Builder;
-use rbatis::{crud, htmlsql_select_page};
-use rbatis::rbdc::DateTime;
-use rocket::serde::{Deserialize, Serialize};
 use crate::server::plugin::PluginListReq;
+use derive_builder::Builder;
+use rbatis::rbdc::DateTime;
+use rbatis::{crud, htmlsql_select_page};
+use rocket::serde::{Deserialize, Serialize};
 
 /// 路由配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -24,8 +24,10 @@ pub struct Plugin {
     /// 修改人ID
     pub update_user_id: Option<i64>,
     /// 创建时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub create_time: Option<DateTime>,
     /// 更新时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub update_time: Option<DateTime>,
     /// 备注
     pub remark: Option<String>,
@@ -35,4 +37,3 @@ pub struct Plugin {
 
 crud!(Plugin {});
 htmlsql_select_page!(list_page(param: &PluginListReq) -> Plugin => "src/server/db/mapper/plugin.html");
-

@@ -18,7 +18,7 @@ pub struct RequestContext {
     /// 收到请求的时间戳，毫秒
     pub request_ts: i64,
     /// 请求方法
-    pub method: SV<Method>,
+    pub method: SV<String>,
     /// Host
     ///
     /// http1.1及以前版本，取Header里的Host，
@@ -49,6 +49,10 @@ pub struct RequestContext {
 impl RequestContext {
     pub fn get_request_ts(&self) -> i64 {
         self.request_ts
+    }
+
+    pub fn get_method(&self) -> Option<&str> {
+        self.method.get().map(|s| s.as_str())
     }
     pub fn set_path(&self, path: &str) {
         self.path.set(path.to_string());
@@ -85,7 +89,7 @@ impl RequestContext {
     }
 
     pub fn get_body(&self) -> Option<&Vec<u8>> {
-        self.body.get().clone()
+        self.body.get()
     }
 
     pub fn set_route(&self, route: Arc<Route>) {
@@ -104,7 +108,7 @@ impl RequestContext {
         self.routing_url.get()
     }
 }
-
+/*
 #[derive(Debug, Default)]
 pub enum Method {
     #[default]
@@ -144,3 +148,4 @@ impl From<&str> for Method {
         }
     }
 }
+*/

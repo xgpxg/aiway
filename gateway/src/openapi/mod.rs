@@ -1,3 +1,11 @@
+//! # OpenAPI统一入口
+//!
+//! 要求：
+//! - 所有请求都必须有响应，无论成功或失败
+//! - 接口内部不处理任何业务逻辑，需转发到具体服务上处理
+//! - 同时支持流式和非流式响应
+//! - 流式响应支持恢复（插件实现）
+//!
 mod client;
 #[deprecated]
 pub mod eep;
@@ -12,21 +20,46 @@ use crate::openapi::response::{GatewayResponse, ResponseExt};
 use dashmap::DashMap;
 use reqwest::Url;
 use rocket::futures::StreamExt;
-use rocket::post;
+use rocket::{delete, get, head, options, patch, post, put};
 use std::io;
 use std::path::PathBuf;
 use tokio_util::io::StreamReader;
 
-/// OpenAPI统一入口
-///
-/// 要求：
-/// - 所有请求都必须有响应，无论成功或失败
-/// - 接口内部不处理任何业务逻辑，需转发到具体服务上处理
-/// - 同时支持流式和非流式响应
-/// - 流式响应支持恢复（插件实现）
-///
+#[get("/<path..>")]
+pub async fn call_get(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+    handle(wrapper, path).await
+}
+
 #[post("/<path..>")]
-pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+pub async fn call_post(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+    handle(wrapper, path).await
+}
+
+#[put("/<path..>")]
+pub async fn call_put(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+    handle(wrapper, path).await
+}
+
+#[patch("/<path..>")]
+pub async fn call_patch(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+    handle(wrapper, path).await
+}
+
+#[delete("/<path..>")]
+pub async fn call_delete(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+    handle(wrapper, path).await
+}
+#[head("/<path..>")]
+pub async fn call_head(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+    handle(wrapper, path).await
+}
+
+#[options("/<path..>")]
+pub async fn call_options(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+    handle(wrapper, path).await
+}
+
+async fn handle(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     let context = &wrapper.0.request;
     // 获取匹配的路由
     // SAFE: 在routing fairing处理时已经验证，能走到这里来，一定会有值
@@ -65,8 +98,16 @@ pub async fn call(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse
 
     //log::info!("最终请求地址：{} {}", context.method, url);
 
+    // 请求方法
+    let method = context.get_method().unwrap_or_default();
+
+    // 这里clone可能有性能问题
+    let body = context.get_body().cloned();
+
     // 转发请求
-    let response = HTTP_CLIENT.get(url, headers).await;
+    let response = HTTP_CLIENT
+        .request(method, url, headers, body.unwrap_or_default())
+        .await;
     // 获取响应
     match response {
         Ok(response) => match response {

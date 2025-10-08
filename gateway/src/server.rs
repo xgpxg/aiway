@@ -84,7 +84,18 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.attach(fairing::cleanup::Cleaner::new());
 
     //builder = builder.mount("/openapi/v1", routes![openapi::call]);
-    builder = builder.mount("/", routes![openapi::call]);
+    builder = builder.mount(
+        "/",
+        routes![
+            openapi::call_get,
+            openapi::call_post,
+            openapi::call_put,
+            openapi::call_delete,
+            openapi::call_patch,
+            openapi::call_head,
+            openapi::call_options,
+        ],
+    );
     builder = builder.mount("/eep", eep::routes());
 
     builder = builder.attach(AdHoc::on_liftoff("Print Banner", |_| {

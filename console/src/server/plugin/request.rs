@@ -37,7 +37,7 @@ pub struct PluginUpdateReq<'a> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginListReq {
     /// 模糊搜索：插件名称、描述
-    pub filter_text: String,
+    pub filter_text: Option<String>,
     page: PageReq,
 }
 impl_pagination!(PluginListReq);

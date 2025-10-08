@@ -33,6 +33,22 @@ impl HttpClient {
             .send()
             .await)
     }
+
+    pub async fn request(
+        &self,
+        method: &str,
+        url: Url,
+        headers: DashMap<String, String>,
+        body: impl Into<reqwest::Body>,
+    ) -> anyhow::Result<reqwest::Result<reqwest::Response>> {
+        Ok(self
+            .client
+            .request(reqwest::Method::from_str(method)?, url)
+            .body(body)
+            .headers(headers.into_header_map())
+            .send()
+            .await)
+    }
 }
 
 pub trait IntoHeaderMap {
@@ -53,4 +69,3 @@ impl IntoHeaderMap for DashMap<String, String> {
         headers
     }
 }
-
