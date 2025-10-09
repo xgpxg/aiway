@@ -154,7 +154,7 @@ impl Router {
         None
     }
     fn matches_host(route: &Route, host: &String) -> bool {
-        route.host.as_ref() == Some(host)
+        route.host.is_none() || route.host.as_ref() == Some(host)
     }
 
     fn matches_headers(route: &Route, context: &HttpContext) -> bool {
