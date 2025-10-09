@@ -23,6 +23,9 @@
             <if test="param.status!=null">
                 ` and r.status = #{param.status} `
             </if>
+            <if test="param.service!=null">
+                ` and r.service like concat('%',#{param.service},'%') `
+            </if>
         </where>
         <if test="do_count == false">
             ` order by r.id desc `

@@ -18,7 +18,7 @@ pub struct RouteAddOrUpdateReq {
     pub prefix: Option<String>,
     /// 是否移除前缀
     #[serde(default = "Default::default")]
-    pub strip_prefix: bool,
+    pub strip_prefix: i8,
     /// 路径匹配
     pub path: String,
     /// 目标服务
@@ -46,7 +46,7 @@ impl From<RouteAddOrUpdateReq> for Route {
             status: Some(Default::default()),
             host: req.host,
             prefix: req.prefix,
-            strip_prefix: (req.strip_prefix as i8).into(),
+            strip_prefix: req.strip_prefix.into(),
             path: req.path.into(),
             service: req.service.into(),
             header: req.header.into(),
@@ -65,8 +65,10 @@ impl From<RouteAddOrUpdateReq> for Route {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteListReq {
+    pub page: PageReq,
     /// 模糊搜索：路由名称、描述、域名、前缀、路径
     pub filter_text: Option<String>,
-    pub page: PageReq,
+    /// 关联服务
+    pub service: Option<String>,
 }
 impl_pagination!(RouteListReq);
