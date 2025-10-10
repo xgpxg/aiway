@@ -59,13 +59,13 @@ pub use async_trait::async_trait;
 use libloading::Symbol;
 pub use manager::PluginManager;
 use protocol::gateway::HttpContext;
+pub use serde_json;
 use serde_json::Value;
 use std::env::temp_dir;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-
 #[derive(Debug)]
 pub enum PluginError {
     /// 执行插件业务逻辑时的错误

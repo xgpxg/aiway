@@ -62,11 +62,15 @@ impl Fairing for RequestData {
             method: SV::new(req.method().as_str().into()),
             path: SV::new(req.uri().path().to_string()),
             headers,
-            query: req.query_fields().map(|q| (q.name.to_string(), q.value.to_string())).collect::<DashMap<String, String>>(),
+            query: req
+                .query_fields()
+                .map(|q| (q.name.to_string(), q.value.to_string()))
+                .collect::<DashMap<String, String>>(),
             body: SV::new(body_data.to_vec()),
             state: Default::default(),
             route: SV::empty(),
             routing_url: SV::empty(),
+            routing_path: SV::new(req.uri().path().to_string()),
             host: req.host().unwrap().to_string(),
         };
 

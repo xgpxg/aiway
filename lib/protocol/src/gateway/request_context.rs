@@ -37,13 +37,17 @@ pub struct RequestContext {
     pub body: SV<Vec<u8>>,
     /// 扩展数据
     pub state: DashMap<String, Box<dyn Any + Send + Sync>>,
-    /// 路由信息
+    /// 路由配置信息
     ///
     /// 路由由网关根据当前请求的path匹配得到，通常情况下，路由不应该手动修改。
     /// 由于Route是网关级别的配置，对全局有效，所以使用Arc来共享。
     pub route: SV<Arc<Route>>,
-    /// 路由目标地址，可以是域名或IP
+    /// 路由目标地址，可以是域名或IP，由负载均衡Fairing设置
     pub routing_url: SV<String>,
+    /// 实际路由路径
+    ///
+    /// 默认为网关接收到的原始路基，可以通过插件改写。
+    pub routing_path: SV<String>,
 }
 
 impl RequestContext {
@@ -106,6 +110,13 @@ impl RequestContext {
 
     pub fn get_routing_url(&self) -> Option<&String> {
         self.routing_url.get()
+    }
+
+    pub fn set_routing_path(&self, path: String) {
+        self.routing_path.set(path);
+    }
+    pub fn get_routing_path(&self) -> Option<&String> {
+        self.routing_path.get()
     }
 }
 /*

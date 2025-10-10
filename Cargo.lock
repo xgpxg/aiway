@@ -945,7 +945,6 @@ version = "0.1.0"
 dependencies = [
  "plugin",
  "protocol",
- "serde_json",
 ]
 
 [[package]]
@@ -3232,6 +3231,16 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
+]
+
+[[package]]
+name = "rewrite-path"
+version = "0.1.0"
+dependencies = [
+ "plugin",
+ "protocol",
+ "regex",
+ "serde",
 ]
 
 [[package]]

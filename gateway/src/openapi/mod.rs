@@ -70,8 +70,8 @@ async fn handle(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     let path = path.to_string_lossy();
     //log::info!("原始请求路径：{?}", path);
 
-    // 对Route前缀处理过后的路径
-    let path = route.build_path(&path);
+    //实际路由路径
+    let path = &context.routing_path;
 
     // 路由的实际地址，该地址已经有负载均衡处理过，可能是IP或域名
     let routing_url = context.get_routing_url().unwrap();
