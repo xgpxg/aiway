@@ -17,8 +17,8 @@ pub struct Plugin {
     pub url: Option<String>,
     /// 版本，格式为0.1.0，只增不减
     pub version: Option<String>,
-    /// 默认配置，YAML格式
-    pub default_config: Option<serde_yaml::Value>,
+    /// 默认配置，JSON格式
+    pub default_config: Option<serde_json::Value>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

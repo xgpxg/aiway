@@ -14,7 +14,7 @@ pub struct PluginAddReq<'a> {
     pub version: String,
     /// 插件文件，目前仅支持`.so`
     pub file: TempFile<'a>,
-    /// 插件的默认配置,YAML格式。
+    /// 插件的默认配置,JSON格式。
     /// - 该配置在全局插件配置及路由插件配置时展示，修改后的配置关联到[`gateway::ConfiguredPlugin`]
     /// - 该配置仅可在插件管理处修改
     pub default_config: Option<String>,
@@ -28,7 +28,7 @@ pub struct PluginUpdateReq<'a> {
     pub version: String,
     /// 插件文件，目前仅支持`.so`
     pub file: TempFile<'a>,
-    /// 插件的默认配置,YAML格式。
+    /// 插件的默认配置,JSON格式。
     /// - 该配置在全局插件配置及路由插件配置时展示，修改后的配置关联到[`gateway::ConfiguredPlugin`]
     /// - 该配置仅可在插件管理处修改
     pub default_config: Option<String>,

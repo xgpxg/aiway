@@ -23,8 +23,8 @@ pub async fn add(mut req: PluginAddReq<'_>, user: UserPrincipal) -> anyhow::Resu
         .build()?;
 
     let default_config = match req.default_config {
-        Some(config) => serde_yaml::Value::from(config),
-        None => serde_yaml::Value::default(),
+        Some(config) => serde_json::Value::from(config),
+        None => serde_json::Value::default(),
     };
 
     plugin.default_config = Some(default_config);
@@ -109,8 +109,8 @@ pub async fn update(mut req: PluginUpdateReq<'_>, user: UserPrincipal) -> anyhow
         .build()?;
 
     let default_config = match req.default_config {
-        Some(config) => serde_yaml::Value::from(config),
-        None => serde_yaml::Value::default(),
+        Some(config) => serde_json::Value::from(config),
+        None => serde_json::Value::default(),
     };
     update.default_config = Some(default_config);
 
