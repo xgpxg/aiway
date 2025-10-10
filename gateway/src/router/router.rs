@@ -62,13 +62,13 @@ impl Router {
     fn build_matcher(routes: &[Arc<Route>]) -> GlobSet {
         let mut builder = GlobSetBuilder::new();
         for route in routes {
-            // 匹配规则为：前缀+路径
+            /*// 匹配规则为：前缀+路径
             let pattern = format!(
                 "{}{}",
                 route.prefix.as_deref().unwrap_or_default(),
                 route.path
-            );
-            builder.add(Glob::new(&pattern).unwrap());
+            );*/
+            builder.add(Glob::new(&route.path).unwrap());
         }
         builder.build().unwrap()
     }

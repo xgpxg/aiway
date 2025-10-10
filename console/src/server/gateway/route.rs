@@ -1,16 +1,18 @@
 use crate::server::db::Pool;
-use crate::server::db::models::route::Route;
+use crate::server::db::models::route::{Route, RouteStatus};
+use rbs::value;
 
 pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
-    let routes = Route::select_all(Pool::get()?).await?;
+    let routes = Route::select_by_map(Pool::get()?, value! {"status": RouteStatus::Ok}).await?;
     let mut list = Vec::with_capacity(routes.len());
     for route in routes {
         list.push(protocol::gateway::route::Route {
             name: route.name.unwrap(),
             host: route.host,
-            prefix: route.prefix,
+            //prefix: route.prefix,
             path: route.path.unwrap(),
-            strip_prefix: route.strip_prefix.unwrap() == 1,
+            // 由路径重写插件实现
+            //strip_prefix: route.strip_prefix.unwrap() == 1,
             service: route.service.unwrap(),
             header: route.header.unwrap_or_default(),
             query: route.query.unwrap_or_default(),

@@ -1,4 +1,4 @@
-use crate::server::db::models::route::Route;
+use crate::server::db::models::route::{Route, RouteStatus};
 use protocol::common::req::PageReq;
 use protocol::gateway::plugin::ConfiguredPlugin;
 use protocol::impl_pagination;
@@ -14,11 +14,11 @@ pub struct RouteAddOrUpdateReq {
     pub description: Option<String>,
     /// host匹配
     pub host: Option<String>,
-    /// 前缀
-    pub prefix: Option<String>,
-    /// 是否移除前缀
-    #[serde(default = "Default::default")]
-    pub strip_prefix: i8,
+    // /// 前缀
+    // pub prefix: Option<String>,
+    // /// 是否移除前缀
+    // #[serde(default = "Default::default")]
+    // pub strip_prefix: i8,
     /// 路径匹配
     pub path: String,
     /// 目标服务
@@ -45,8 +45,8 @@ impl From<RouteAddOrUpdateReq> for Route {
             description: req.description,
             status: Some(Default::default()),
             host: req.host,
-            prefix: req.prefix,
-            strip_prefix: req.strip_prefix.into(),
+            //prefix: req.prefix,
+            //strip_prefix: req.strip_prefix.into(),
             path: req.path.into(),
             service: req.service.into(),
             header: req.header.into(),
@@ -72,3 +72,9 @@ pub struct RouteListReq {
     pub service: Option<String>,
 }
 impl_pagination!(RouteListReq);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateStatusReq {
+    pub id: i64,
+    pub status: RouteStatus,
+}

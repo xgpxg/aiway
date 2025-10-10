@@ -1,8 +1,8 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::db::models::route;
-use crate::server::db::models::route::{Route, RouteStatus};
+use crate::server::db::models::route::{Route, RouteBuilder, RouteStatus};
 use crate::server::db::{Pool, tools};
-use crate::server::route::request::{RouteAddOrUpdateReq, RouteListReq};
+use crate::server::route::request::{RouteAddOrUpdateReq, RouteListReq, UpdateStatusReq};
 use crate::server::route::response::RouteListRes;
 use anyhow::{Context, bail};
 use common::id;
@@ -31,7 +31,7 @@ async fn check_exists(route: &Route, exclude_id: Option<i64>) -> anyhow::Result<
         Pool::get()?,
         value! {
             "host": &route.host,
-            "prefix": &route.prefix,
+            //"prefix": &route.prefix,
             "path": &route.path,
         },
     )
@@ -60,11 +60,13 @@ pub async fn update(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Re
     if old.is_empty() {
         bail!("Route not found")
     }
+    let old = old.first().unwrap();
     let id = req.id.context("ID cannot be empty")?;
     let new = Route::from(req);
     let update = Route {
         update_user_id: Some(user.id),
         update_time: Some(tools::now()),
+        status: old.status.clone(),
         ..new
     };
 
@@ -78,5 +80,24 @@ pub async fn update(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Re
 
 pub async fn delete(req: IdsReq, _user: UserPrincipal) -> anyhow::Result<()> {
     Route::delete_by_map(Pool::get()?, value! { "id": req.ids }).await?;
+    Ok(())
+}
+
+pub async fn update_status(req: UpdateStatusReq, user: UserPrincipal) -> anyhow::Result<()> {
+    let old = Route::select_by_map(Pool::get()?, value! { "id": req.id}).await?;
+    if old.is_empty() {
+        bail!("Route not found")
+    }
+    Route::update_by_map(
+        Pool::get()?,
+        &RouteBuilder::default()
+            .id(Some(req.id))
+            .status(Some(req.status))
+            .update_user_id(Some(user.id))
+            .update_time(Some(tools::now()))
+            .build()?,
+        value! { "id": req.id},
+    )
+    .await?;
     Ok(())
 }

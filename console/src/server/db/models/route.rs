@@ -20,12 +20,12 @@ pub struct Route {
     pub status: Option<RouteStatus>,
     /// 需要匹配的域名
     pub host: Option<String>,
-    /// 路由前缀
-    pub prefix: Option<String>,
+    // /// 路由前缀
+    // pub prefix: Option<String>,
     /// 路由路径
     pub path: Option<String>,
-    /// 是否去除路径前缀
-    pub strip_prefix: Option<i8>,
+    // /// 是否去除路径前缀
+    // pub strip_prefix: Option<i8>,
     /// 目标服务名称
     pub service: Option<String>,
     // 请求协议：http | https
