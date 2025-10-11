@@ -17,6 +17,10 @@ pub struct Service {
     /// 状态，0停用 1启用
     pub status: Option<ServiceStatus>,
     /// 服务节点，JSON数组，支持IP和域名，如["http://127.0.0.1:8080"]
+    /// 这里仅保存节点地址即可，原因是：
+    /// 1. 网关仅需要知道节点地址即可发起调用
+    /// 2. console可能与节点之间的网络不通，因此不能确保能够在console检测节点状态，进而没必要保存节点状态
+    /// 3. 考虑在网关处或者其他方式实现节点故障处理
     pub nodes: Option<Vec<String>>,
     /// 负载均衡策略，可选值：random | round_robin
     pub lb: Option<LbStrategy>,
@@ -38,9 +42,11 @@ pub struct Service {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum ServiceStatus {
+    /// 停用
     #[default]
-    Disable = 0,
-    Ok = 1,
+    Disable,
+    /// 启用
+    Ok,
 }
 
 crud!(Service {});

@@ -4,7 +4,7 @@ use logging::log;
 use rbs::value;
 use std::time::Duration;
 
-/// 更新心跳超时的节点状态为Offline
+/// 更新心跳超时的网关节点状态为Offline
 ///
 /// 超时时间：2 × 节点上报间隔时间
 pub async fn update_timeout_heartbeat_node() {

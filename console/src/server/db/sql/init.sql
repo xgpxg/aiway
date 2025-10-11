@@ -57,18 +57,18 @@ create table if not exists route
 create table if not exists service
 (
     id             bigint primary key,
-    name           varchar(100) not null,                    -- 服务名称，全局唯一
-    description    varchar(500) not null,                    -- 服务描述。注意这个描述要求非空，用于在控制台展示
-    service_group  varchar(100) not null default '默认分组', -- 服务分组
-    status         varchar(20)  not null default 'Disable',  -- 状态：Disable | Ok
-    nodes          varchar(100) not null,                    -- 节点地址，JSON数组，支持IP和域名，如["http://127.0.0.1:8080"]
-    lb             varchar(20)  not null,                    -- 负载均衡策略：random | round_robin
+    name           varchar(100)  not null,                   -- 服务名称，全局唯一
+    description    varchar(500)  not null,                   -- 服务描述。注意这个描述要求非空，用于在控制台展示
+    -- service_group  varchar(100) not null default '默认分组', -- 服务分组
+    status         varchar(20)   not null default 'Disable', -- 状态：Disable | Ok
+    nodes          varchar(5000) not null,                   -- 服务节点，JSON数组
+    lb             varchar(20)   not null,                   -- 负载均衡策略：random | round_robin
     create_user_id bigint,                                   -- 创建人ID
     update_user_id bigint,                                   -- 修改人ID
     create_time    datetime,                                 -- 创建时间
     update_time    datetime,                                 -- 更新时间
     remark         varchar(500),                             -- 备注
-    is_delete      tinyint(1)   not null default 0           -- 是否删除
+    is_delete      tinyint(1)    not null default 0          -- 是否删除
 );
 
 create table if not exists plugin

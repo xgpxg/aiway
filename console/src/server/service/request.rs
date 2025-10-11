@@ -1,8 +1,8 @@
-use crate::server::db::models::service::Service;
-use protocol::gateway::service::LbStrategy;
-use rocket::serde::{Deserialize, Serialize};
+use crate::server::db::models::service::{Service, ServiceStatus};
 use protocol::common::req::PageReq;
+use protocol::gateway::service::LbStrategy;
 use protocol::impl_pagination;
+use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceAddOrUpdateReq {
@@ -37,11 +37,18 @@ impl From<ServiceAddOrUpdateReq> for Service {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceListReq {
+    pub page: PageReq,
     /// 模糊搜索：服务名/描述
     pub filter_text: Option<String>,
-    pub page: PageReq,
+    /// 状态
+    pub status: Option<ServiceStatus>,
 }
 impl_pagination!(ServiceListReq);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateStatusReq {
+    pub id: i64,
+    pub status: ServiceStatus,
+}

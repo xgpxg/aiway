@@ -1,5 +1,5 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::service::request::{ServiceAddOrUpdateReq, ServiceListReq};
+use crate::server::service::request::{ServiceAddOrUpdateReq, ServiceListReq, UpdateStatusReq};
 use crate::server::service::response::ServiceListRes;
 use crate::server::service::service;
 use protocol::common::req::IdsReq;
@@ -8,7 +8,7 @@ use rocket::serde::json::Json;
 use rocket::{post, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![add, list, update, delete]
+    routes![add, list, update, delete, update_status]
 }
 
 #[post("/add", data = "<req>")]
@@ -38,6 +38,14 @@ async fn update(req: Json<ServiceAddOrUpdateReq>, user: UserPrincipal) -> Res<()
 #[post("/delete", data = "<req>")]
 async fn delete(req: Json<IdsReq>, _user: UserPrincipal) -> Res<()> {
     match service::delete(req.0).await {
+        Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+#[post("/update_status", data = "<req>")]
+pub async fn update_status(req: Json<UpdateStatusReq>, user: UserPrincipal) -> Res<()> {
+    match service::update_status(req.0, user).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),
     }

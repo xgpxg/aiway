@@ -1,8 +1,8 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::db::models::service;
-use crate::server::db::models::service::{Service, ServiceStatus};
+use crate::server::db::models::service::{Service, ServiceBuilder, ServiceStatus};
 use crate::server::db::{Pool, tools};
-use crate::server::service::request::{ServiceAddOrUpdateReq, ServiceListReq};
+use crate::server::service::request::{ServiceAddOrUpdateReq, ServiceListReq, UpdateStatusReq};
 use crate::server::service::response::ServiceListRes;
 use anyhow::{Context, bail};
 use common::id;
@@ -71,5 +71,24 @@ pub async fn update(req: ServiceAddOrUpdateReq, user: UserPrincipal) -> anyhow::
 
 pub async fn delete(req: IdsReq) -> anyhow::Result<()> {
     Service::delete_by_map(Pool::get()?, value! { "id": req.ids}).await?;
+    Ok(())
+}
+
+pub(crate) async fn update_status(req: UpdateStatusReq, user: UserPrincipal) -> anyhow::Result<()> {
+    let old = Service::select_by_map(Pool::get()?, value! { "id": req.id}).await?;
+    if old.is_empty() {
+        bail!("Service not found")
+    }
+    Service::update_by_map(
+        Pool::get()?,
+        &ServiceBuilder::default()
+            .id(Some(req.id))
+            .status(Some(req.status))
+            .update_user_id(Some(user.id))
+            .update_time(Some(tools::now()))
+            .build()?,
+        value! { "id": req.id},
+    )
+    .await?;
     Ok(())
 }
