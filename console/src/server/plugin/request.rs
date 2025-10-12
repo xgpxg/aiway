@@ -26,6 +26,8 @@ pub struct PluginUpdateReq<'a> {
     /// 插件描述
     pub description: Option<String>,
     /// 插件版本
+    ///
+    /// 更新时，插件版本必传，必须高于已有版本，即版本号只增不减
     pub version: String,
     /// 插件文件，目前仅支持`.so`
     pub file: Option<TempFile<'a>>,

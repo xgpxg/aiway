@@ -2,22 +2,26 @@ use crate::server::auth::UserPrincipal;
 use crate::server::db::models::service;
 use crate::server::db::models::service::{Service, ServiceBuilder, ServiceStatus};
 use crate::server::db::{Pool, tools};
-use crate::server::service::request::{ServiceAddOrUpdateReq, ServiceListReq, UpdateStatusReq};
+use crate::server::service::request::{
+    ServiceAddReq, ServiceListReq, ServiceUpdateReq, UpdateStatusReq,
+};
 use crate::server::service::response::ServiceListRes;
-use anyhow::{Context, bail};
+use anyhow::bail;
 use common::id;
 use protocol::common::req::{IdsReq, Pagination};
 use protocol::common::res::{IntoPageRes, PageRes};
 use rbs::value;
 
-pub async fn add(req: ServiceAddOrUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
-    let service = Service {
-        id: Some(id::next()),
-        status: Some(ServiceStatus::Disable),
-        create_user_id: Some(user.id),
-        create_time: Some(tools::now()),
-        ..Service::from(req)
-    };
+pub async fn add(req: ServiceAddReq, user: UserPrincipal) -> anyhow::Result<()> {
+    let service = ServiceBuilder::default()
+        .id(id::next().into())
+        .name(req.name.into())
+        .description(req.description.into())
+        .status(ServiceStatus::Disable.into())
+        .create_user_id(Some(user.id))
+        .create_time(Some(tools::now()))
+        .build()?;
+
     if check_exists(&service, None).await? {
         bail!("Service with name {} already exists", service.name.unwrap())
     }
@@ -48,26 +52,20 @@ pub async fn list(req: ServiceListReq) -> anyhow::Result<PageRes<ServiceListRes>
     Ok(list)
 }
 
-pub async fn update(req: ServiceAddOrUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
+pub async fn update(req: ServiceUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
     let old = Service::select_by_map(Pool::get()?, value! { "id": req.id}).await?;
     if old.is_empty() {
         bail!("Service not found");
     }
-    let old = old.first().unwrap();
-    let id = req.id.context("ID cannot be empty")?;
-    let new = Service::from(req);
-    let update = Service {
-        update_user_id: Some(user.id),
-        update_time: Some(tools::now()),
-        status: old.status.clone(),
-        ..new
-    };
 
-    if check_exists(&update, Some(id)).await? {
-        bail!("Service already exists")
-    }
+    let update = ServiceBuilder::default()
+        .id(req.id.into())
+        .description(req.description)
+        .update_user_id(Some(user.id))
+        .update_time(Some(tools::now()))
+        .build()?;
 
-    Service::update_by_map(Pool::get()?, &update, value! { "id":id}).await?;
+    Service::update_by_map(Pool::get()?, &update, value! { "id":req.id}).await?;
     Ok(())
 }
 
