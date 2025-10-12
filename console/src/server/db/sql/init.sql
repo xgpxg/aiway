@@ -59,9 +59,8 @@ create table if not exists service
     id             bigint primary key,
     name           varchar(100)  not null,                   -- 服务名称，全局唯一
     description    varchar(500)  not null,                   -- 服务描述。注意这个描述要求非空，用于在控制台展示
-    -- service_group  varchar(100) not null default '默认分组', -- 服务分组
     status         varchar(20)   not null default 'Disable', -- 状态：Disable | Ok
-    nodes          varchar(5000) not null,                   -- 服务节点，JSON数组
+    nodes          varchar(5000) not null,                   -- 服务节点，JSON数组，支持IP和域名，如["http://127.0.0.1:8080"]
     lb             varchar(20)   not null,                   -- 负载均衡策略：random | round_robin
     create_user_id bigint,                                   -- 创建人ID
     update_user_id bigint,                                   -- 修改人ID
@@ -78,7 +77,7 @@ create table if not exists plugin
     description    varchar(500),                   -- 插件描述
     url            varchar(500) not null,          -- 下载地址，该地址用于gateway下载插件，需保证从gateway处可以访问。
     version        varchar(50)  not null,          -- 插件版本，格式为0.1.0
-    default_config text         not null,          -- 插件默认配置，YAML字符串
+    default_config text,                           -- 插件默认配置，JSON字符串
     create_user_id bigint,                         -- 创建人ID
     update_user_id bigint,                         -- 修改人ID
     create_time    datetime,                       -- 创建时间

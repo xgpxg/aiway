@@ -17,7 +17,6 @@ pub fn routes() -> Vec<rocket::Route> {
 pub async fn download_file(file_name: &str) -> Result<NamedFile, rocket::http::Status> {
     // 截取日期
     let date = &file_name[0..8];
-    // 目录
     // 文件存储路径
     let file_path = data_dir!("file", date, file_name);
     let file = NamedFile::open(file_path)

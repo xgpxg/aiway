@@ -102,7 +102,7 @@ pub async fn update(mut req: PluginUpdateReq<'_>, user: UserPrincipal) -> anyhow
     }
 
     let mut update = PluginBuilder::default()
-        .description(Some(req.description))
+        .description(req.description)
         .version(Some(req.version))
         .update_user_id(Some(user.id))
         .update_time(Some(tools::now()))
@@ -114,7 +114,9 @@ pub async fn update(mut req: PluginUpdateReq<'_>, user: UserPrincipal) -> anyhow
     };
     update.default_config = Some(default_config);
 
-    update.url = Some(save_file_and_gen_plugin_url(&mut req.file).await?);
+    if let Some(mut file) = req.file {
+        update.url = Some(save_file_and_gen_plugin_url(&mut file).await?);
+    }
 
     Plugin::update_by_map(tx, &update, value! { "id": req.id}).await?;
 

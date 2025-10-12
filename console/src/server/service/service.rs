@@ -53,11 +53,13 @@ pub async fn update(req: ServiceAddOrUpdateReq, user: UserPrincipal) -> anyhow::
     if old.is_empty() {
         bail!("Service not found");
     }
+    let old = old.first().unwrap();
     let id = req.id.context("ID cannot be empty")?;
     let new = Service::from(req);
     let update = Service {
         update_user_id: Some(user.id),
         update_time: Some(tools::now()),
+        status: old.status.clone(),
         ..new
     };
 
