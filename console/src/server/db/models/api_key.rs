@@ -1,8 +1,8 @@
+use crate::server::key::ApiKeyListReq;
 use derive_builder::Builder;
 use rbatis::rbdc::DateTime;
 use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
-use crate::server::key::ApiKeyListReq;
 
 /// 路由配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -18,16 +18,22 @@ pub struct ApiKey {
     /// 状态，0禁用 1启用
     pub status: Option<ApiKeyStatus>,
     /// 生效时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub eff_time: Option<DateTime>,
     /// 到期时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub exp_time: Option<DateTime>,
+    /// 来源
+    pub source: Option<ApiKeySource>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID
     pub update_user_id: Option<i64>,
     /// 创建时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub create_time: Option<DateTime>,
     /// 更新时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub update_time: Option<DateTime>,
     /// 备注
     pub remark: Option<String>,
@@ -37,9 +43,18 @@ pub struct ApiKey {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum ApiKeyStatus {
+    /// 禁用
     #[default]
-    Disable = 0,
-    Ok = 1,
+    Disable,
+    /// 启用
+    Ok,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub enum ApiKeySource {
+    /// 控制台
+    #[default]
+    Console,
 }
 
 crud!(ApiKey {});

@@ -14,6 +14,7 @@
             <if test="param.filter_text!=null && param.filter_text!=''">
                 ` and (
                         ak.name like concat('%',#{param.filter_text},'%')
+                        or ak.principal like concat('%',#{param.filter_text},'%')
                     ) `
             </if>
             <if test="param.status!=null">

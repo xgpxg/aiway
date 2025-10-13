@@ -18,6 +18,8 @@ pub async fn add(req: ServiceAddReq, user: UserPrincipal) -> anyhow::Result<()> 
         .name(req.name.into())
         .description(req.description.into())
         .status(ServiceStatus::Disable.into())
+        .nodes(req.nodes.into())
+        .lb(req.lb.into())
         .create_user_id(Some(user.id))
         .create_time(Some(tools::now()))
         .build()?;
@@ -61,6 +63,8 @@ pub async fn update(req: ServiceUpdateReq, user: UserPrincipal) -> anyhow::Resul
     let update = ServiceBuilder::default()
         .id(req.id.into())
         .description(req.description)
+        .nodes(req.nodes)
+        .lb(req.lb)
         .update_user_id(Some(user.id))
         .update_time(Some(tools::now()))
         .build()?;

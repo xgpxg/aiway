@@ -11,7 +11,7 @@ pub struct ApiKeyAddOrUpdateReq {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiKeyListReq {
-    pub filter_text: Option<String>,
     page: PageReq,
+    pub filter_text: Option<String>,
 }
 impl_pagination!(ApiKeyListReq);

@@ -1,5 +1,5 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::db::models::api_key::ApiKeyStatus;
+use crate::server::db::models::api_key::{ApiKeySource, ApiKeyStatus};
 use crate::server::db::{Pool, models, tools};
 use crate::server::key::ApiKeyListReq;
 use crate::server::key::request::ApiKeyAddOrUpdateReq;
@@ -29,6 +29,7 @@ pub async fn add(req: ApiKeyAddOrUpdateReq, user: UserPrincipal) -> anyhow::Resu
         .status(Some(ApiKeyStatus::Ok))
         .eff_time(Some(tools::now()))
         .exp_time(req.exp_time)
+        .source(Some(ApiKeySource::Console))
         .create_user_id(Some(user.id))
         .create_time(Some(tools::now()))
         .build()?;
