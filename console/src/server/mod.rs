@@ -85,6 +85,7 @@ pub mod db;
 mod file;
 mod gateway;
 mod key;
+mod log;
 mod metrics;
 mod plugin;
 mod route;
@@ -114,6 +115,7 @@ pub async fn start_http_server() -> anyhow::Result<()> {
     builder = builder.mount("/api/key", key::api::routes());
     builder = builder.mount("/api/plugin", plugin::api::routes());
     builder = builder.mount("/api/metrics", metrics::api::routes());
+    builder = builder.mount("/api/log", log::api::routes());
 
     builder = builder.mount("/file/", file::api::routes());
 

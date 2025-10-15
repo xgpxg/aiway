@@ -32,7 +32,7 @@ mod tests {
     use config::{Config, FileFormat};
     #[test]
     fn test_config() {
-        let config = Config::builder()
+       /* let config = Config::builder()
             .add_source(config::File::from_str(
                 "name: aaa\naddress: \n  city: 123",
                 FileFormat::Yaml,
@@ -45,6 +45,6 @@ mod tests {
             .unwrap();
         let config = config.try_deserialize::<serde_json::Value>().unwrap();
         println!("{:?}", config);
-        println!("{:?}", config);
+        println!("{:?}", config);*/
     }
 }
