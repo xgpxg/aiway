@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-logging = { path = "../lib/logging" }
+logging = { path = "../lib/logging", optional = true }
 cache = { path = "../lib/cache", optional = true }
 common = { path = "../lib/common" }
 protocol = { path = "../lib/protocol", features = ["rbatis"] }
@@ -34,5 +34,5 @@ chrono = "0.4"
 
 [features]
 default = []
-standalone = ["cache/share-cache"]
+standalone = ["cache/share-cache", "logging/local-storage"]
 cluster = ["cache/redis-cache"]
