@@ -1,5 +1,6 @@
-use crate::Args;
-use crate::config::config;
+//use crate::config::config;
+//use crate::config::config::AppConfig;
+use crate::args::Args;
 use crate::server::{db, task};
 use anyhow::Context;
 use common::dir::AppDir;
@@ -10,16 +11,15 @@ use std::fs;
 pub async fn init(args: &Args) {
     // 初始化日志
     logging::init_log_with(
-        LogAppender::all(),
+        LogAppender::CONSOLE | LogAppender::QUICKWIT,
         logging::Config {
-            dir: Some("logs".to_string()),
-            quickwit_endpoint: Some("127.0.0.1:7280".to_string()),
+            quickwit_endpoint: Some(args.log_server.clone()),
             ..Default::default()
         },
     );
 
     // 初始化配置
-    config::init(args.config.as_str()).unwrap();
+    //config::init(args.config.as_str()).unwrap();
 
     // 初始化目录
     init_dir().unwrap();
@@ -28,7 +28,7 @@ pub async fn init(args: &Args) {
     id::init();
 
     // 初始化数据库
-    db::init().await.unwrap();
+    db::init(args).await.unwrap();
 
     // 初始化缓存
     #[cfg(feature = "cluster")]

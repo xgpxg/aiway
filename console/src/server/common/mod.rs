@@ -92,6 +92,7 @@ where
 /// 反序列化varchar或text字段为为Vec<String>
 /// 这个可以兼容sqlite和mysql
 /// 原生的rbatis在处理mysql时有问题
+#[allow(unused)]
 pub fn deserialize_to_string_vec<'de, D>(deserializer: D) -> Result<Option<Vec<String>>, D::Error>
 where
     D: Deserializer<'de>,

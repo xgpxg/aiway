@@ -1,9 +1,8 @@
-use crate::config::config;
-use crate::config::config::AppConfig;
+use crate::args::Args;
 use anyhow::bail;
+use logging::log;
 use rbatis::RBatis;
 use std::sync::OnceLock;
-use logging::log;
 
 mod migrations;
 pub mod models;
@@ -26,19 +25,21 @@ impl Pool {
     }
 }
 
-pub async fn init() -> anyhow::Result<()> {
-    let database = AppConfig::database();
-    match database.url.as_str() {
-        url if url.starts_with("sqlite") => sqlite::init(database).await,
-        url if url.starts_with("mysql") => mysql::init(database).await,
+pub async fn init(args: &Args) -> anyhow::Result<()> {
+    let url = args.db_url.as_str();
+    match url {
+        url if url.starts_with("sqlite") => sqlite::init(url).await,
+        url if url.starts_with("mysql") => {
+            mysql::init(url, &args.db_username, &args.db_password).await
+        }
         _ => bail!("database not support"),
     };
 
     // 单机模式下执行版本升级
     // 集群模式下需要提供升级脚本执行
-    if AppConfig::mode() == &config::Mode::Standalone {
-        migrations::run(&mut Pool::get()?.clone()).await;
-    }
+    // if AppConfig::mode() == &config::Mode::Standalone {
+    //     migrations::run(&mut Pool::get()?.clone()).await;
+    // }
 
     Ok(())
 }

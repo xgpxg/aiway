@@ -5,7 +5,6 @@ use rbatis::rbdc::DateTime;
 use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::collections::HashMap;
 
 /// 路由配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]

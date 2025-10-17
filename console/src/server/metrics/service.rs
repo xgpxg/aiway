@@ -18,10 +18,10 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
     state.offline_node_count = nodes.iter().filter(|n| n.is_offline()).count();
 
     // 节点ID
-    let node_ids = nodes
-        .iter()
-        .map(|n| n.node_id.clone().unwrap())
-        .collect::<Vec<_>>();
+    // let node_ids = nodes
+    //     .iter()
+    //     .map(|n| n.node_id.clone().unwrap())
+    //     .collect::<Vec<_>>();
     // 在线的节点ID
     let online_node_ids = nodes
         .iter()
@@ -70,13 +70,14 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
         .timestamp_millis();
 
     state.request_today_count = tx
-        .query_decode::<u64>(
+        .query_decode::<Option<u64>>(
             r#"
            select sum(interval_request_count) from gateway_node_state where ts >= ? group by node_id
             "#,
             vec![value!(start_of_day)],
         )
-        .await? as usize;
+        .await?
+        .unwrap_or(0) as usize;
 
     state.request_count = node_states.iter().map(|s| s.request_count).sum::<usize>();
     state.request_invalid_count = node_states

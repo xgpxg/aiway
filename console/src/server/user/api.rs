@@ -1,20 +1,13 @@
-use rocket::{get, post, routes};
 use crate::server::auth::UserPrincipal;
-use crate::server::user::request::{
-    LoginReq, SendVerifyCodeReq, UpdateEmailReq, UpdatePasswordReq,
-};
+use crate::server::user::request::{LoginReq, UpdatePasswordReq};
 use crate::server::user::response::{LoginRes, UserCenterRes};
 use crate::server::user::service;
-use rocket::serde::json::Json;
 use protocol::common::res::Res;
+use rocket::serde::json::Json;
+use rocket::{get, post, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![
-        login,
-        logout,
-        update_password,
-        center,
-    ]
+    routes![login, logout, update_password, center,]
 }
 
 /// 用户登录
@@ -35,7 +28,6 @@ async fn logout(user: UserPrincipal) -> Res<()> {
     }
 }
 
-
 /// 修改密码
 #[post("/updatePassword", data = "<req>")]
 async fn update_password(req: Json<UpdatePasswordReq>, user: UserPrincipal) -> Res<()> {
@@ -53,4 +45,3 @@ async fn center(user: UserPrincipal) -> Res<UserCenterRes> {
         Err(e) => Res::error(&e.to_string()),
     }
 }
-

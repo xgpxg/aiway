@@ -40,7 +40,7 @@ pub struct RouteAddOrUpdateReq {
 impl From<RouteAddOrUpdateReq> for Route {
     fn from(req: RouteAddOrUpdateReq) -> Self {
         Route {
-            id: req.id.into(),
+            id: req.id,
             name: req.name.into(),
             description: req.description,
             status: Some(Default::default()),

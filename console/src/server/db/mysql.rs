@@ -1,5 +1,5 @@
-use crate::config::config::DatabaseConfig;
 use crate::server::db::RB;
+use logging::log;
 use rbatis::RBatis;
 use rbdc_mysql::MysqlDriver;
 use rbdc_mysql::options::MySqlConnectOptions;
@@ -8,16 +8,13 @@ use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use std::process::exit;
 use std::str::FromStr;
-use logging::log;
 
-pub(crate) async fn init(config: &DatabaseConfig) {
-    let db_url = config.url.as_str();
-
+pub(crate) async fn init(url: &str, username: &str, password: &str) {
     let rb = RBatis::new();
-    let opts = MySqlConnectOptions::from_str(db_url)
+    let opts = MySqlConnectOptions::from_str(url)
         .unwrap()
-        .username(config.username.as_str())
-        .password(config.password.as_str());
+        .username(username)
+        .password(password);
     if let Err(e) =
         rb.init_option::<MysqlDriver, MySqlConnectOptions, FastPool>(MysqlDriver {}, opts)
     {
@@ -38,6 +35,7 @@ pub(crate) async fn init(config: &DatabaseConfig) {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(unused)]
 pub struct Count {
     pub count: usize,
 }

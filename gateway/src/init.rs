@@ -6,10 +6,9 @@ use logging::LogAppender;
 pub async fn init(args: &Args) {
     // 初始化日志
     logging::init_log_with(
-        LogAppender::all(),
+        LogAppender::CONSOLE | LogAppender::QUICKWIT,
         logging::Config {
-            dir: Some("logs".to_string()),
-            quickwit_endpoint: Some("127.0.0.1:7280".to_string()),
+            quickwit_endpoint: Some(args.log_server.clone()),
             ..Default::default()
         },
     );

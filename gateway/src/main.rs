@@ -25,6 +25,10 @@ struct Args {
     /// Console address
     #[arg(short, long, default_value = "127.0.0.1:6000")]
     console: String,
+
+    /// 日志服务
+    #[arg(short, long, default_value = "127.0.0.1:7280")]
+    log_server: String,
 }
 
 impl Args {

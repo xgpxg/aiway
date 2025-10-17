@@ -1,4 +1,3 @@
-use crate::config::config::DatabaseConfig;
 use crate::server::db::{Pool, RB};
 use anyhow::bail;
 use logging::log;
@@ -11,11 +10,10 @@ use std::ops::Deref;
 use std::process::exit;
 use std::str::FromStr;
 
-pub(crate) async fn init(config: &DatabaseConfig) {
-    let db_url = config.url.as_str();
+pub(crate) async fn init(url: &str) {
 
     let rb = RBatis::new();
-    let opts = SqliteConnectOptions::from_str(db_url).unwrap();
+    let opts = SqliteConnectOptions::from_str(url).unwrap();
     if let Err(e) =
         rb.init_option::<SqliteDriver, SqliteConnectOptions, FastPool>(SqliteDriver {}, opts)
     {

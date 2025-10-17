@@ -1,9 +1,4 @@
-#[cfg(feature = "local-storage")]
-mod local_appender;
 mod quickwit_appender;
-
-#[cfg(feature = "local-storage")]
-pub use local_appender::LocalAppender;
 pub use quickwit_appender::QuickwitAppender;
 use serde::Serialize;
 

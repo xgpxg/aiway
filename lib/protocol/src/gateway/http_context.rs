@@ -6,7 +6,7 @@ use crate::gateway::response_context::ResponseContext;
 /// 包含请求上下文和响应上下文，这些内容可在请求过程中被修改。
 ///
 /// - 内部可变性
-/// 要求在实现时，不要出现对外的可变引用
+///   要求在实现时，不要出现对外的可变引用
 /// - 该类型也作为与Plugin交互的数据结构
 #[derive(Debug, Default)]
 pub struct HttpContext {

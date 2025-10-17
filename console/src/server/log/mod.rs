@@ -23,7 +23,7 @@ struct QuickwitSearcher;
 
 //#[cfg(feature = "cluster")]
 impl LogSearcher for QuickwitSearcher {
-    fn search(&self, options: LogSearchOptions) {
+    fn search(&self, _options: LogSearchOptions) {
         todo!()
     }
 }
@@ -31,11 +31,3 @@ impl LogSearcher for QuickwitSearcher {
 #[cfg(feature = "standalone")]
 struct LocalSearcher;
 
-#[cfg(feature = "standalone")]
-impl LogSearcher for LocalSearcher {
-    fn search(&self, options: LogSearchOptions) {
-        use logging::tantivy;
-
-        todo!()
-    }
-}

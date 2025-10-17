@@ -87,7 +87,7 @@ pub async fn list(req: PluginListReq) -> anyhow::Result<PageRes<PluginListRes>> 
     Ok(list)
 }
 
-pub async fn update(mut req: PluginUpdateReq<'_>, user: UserPrincipal) -> anyhow::Result<()> {
+pub async fn update(req: PluginUpdateReq<'_>, user: UserPrincipal) -> anyhow::Result<()> {
     let tx = Pool::get()?;
     let old = Plugin::select_by_map(tx, value! { "id": req.id}).await?;
     if old.is_empty() {

@@ -28,5 +28,5 @@ chrono = "0.4"
 
 [features]
 default = []
-standalone = ["cache/share-cache", "logging/local-storage"]
+standalone = ["cache/share-cache"]
 cluster = ["cache/redis-cache"]

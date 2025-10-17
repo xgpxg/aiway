@@ -8,24 +8,17 @@
 //! ## 输出到远程
 //! 需要部署quickwit
 //!
-//! ## 输出到本地索引
-//! 仅单机模式启用，使用tantivy做索引
-//!
 
-#[cfg(feature = "local-storage")]
-use crate::appender::LocalAppender;
 use crate::appender::QuickwitAppender;
+pub use log;
 use std::fmt::Debug;
 use std::sync::OnceLock;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::fmt::time::ChronoLocal;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{Registry, fmt};
-mod appender;
 
-pub use log;
-#[cfg(feature = "local-storage")]
-pub use tantivy;
+mod appender;
 
 bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -33,7 +26,6 @@ bitflags::bitflags! {
         const CONSOLE = 1 << 0;  // 1
         const FILE    = 1 << 1;  // 2
         const QUICKWIT  = 1 << 2;  // 4
-        const LOCAL = 1 << 3;  // 8
     }
 }
 
@@ -101,7 +93,8 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
         rocket::response::debug=error,\
         rocket::launch=error,\
         rocket::server::_=error,\
-        gateway::openapi::_=error\
+        gateway::openapi::_=error,\
+        tantivy=warn\
         "
         .into()
     });
@@ -164,25 +157,6 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
         } else {
             None
         });
-    // 输出到本地，使用tantivy构建日志索引，仅单机模式使用
-    #[cfg(feature = "local-storage")]
-    let subscriber = subscriber.with(if writer.contains(LogAppender::LOCAL) {
-        let local_appender = LocalAppender::new(config.dir.unwrap(), config.service);
-        let (appender, guard) = tracing_appender::non_blocking(local_appender);
-
-        let layer = fmt::Layer::default()
-            .with_writer(appender)
-            .compact()
-            .with_level(true)
-            .with_target(false)
-            .with_line_number(false)
-            .with_timer(ChronoLocal::new("%Y-%m-%d %H:%M:%S.%3f".to_string()))
-            .with_ansi(false);
-        guards.push(guard);
-        Some(layer)
-    } else {
-        None
-    });
 
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting global default subscriber failed");

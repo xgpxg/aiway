@@ -1,5 +1,4 @@
 use logging::log;
-use rust_embed::Embed;
 use std::env::temp_dir;
 use std::path::PathBuf;
 use std::process::{Child, Command};

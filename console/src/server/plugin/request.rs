@@ -1,5 +1,5 @@
 use protocol::common::req::PageReq;
-use protocol::{gateway, impl_pagination};
+use protocol::impl_pagination;
 use rocket::form::FromForm;
 use rocket::fs::TempFile;
 use rocket::serde::{Deserialize, Serialize};

@@ -2,25 +2,18 @@ use clap::Parser;
 
 mod init;
 
-mod config;
+mod args;
+//mod config;
 mod server;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-    /// 配置文件，YAML格式
-    #[arg(short, long, default_value = "config.yaml")]
-    config: String,
-}
-
 #[rocket::main]
 async fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
+    let args = args::Args::parse();
 
     init::init(&args).await;
 
-    server::start_http_server().await?;
+    server::start_http_server(&args).await?;
     Ok(())
 }
