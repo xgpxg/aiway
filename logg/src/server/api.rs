@@ -24,7 +24,6 @@ impl<'r> FromData<'r> for LogEntries {
     }
 }
 
-
 pub fn routes() -> Vec<rocket::Route> {
     routes![ingest, search]
 }
@@ -34,9 +33,15 @@ fn ingest(index: &str, req: LogEntries, logg: &State<Logg>) {
     logg.add(req.0);
 }
 
-#[get("/<index>/search?<query>")]
-fn search(index: &str, query: &str, logg: &State<Logg>) -> Json<LogListRes> {
-    match logg.search(query) {
+#[get("/<index>/search?<query>&<start_offset>&<max_hits>")]
+fn search(
+    index: &str,
+    query: &str,
+    start_offset: Option<usize>,
+    max_hits: Option<usize>,
+    logg: &State<Logg>,
+) -> Json<LogListRes> {
+    match logg.search(query, start_offset.unwrap_or(0), max_hits.unwrap_or(10)) {
         Ok(res) => Json(res),
         Err(e) => {
             println!("Error: {}", e);

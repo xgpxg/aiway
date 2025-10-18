@@ -176,7 +176,7 @@ impl Logg {
         self.index_writer.lock().unwrap().commit().unwrap();
     }
 
-    pub fn search(&self, query: &str) -> anyhow::Result<LogListRes> {
+    pub fn search(&self, query: &str, offset: usize, limit: usize) -> anyhow::Result<LogListRes> {
         let schema = self.index.schema();
         let query_parser =
             QueryParser::for_index(&self.index, schema.fields().map(|(f, _)| f).collect());
@@ -189,7 +189,9 @@ impl Logg {
 
         let top_docs: Vec<(DateTime, _)> = self.searcher.search(
             &query,
-            &TopDocs::with_limit(10).order_by_fast_field("time", Order::Desc),
+            &TopDocs::with_limit(limit)
+                .and_offset(offset)
+                .order_by_fast_field("time", Order::Desc),
         )?;
 
         let mut list = Vec::new();
