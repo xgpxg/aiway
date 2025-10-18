@@ -1,7 +1,8 @@
-use crate::server::{LogEntry, Logg};
+use crate::server::{LogEntry, LogListRes, Logg};
 use rocket::data::{ByteUnit, FromData, Outcome};
+use rocket::serde::Serialize;
 use rocket::serde::json::Json;
-use rocket::{Data, Request, State, async_trait, post, routes};
+use rocket::{Data, Request, State, async_trait, get, post, routes};
 
 #[derive(Debug)]
 struct LogEntries(Vec<LogEntry>);
@@ -23,11 +24,23 @@ impl<'r> FromData<'r> for LogEntries {
     }
 }
 
+
 pub fn routes() -> Vec<rocket::Route> {
-    routes![ingest]
+    routes![ingest, search]
 }
 
 #[post("/<index>/ingest", data = "<req>")]
 fn ingest(index: &str, req: LogEntries, logg: &State<Logg>) {
     logg.add(req.0);
+}
+
+#[get("/<index>/search?<query>")]
+fn search(index: &str, query: &str, logg: &State<Logg>) -> Json<LogListRes> {
+    match logg.search(query) {
+        Ok(res) => Json(res),
+        Err(e) => {
+            println!("Error: {}", e);
+            Json(LogListRes::default())
+        }
+    }
 }

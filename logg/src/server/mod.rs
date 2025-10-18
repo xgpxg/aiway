@@ -5,16 +5,24 @@ use rocket::Config;
 use rocket::data::{ByteUnit, FromData, Limits};
 use rocket::serde::Serialize;
 use serde::Deserialize;
+use std::fmt::Debug;
 use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
+use tantivy::query::{Query, QueryParser};
+use tantivy::schema::document::CompactDocValue;
 use tantivy::schema::{
-    DateOptions, Field, IndexRecordOption, STORED, Schema, TEXT, TextFieldIndexing, TextOptions,
+    DateOptions, DateTimePrecision, Field, IndexRecordOption, STORED, Schema, TEXT,
+    TextFieldIndexing, TextOptions, Value,
 };
 use tantivy::tokenizer::{LowerCaser, TextAnalyzer};
-use tantivy::{DateTime, Index, IndexWriter, TantivyDocument, TantivyError};
+use tantivy::{
+    DateTime, Document, Index, IndexWriter, Order, ReloadPolicy, Searcher, TantivyDocument,
+    TantivyError,
+};
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     let mut builder = rocket::build().configure(Config {
@@ -37,7 +45,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct LogEntry {
     time: String,
     service: String,
@@ -63,10 +71,17 @@ impl Fields {
     }
 }
 
+#[derive(Debug, Serialize, Default)]
+pub struct LogListRes {
+    num_hits: usize,
+    hits: Vec<LogEntry>,
+}
+
 struct Logg {
     index: Index,
     fields: Fields,
     index_writer: Arc<Mutex<IndexWriter>>,
+    searcher: Searcher,
 }
 
 impl Logg {
@@ -79,15 +94,28 @@ impl Logg {
         Self::register_tokenizer(&index);
         let schema = index.schema();
         let index_writer = index.writer(Self::MEMORY_BUDGET_IN_BYTES)?;
+        let reader = index
+            .reader_builder()
+            .reload_policy(ReloadPolicy::OnCommitWithDelay)
+            .try_into()?;
+        let searcher = reader.searcher();
+
         Ok(Self {
             index,
             fields: Fields::from_schema(&schema),
             index_writer: Arc::new(Mutex::new(index_writer)),
+            searcher,
         })
     }
     fn open_or_create_index(dir: &str) -> Result<Index, TantivyError> {
         let mut sb = Schema::builder();
-        sb.add_date_field("time", DateOptions::default() | STORED);
+        sb.add_date_field(
+            "time",
+            DateOptions::default()
+                .set_fast()
+                .set_precision(DateTimePrecision::Microseconds)
+                | STORED,
+        );
         sb.add_text_field("service", TEXT | STORED);
         sb.add_text_field("level", TEXT | STORED);
         sb.add_text_field(
@@ -146,5 +174,66 @@ impl Logg {
             let _ = self.index_writer.lock().unwrap().add_document(doc);
         });
         self.index_writer.lock().unwrap().commit().unwrap();
+    }
+
+    pub fn search(&self, query: &str) -> anyhow::Result<LogListRes> {
+        let schema = self.index.schema();
+        let query_parser =
+            QueryParser::for_index(&self.index, schema.fields().map(|(f, _)| f).collect());
+        let query = query_parser.parse_query(query)?;
+
+        let num_hits = query.count(&self.searcher)?;
+        if num_hits == 0 {
+            return Ok(LogListRes::default());
+        }
+
+        let top_docs: Vec<(DateTime, _)> = self.searcher.search(
+            &query,
+            &TopDocs::with_limit(10).order_by_fast_field("time", Order::Desc),
+        )?;
+
+        let mut list = Vec::new();
+
+        let get_first_value =
+            |value: CompactDocValue| -> String { value.as_str().unwrap_or_default().to_string() };
+        let get_first_datetime_value = |value: CompactDocValue| -> String {
+            value
+                .as_datetime()
+                .map(|dt| {
+                    use chrono::{TimeZone, Utc};
+                    let dt = Utc
+                        .timestamp_millis_opt(dt.into_timestamp_millis())
+                        .unwrap();
+                    dt.format(Self::TIME_FORMAT).to_string()
+                })
+                .unwrap_or_default()
+        };
+        for (_score, doc_address) in top_docs {
+            let retrieved_doc: TantivyDocument = self.searcher.doc(doc_address)?;
+            let mut log_entry = LogEntry::default();
+            for (field, value) in retrieved_doc.iter_fields_and_values() {
+                match field.field_id() {
+                    fid if fid == self.fields.time.field_id() => {
+                        log_entry.time = get_first_datetime_value(value);
+                    }
+                    fid if fid == self.fields.service.field_id() => {
+                        log_entry.service = get_first_value(value);
+                    }
+                    fid if fid == self.fields.level.field_id() => {
+                        log_entry.level = get_first_value(value);
+                    }
+                    fid if fid == self.fields.message.field_id() => {
+                        log_entry.message = get_first_value(value);
+                    }
+                    _ => {}
+                }
+            }
+            list.push(log_entry);
+        }
+
+        Ok(LogListRes {
+            num_hits,
+            hits: list,
+        })
     }
 }
