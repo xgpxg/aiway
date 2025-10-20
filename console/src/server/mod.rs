@@ -75,6 +75,7 @@
 //!
 
 use crate::args::Args;
+use clap::Parser;
 use rocket::Config;
 use rocket::data::{ByteUnit, Limits};
 use std::net::IpAddr;
@@ -119,6 +120,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/log", log::api::routes());
 
     builder = builder.mount("/file/", file::api::routes());
+
+    builder = builder.manage(Args::parse());
 
     builder.launch().await?;
 

@@ -1,4 +1,5 @@
-use crate::server::{LogEntry, LogListRes, Logg};
+use crate::server::{LogEntry, LogSearchRes, Logg};
+use protocol::logg::LogSearchReq;
 use rocket::data::{ByteUnit, FromData, Outcome};
 use rocket::serde::Serialize;
 use rocket::serde::json::Json;
@@ -28,24 +29,20 @@ pub fn routes() -> Vec<rocket::Route> {
     routes![ingest, search]
 }
 
+/// 添加日志
 #[post("/<index>/ingest", data = "<req>")]
 fn ingest(index: &str, req: LogEntries, logg: &State<Logg>) {
     logg.add(req.0);
 }
 
-#[get("/<index>/search?<query>&<start_offset>&<max_hits>")]
-fn search(
-    index: &str,
-    query: &str,
-    start_offset: Option<usize>,
-    max_hits: Option<usize>,
-    logg: &State<Logg>,
-) -> Json<LogListRes> {
-    match logg.search(query, start_offset.unwrap_or(0), max_hits.unwrap_or(10)) {
+/// 查询日志
+#[post("/<index>/search", data = "<req>")]
+fn search(index: &str, req: Json<LogSearchReq>, logg: &State<Logg>) -> Json<LogSearchRes> {
+    match logg.search(req.0) {
         Ok(res) => Json(res),
         Err(e) => {
             println!("Error: {}", e);
-            Json(LogListRes::default())
+            Json(LogSearchRes::default())
         }
     }
 }

@@ -1,6 +1,8 @@
 mod api;
 
 use crate::Args;
+use chrono::{TimeZone, Utc};
+use protocol::logg::{LogEntry, LogSearchReq, LogSearchRes};
 use rocket::Config;
 use rocket::data::{ByteUnit, FromData, Limits};
 use rocket::serde::Serialize;
@@ -45,13 +47,13 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+/*#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct LogEntry {
-    time: String,
-    service: String,
-    level: String,
-    message: String,
-}
+    pub time: String,
+    pub service: String,
+    pub level: String,
+    pub message: String,
+}*/
 
 struct Fields {
     time: Field,
@@ -71,12 +73,6 @@ impl Fields {
     }
 }
 
-#[derive(Debug, Serialize, Default)]
-pub struct LogListRes {
-    num_hits: usize,
-    hits: Vec<LogEntry>,
-}
-
 struct Logg {
     index: Index,
     fields: Fields,
@@ -88,6 +84,7 @@ impl Logg {
     const MEMORY_BUDGET_IN_BYTES: usize = 32 * 1024 * 1024;
     const FLUSH_INTERVAL: Duration = Duration::from_secs(1);
     const TIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S%.3f";
+    const TIME_OFFSET: i64 = 8 * 3600;
     fn new(dir: &str) -> Result<Self, TantivyError> {
         let index = Self::open_or_create_index(dir)?;
         // 添加jie_ba分词器
@@ -176,21 +173,50 @@ impl Logg {
         self.index_writer.lock().unwrap().commit().unwrap();
     }
 
-    pub fn search(&self, query: &str, offset: usize, limit: usize) -> anyhow::Result<LogListRes> {
+    pub fn search(&self, req: LogSearchReq) -> anyhow::Result<LogSearchRes> {
         let schema = self.index.schema();
         let query_parser =
             QueryParser::for_index(&self.index, schema.fields().map(|(f, _)| f).collect());
-        let query = query_parser.parse_query(query)?;
+
+        let mut query = vec![];
+
+        if let Some(q) = req.query {
+            if !q.is_empty() {
+                query.push(q);
+            }
+        }
+
+        if let Some(start_timestamp) = req.start_timestamp {
+            query.push(format!(
+                "time:>={:?}",
+                DateTime::from_timestamp_secs(start_timestamp + Self::TIME_OFFSET)
+            ));
+        }
+
+        if let Some(end_timestamp) = req.end_timestamp {
+            query.push(format!(
+                "time:<{:?}",
+                DateTime::from_timestamp_secs(end_timestamp + Self::TIME_OFFSET)
+            ));
+        }
+
+        if query.len() == 0 {
+            query.push("*".to_string());
+        }
+
+        //println!("query: {}", query.join(" AND "));
+
+        let query = query_parser.parse_query(&query.join(" AND "))?;
 
         let num_hits = query.count(&self.searcher)?;
         if num_hits == 0 {
-            return Ok(LogListRes::default());
+            return Ok(LogSearchRes::default());
         }
 
         let top_docs: Vec<(DateTime, _)> = self.searcher.search(
             &query,
-            &TopDocs::with_limit(limit)
-                .and_offset(offset)
+            &TopDocs::with_limit(req.max_hits)
+                .and_offset(req.start_offset)
                 .order_by_fast_field("time", Order::Desc),
         )?;
 
@@ -233,7 +259,7 @@ impl Logg {
             list.push(log_entry);
         }
 
-        Ok(LogListRes {
+        Ok(LogSearchRes {
             num_hits,
             hits: list,
         })

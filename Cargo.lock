@@ -2388,12 +2388,12 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "protocol",
  "rocket",
  "serde",
  "serde_json",
  "tantivy",
  "tantivy-jieba",
- "zbus",
 ]
 
 [[package]]

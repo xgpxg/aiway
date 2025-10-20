@@ -7,6 +7,8 @@
 pub mod common;
 #[allow(unused)]
 pub mod gateway;
+#[cfg(feature = "logg")]
+pub mod logg;
 mod single;
 
 pub use single::SingleValue as SV;
