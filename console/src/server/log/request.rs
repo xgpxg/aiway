@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use protocol::common::req::PageReq;
 use protocol::impl_pagination;
 use rbatis::rbdc::DateTime;
@@ -11,8 +12,8 @@ pub struct LogListReq {
     /// 日志级别
     pub level: Option<String>,
     /// 起始时间
-    pub start_time: Option<DateTime>,
+    pub start_time: Option<NaiveDateTime>,
     /// 结束时间
-    pub end_time: Option<DateTime>,
+    pub end_time: Option<NaiveDateTime>,
 }
 impl_pagination!(LogListReq);

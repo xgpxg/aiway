@@ -1,16 +1,17 @@
 use crate::args::Args;
 use crate::server::common::pool::HTTP_CLIENT;
 use crate::server::log::request::LogListReq;
+use chrono::TimeZone;
 use protocol::common::req::Pagination;
 use protocol::common::res::PageRes;
 use protocol::logg::{LogEntry, LogSearchReq, LogSearchRes};
 use rocket::State;
 
+const LOG_INDEX: &str = "aiway-logs";
 pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes<LogEntry>> {
     let log_server = &args.log_server;
 
-    let url = format!("http://{}/api/v1/aiway-logs/search", log_server);
-    println!("url: {}", url);
+    let url = format!("http://{}/api/v1/{}/search", log_server, LOG_INDEX);
 
     let mut query = Vec::new();
     if let Some(filter_text) = &req.filter_text {
@@ -27,8 +28,14 @@ pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes
 
     let param = LogSearchReq {
         query: Some(query.join(" AND ")),
-        start_timestamp: req.start_time.clone().map(|t| t.unix_timestamp()),
-        end_timestamp: req.end_time.clone().map(|t| t.unix_timestamp()),
+        start_timestamp: req
+            .start_time
+            .clone()
+            .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
+        end_timestamp: req
+            .end_time
+            .clone()
+            .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
         start_offset,
         max_hits,
     };
