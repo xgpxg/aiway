@@ -171,7 +171,6 @@ impl Logg {
             let _ = index_writer.add_document(doc);
         });
         index_writer.commit().unwrap();
-        println!("add done");
     }
 
     pub fn search(&self, req: LogSearchReq) -> anyhow::Result<LogSearchRes> {
