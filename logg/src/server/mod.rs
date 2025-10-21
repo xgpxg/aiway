@@ -22,7 +22,7 @@ use tantivy::schema::{
 };
 use tantivy::tokenizer::{LowerCaser, TextAnalyzer};
 use tantivy::{
-    DateTime, Document, Index, IndexWriter, Order, ReloadPolicy, Searcher, TantivyDocument,
+    DateTime, Document, Index, IndexReader, IndexWriter, Order, ReloadPolicy, TantivyDocument,
     TantivyError,
 };
 
@@ -77,7 +77,7 @@ struct Logg {
     index: Index,
     fields: Fields,
     index_writer: Arc<Mutex<IndexWriter>>,
-    searcher: Searcher,
+    reader: IndexReader,
 }
 
 impl Logg {
@@ -95,13 +95,12 @@ impl Logg {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()?;
-        let searcher = reader.searcher();
 
         Ok(Self {
             index,
             fields: Fields::from_schema(&schema),
             index_writer: Arc::new(Mutex::new(index_writer)),
-            searcher,
+            reader,
         })
     }
     fn open_or_create_index(dir: &str) -> Result<Index, TantivyError> {
@@ -158,6 +157,7 @@ impl Logg {
     }
 
     pub fn add(&self, entries: Vec<LogEntry>) {
+        let mut index_writer = self.index_writer.lock().unwrap();
         entries.into_iter().for_each(|entry| {
             let mut doc = TantivyDocument::default();
             doc.add_date(
@@ -168,9 +168,10 @@ impl Logg {
             doc.add_text(self.fields.level, entry.level);
             doc.add_text(self.fields.message, entry.message);
 
-            let _ = self.index_writer.lock().unwrap().add_document(doc);
+            let _ = index_writer.add_document(doc);
         });
-        self.index_writer.lock().unwrap().commit().unwrap();
+        index_writer.commit().unwrap();
+        println!("add done");
     }
 
     pub fn search(&self, req: LogSearchReq) -> anyhow::Result<LogSearchRes> {
@@ -189,14 +190,14 @@ impl Logg {
         if let Some(start_timestamp) = req.start_timestamp {
             query.push(format!(
                 "time:>={:?}",
-                DateTime::from_timestamp_secs(start_timestamp + Self::TIME_OFFSET)
+                DateTime::from_timestamp_secs(start_timestamp /* + Self::TIME_OFFSET*/)
             ));
         }
 
         if let Some(end_timestamp) = req.end_timestamp {
             query.push(format!(
                 "time:<{:?}",
-                DateTime::from_timestamp_secs(end_timestamp + Self::TIME_OFFSET)
+                DateTime::from_timestamp_secs(end_timestamp /* + Self::TIME_OFFSET*/)
             ));
         }
 
@@ -208,12 +209,13 @@ impl Logg {
 
         let query = query_parser.parse_query(&query.join(" AND "))?;
 
-        let num_hits = query.count(&self.searcher)?;
+        let searcher = self.reader.searcher();
+        let num_hits = query.count(&searcher)?;
         if num_hits == 0 {
             return Ok(LogSearchRes::default());
         }
 
-        let top_docs: Vec<(DateTime, _)> = self.searcher.search(
+        let top_docs: Vec<(DateTime, _)> = searcher.search(
             &query,
             &TopDocs::with_limit(req.max_hits)
                 .and_offset(req.start_offset)
@@ -237,7 +239,7 @@ impl Logg {
                 .unwrap_or_default()
         };
         for (_score, doc_address) in top_docs {
-            let retrieved_doc: TantivyDocument = self.searcher.doc(doc_address)?;
+            let retrieved_doc: TantivyDocument = searcher.doc(doc_address)?;
             let mut log_entry = LogEntry::default();
             for (field, value) in retrieved_doc.iter_fields_and_values() {
                 match field.field_id() {
