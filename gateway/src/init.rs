@@ -1,5 +1,5 @@
 use crate::report::STATE;
-use crate::router::{ConfigFactory, PluginFactory, Router, Servicer};
+use crate::router::{ConfigFactory, Firewalld, PluginFactory, Router, Servicer};
 use crate::{Args, report};
 use logging::LogAppender;
 
@@ -36,6 +36,9 @@ pub async fn init(args: &Args) {
 
     // 初始化服务
     Servicer::init().await;
+
+    // 初始化防火墙
+    Firewalld::init().await;
 
     // 初始化监控
     report::init(args);

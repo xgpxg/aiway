@@ -16,14 +16,6 @@ pub(crate) async fn configuration() -> anyhow::Result<gateway::Configuration> {
         // let mut map = HashSet::new();
         // map.insert("127.0.0.1".to_string());
         return Ok(gateway::Configuration {
-            firewall: Firewall {
-                ip_policy_mode: AllowDenyPolicy::Disable,
-                ip_policy: Default::default(),
-                referer_policy_mode: Default::default(),
-                referer_policy: Default::default(),
-                allow_empty_referer: false,
-                max_connections: Default::default(),
-            },
             ..Default::default()
         });
     }

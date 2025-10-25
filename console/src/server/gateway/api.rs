@@ -5,7 +5,14 @@ use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![all_routes, all_services, all_plugins, configuration, report]
+    routes![
+        all_routes,
+        all_services,
+        all_plugins,
+        configuration,
+        firewall,
+        report,
+    ]
 }
 
 /// 查询路由表
@@ -46,6 +53,16 @@ async fn configuration() -> Res<protocol::gateway::Configuration> {
     }
 }
 
+/// 查询防火墙配置
+#[get("/gateway/firewall")]
+async fn firewall() -> Res<protocol::gateway::Firewall> {
+    match server::gateway::firewall::configuration().await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 状态上报
 #[post("/gateway/report", data = "<req>")]
 async fn report(req: Json<protocol::gateway::state::State>) -> Res<()> {
     match reporter::report(req.0).await {

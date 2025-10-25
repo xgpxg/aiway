@@ -4,7 +4,7 @@ use crate::Args;
 use anyhow::bail;
 use clap::Parser;
 use protocol::common::res::Res;
-use protocol::gateway::{Configuration, Plugin, Route, Service};
+use protocol::gateway::{Configuration, Firewall, Plugin, Route, Service};
 use reqwest::{Client, ClientBuilder};
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -92,7 +92,7 @@ impl InnerHttpClient {
                 }
             }
             Err(e) => {
-                bail!("fetch routes error: {}", e);
+                bail!("fetch plugins error: {}", e);
             }
         }
     }
@@ -112,7 +112,27 @@ impl InnerHttpClient {
                 }
             }
             Err(e) => {
-                bail!("fetch routes error: {}", e);
+                bail!("fetch configuration error: {}", e);
+            }
+        }
+    }
+
+    pub async fn fetch_firewall(&self) -> anyhow::Result<Firewall> {
+        let endpoint = format!("http://{}/api/v1/gateway/firewall", self.args.console);
+        match self.get(endpoint, HashMap::new()).await {
+            Ok(response) => {
+                if let Err(e) = response.error_for_status_ref() {
+                    bail!("fetch firewall error: {}", e);
+                }
+                let res = response.json::<Res<Firewall>>().await?;
+                if res.is_success() {
+                    Ok(res.data.unwrap())
+                } else {
+                    bail!("console return error: {}", res.msg);
+                }
+            }
+            Err(e) => {
+                bail!("fetch firewall error: {}", e);
             }
         }
     }

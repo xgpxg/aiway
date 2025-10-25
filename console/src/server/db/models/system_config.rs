@@ -30,17 +30,23 @@ pub struct SystemConfig {
 
 crud!(SystemConfig {});
 
+/// 系统配置项，一行一个
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ConfigKey {
+    /// 版本号
     Version,
+    /// 网关配置
     Gateway,
+    /// 防火墙配置
+    Firewall,
 }
 impl Display for ConfigKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ConfigKey::Version => write!(f, "version"),
             ConfigKey::Gateway => write!(f, "gateway"),
+            ConfigKey::Firewall => write!(f, "firewall"),
         }
     }
 }

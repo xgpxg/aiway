@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+/// 防火墙配置
+///
+/// 防火墙中不配置插件，因为插件需要获取请求上下文，而上下文是在安全校验后才提取的，在防火墙执行阶段无法获取。
+/// 但是可以使用全局插件的方式在获取请求上下文后再校验。
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Firewall {
     /// IP策略模式，allow或deny
