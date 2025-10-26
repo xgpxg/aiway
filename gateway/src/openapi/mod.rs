@@ -128,7 +128,7 @@ async fn handle(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
             }
             // 服务本身错误，如无响应等
             Err(e) => {
-                log::error!("服务调用失败: {}", e);
+                log::error!("call service error: {}", e);
                 GatewayResponse::Error(GatewayError::ServiceUnavailable)
             }
         },

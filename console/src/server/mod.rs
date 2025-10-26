@@ -94,6 +94,7 @@ mod route;
 mod service;
 pub mod task;
 mod user;
+mod firewall;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     //let config = &AppConfig::server();
@@ -118,6 +119,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/plugin", plugin::api::routes());
     builder = builder.mount("/api/metrics", metrics::api::routes());
     builder = builder.mount("/api/log", log::api::routes());
+    builder = builder.mount("/api/firewall", firewall::api::routes());
 
     builder = builder.mount("/file/", file::api::routes());
 
