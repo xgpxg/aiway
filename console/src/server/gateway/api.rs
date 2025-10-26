@@ -1,3 +1,9 @@
+//! # gateway与console交互相关接口
+//!
+//! 目前gateway使用定时同步的方式从console拉取配置。
+//!
+//! 待定：本模块中的接口目前没有做权限验证，后面需要确认请求是否来自gateway。
+//!
 use crate::server;
 use crate::server::gateway::{plugin, reporter, route, service};
 use protocol::common::res::Res;
@@ -34,8 +40,6 @@ async fn all_services() -> Res<Vec<protocol::gateway::Service>> {
 }
 
 /// 查询插件
-///
-/// 需返回稳定有序列表
 #[get("/gateway/plugins")]
 async fn all_plugins() -> Res<Vec<protocol::gateway::Plugin>> {
     match plugin::plugins().await {
@@ -62,7 +66,7 @@ async fn firewall() -> Res<protocol::gateway::Firewall> {
     }
 }
 
-/// 状态上报
+/// 接收状态上报
 #[post("/gateway/report", data = "<req>")]
 async fn report(req: Json<protocol::gateway::state::State>) -> Res<()> {
     match reporter::report(req.0).await {
