@@ -84,16 +84,21 @@ impl Firewalld {
     pub async fn check(ip: &str, referer: &str) -> Result<(), String> {
         let firewall = FIREWALLD.get().unwrap().config.read().await;
 
+        // 可信IP直接通过
+        if firewall.trust_ips.contains(ip) {
+            return Ok(());
+        }
+
         // 检查IP策略
         match firewall.ip_policy_mode {
             AllowDenyPolicy::Allow => {
                 if !firewall.ip_policy.contains(ip) {
-                    return Err("Your IP is not allowed".to_string());
+                    return Err(format!("Your IP ({}) is not allowed", ip));
                 }
             }
             AllowDenyPolicy::Deny => {
                 if firewall.ip_policy.contains(ip) {
-                    return Err("Your IP is not allowed".to_string());
+                    return Err(format!("Your IP ({}) is not allowed", ip));
                 }
             }
             AllowDenyPolicy::Disable => {}

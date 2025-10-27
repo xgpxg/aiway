@@ -37,7 +37,7 @@ pub async fn update_timeout_heartbeat_node() {
                 .build()
                 .unwrap();
             if let Err(e) = GatewayNode::update_by_map(tx, &update, value! {"id":node.id}).await {
-                log::error!("update_heartbeat error:{}", e);
+                log::error!("update_heartbeat error: {}", e);
             }
         }
     }

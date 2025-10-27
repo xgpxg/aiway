@@ -14,10 +14,12 @@ pub(crate) async fn configuration() -> anyhow::Result<Firewall> {
         return Ok(Firewall {
             ip_policy_mode: AllowDenyPolicy::Disable,
             ip_policy: Default::default(),
+            trust_ips: Default::default(),
             referer_policy_mode: Default::default(),
             referer_policy: Default::default(),
             allow_empty_referer: false,
             max_connections: Default::default(),
+            api_key_leak_scan: Default::default(),
         });
     }
     let config = config.first().unwrap();
