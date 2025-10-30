@@ -1,5 +1,5 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::user::request::{LoginReq, UpdatePasswordReq, UserAddReq};
+use crate::server::user::request::{LoginReq, UpdatePasswordReq, UserAddReq, UserUpdateReq};
 use crate::server::user::response::{LoginRes, UserCenterRes, UserListRes};
 use crate::server::user::{UserListReq, service};
 use protocol::common::req::IdsReq;
@@ -8,7 +8,16 @@ use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![login, logout, update_password, center, list, add, delete]
+    routes![
+        login,
+        logout,
+        update_password,
+        center,
+        list,
+        add,
+        delete,
+        update_base_info
+    ]
 }
 
 /// 用户登录
@@ -47,8 +56,14 @@ async fn update_password(req: Json<UpdatePasswordReq>, user: UserPrincipal) -> R
     }
 }
 
-// TODO 修改基本信息
-
+/// 修改基本信息
+#[post("/manage/update/info", data = "<req>")]
+async fn update_base_info(req: Json<UserUpdateReq>, user: UserPrincipal) -> Res<()> {
+    match service::update_base_info(req.into_inner(), user).await {
+        Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
 
 #[post("/manage/list", data = "<req>")]
 async fn list(req: Json<UserListReq>, user: UserPrincipal) -> Res<PageRes<UserListRes>> {

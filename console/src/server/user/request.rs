@@ -39,3 +39,9 @@ pub struct UserAddReq {
     pub password: String,
     pub nickname: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserUpdateReq {
+    pub id: i64,
+    pub nickname: Option<String>,
+}

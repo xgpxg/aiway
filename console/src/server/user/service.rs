@@ -4,7 +4,7 @@ use crate::server::db::models::user::{User, UserBuilder};
 use crate::server::db::models::user_auth::{IdentityType, UserAuth, UserAuthBuilder};
 use crate::server::db::{Pool, tools};
 use crate::server::user::UserListReq;
-use crate::server::user::request::{LoginReq, UpdatePasswordReq, UserAddReq};
+use crate::server::user::request::{LoginReq, UpdatePasswordReq, UserAddReq, UserUpdateReq};
 use crate::server::user::response::{
     LoginRes, OtherInfo, UserBaseInfo, UserCenterRes, UserListRes,
 };
@@ -201,6 +201,25 @@ pub async fn delete(req: IdsReq, _user: UserPrincipal) -> anyhow::Result<()> {
         Pool::get()?,
         value! {
             "id": req.ids,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
+pub(crate) async fn update_base_info(
+    req: UserUpdateReq,
+    _user: UserPrincipal,
+) -> anyhow::Result<()> {
+    let user = UserBuilder::default()
+        .nickname(req.nickname)
+        .update_time(Some(tools::now()))
+        .build()?;
+    User::update_by_map(
+        Pool::get()?,
+        &user,
+        value! {
+            "id": req.id,
         },
     )
     .await?;
