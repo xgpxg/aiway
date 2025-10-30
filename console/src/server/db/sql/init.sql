@@ -6,14 +6,15 @@ create table if not exists system_config
 
 create table if not exists user
 (
-    id          bigint primary key,
-    nickname    varchar(500) not null,          -- 昵称
-    avatar      varchar(500),                   -- 头像
-    status      tinyint(1),                     -- 状态：0禁用 1正常
-    create_time datetime,                       -- 创建时间
-    update_time datetime,                       -- 更新时间
-    remark      varchar(500),                   -- 备注
-    is_delete   tinyint(1)   not null default 0 -- 是否删除
+    id              bigint primary key,
+    nickname        varchar(500) not null,          -- 昵称
+    avatar          varchar(500),                   -- 头像
+    status          tinyint(1),                     -- 状态：0禁用 1正常
+    last_login_time datetime,                       -- 最后一次登录时间
+    create_time     datetime,                       -- 创建时间
+    update_time     datetime,                       -- 更新时间
+    remark          varchar(500),                   -- 备注
+    is_delete       tinyint(1)   not null default 0 -- 是否删除
 );
 
 create table if not exists user_auth

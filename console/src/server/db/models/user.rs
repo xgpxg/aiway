@@ -1,6 +1,7 @@
+use crate::server::user::{UserListReq, UserListRes};
 use derive_builder::Builder;
-use rbatis::crud;
 use rbatis::rbdc::DateTime;
+use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
 
 /// 用户
@@ -15,9 +16,14 @@ pub struct User {
     pub avatar: Option<String>,
     /// 状态：0未生效 1正常 9冻结
     pub status: Option<i8>,
+    /// 最后登录时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
+    pub last_login_time: Option<DateTime>,
     /// 创建时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub create_time: Option<DateTime>,
     /// 更新时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub update_time: Option<DateTime>,
     /// 备注
     pub remark: Option<String>,
@@ -36,3 +42,4 @@ pub enum UserStatus {
 }
 
 crud!(User {});
+htmlsql_select_page!(list_page(param: &UserListReq) -> UserListRes => "src/server/db/mapper/user.html");

@@ -1,13 +1,20 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::db::models::user::User;
+use crate::server::db::models::user;
+use crate::server::db::models::user::{User, UserBuilder};
 use crate::server::db::models::user_auth::{IdentityType, UserAuth, UserAuthBuilder};
 use crate::server::db::{Pool, tools};
-use crate::server::user::request::{LoginReq, UpdatePasswordReq};
-use crate::server::user::response::{LoginRes, OtherInfo, UserBaseInfo, UserCenterRes};
+use crate::server::user::UserListReq;
+use crate::server::user::request::{LoginReq, UpdatePasswordReq, UserAddReq};
+use crate::server::user::response::{
+    LoginRes, OtherInfo, UserBaseInfo, UserCenterRes, UserListRes,
+};
 use anyhow::bail;
+use cache::caches::CacheKey;
+use common::id;
+use protocol::common::req::{IdsReq, Pagination};
+use protocol::common::res::{IntoPageRes, PageRes};
 use rbs::value;
 use std::time::Duration;
-use cache::caches::CacheKey;
 
 pub(crate) async fn login(req: LoginReq) -> anyhow::Result<LoginRes> {
     let user_id = match req.login_type {
@@ -59,6 +66,20 @@ pub(crate) async fn login(req: LoginReq) -> anyhow::Result<LoginRes> {
         Some(Duration::from_secs(3600 * 24).as_secs()),
     )
     .await?;
+
+    // 更新登录时间
+    let tx = Pool::get()?;
+    User::update_by_map(
+        tx,
+        &UserBuilder::default()
+            .last_login_time(Some(tools::now()))
+            .build()?,
+        value! {
+            "id": user.id,
+        },
+    )
+    .await?;
+
     Ok(LoginRes { token })
 }
 
@@ -142,4 +163,46 @@ mod tests {
         let hashed = bcrypt::hash(password, bcrypt::DEFAULT_COST).unwrap();
         println!("{}", hashed);
     }
+}
+
+pub async fn list(req: UserListReq, _user: UserPrincipal) -> anyhow::Result<PageRes<UserListRes>> {
+    let page = user::list_page(Pool::get()?, &req.to_rb_page(), &req).await?;
+    let list = page.into();
+    Ok(list)
+}
+
+pub async fn add(req: UserAddReq, user_: UserPrincipal) -> anyhow::Result<()> {
+    let user = UserBuilder::default()
+        .id(Some(id::next()))
+        .nickname(Some(req.nickname.unwrap_or(req.username.clone())))
+        .create_time(Some(tools::now()))
+        .build()?;
+
+    let password = bcrypt::hash(&req.password, bcrypt::DEFAULT_COST)?;
+    let user_auth = UserAuthBuilder::default()
+        .id(Some(id::next()))
+        .user_id(Some(user.id.unwrap()))
+        .identity(Some(req.username))
+        .secret(Some(password))
+        .r#type(Some(IdentityType::Username as i8))
+        .create_time(Some(tools::now()))
+        .create_user_id(Some(user_.id))
+        .build()?;
+
+    let tx = Pool::get()?;
+    User::insert(tx, &user).await?;
+    UserAuth::insert(tx, &user_auth).await?;
+
+    Ok(())
+}
+
+pub async fn delete(req: IdsReq, _user: UserPrincipal) -> anyhow::Result<()> {
+    User::delete_by_map(
+        Pool::get()?,
+        value! {
+            "id": req.ids,
+        },
+    )
+    .await?;
+    Ok(())
 }

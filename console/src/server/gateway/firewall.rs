@@ -19,7 +19,6 @@ pub(crate) async fn configuration() -> anyhow::Result<Firewall> {
             referer_policy: Default::default(),
             allow_empty_referer: false,
             max_connections: Default::default(),
-            api_key_leak_scan: Default::default(),
         });
     }
     let config = config.first().unwrap();

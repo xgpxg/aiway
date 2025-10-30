@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+<mapper>
+    <select id="list_page">
+        <if test="do_count == true">
+            select count(1)
+        </if>
+        <if test="do_count == false">
+            select u.*,
+                   ua1.identity as username
+        </if>
+        ` `
+        from user u
+        left join user_auth ua1 on u.id = ua1.user_id and ua1.type = 1
+        <where>
+            <if test="param.filter_text != null && param.filter_text != ''">
+                ` and (
+                    u.nickname like concat('%', #{param.filter_text}, '%')
+                    or ua1.identity like concat('%', #{param.filter_text}, '%')
+                ) `
+            </if>
+            <if test="param.status != null">
+                ` and u.status = #{param.status} `
+            </if>
+        </where>
+        <if test="do_count == false">
+            ` order by u.id desc `
+            ` limit ${page_no},${page_size} `
+        </if>
+    </select>
+</mapper>

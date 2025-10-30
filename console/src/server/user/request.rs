@@ -1,3 +1,5 @@
+use protocol::common::req::PageReq;
+use protocol::impl_pagination;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,4 +24,18 @@ pub struct SendVerifyCodeReq {
 pub struct UpdateEmailReq {
     pub email: String,
     pub secret: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserListReq {
+    pub page: PageReq,
+    pub filter_text: Option<String>,
+}
+impl_pagination!(UserListReq);
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserAddReq {
+    pub username: String,
+    pub password: String,
+    pub nickname: Option<String>,
 }

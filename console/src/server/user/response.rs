@@ -1,3 +1,4 @@
+use crate::server::db::models::user::User;
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,4 +24,11 @@ pub struct UserBaseInfo {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OtherInfo {
     pub password_has_set: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserListRes {
+    #[serde(flatten)]
+    pub inner: User,
+    pub username: String,
 }
