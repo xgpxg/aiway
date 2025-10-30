@@ -29,8 +29,17 @@ async fn logout(user: UserPrincipal) -> Res<()> {
     }
 }
 
+/// 用户中心
+#[get("/center")]
+async fn center(user: UserPrincipal) -> Res<UserCenterRes> {
+    match service::center(user).await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
 /// 修改密码
-#[post("/update/password", data = "<req>")]
+#[post("/manage/update/password", data = "<req>")]
 async fn update_password(req: Json<UpdatePasswordReq>, user: UserPrincipal) -> Res<()> {
     match service::update_password(req.into_inner(), user).await {
         Ok(_) => Res::success(()),
@@ -40,14 +49,6 @@ async fn update_password(req: Json<UpdatePasswordReq>, user: UserPrincipal) -> R
 
 // TODO 修改基本信息
 
-/// 用户中心
-#[get("/center")]
-async fn center(user: UserPrincipal) -> Res<UserCenterRes> {
-    match service::center(user).await {
-        Ok(res) => Res::success(res),
-        Err(e) => Res::error(&e.to_string()),
-    }
-}
 
 #[post("/manage/list", data = "<req>")]
 async fn list(req: Json<UserListReq>, user: UserPrincipal) -> Res<PageRes<UserListRes>> {
