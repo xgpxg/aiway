@@ -15,6 +15,7 @@ use protocol::common::req::{IdsReq, Pagination};
 use protocol::common::res::{IntoPageRes, PageRes};
 use rbs::value;
 use std::time::Duration;
+use validator::Validate;
 
 pub(crate) async fn login(req: LoginReq) -> anyhow::Result<LoginRes> {
     let user_id = match req.login_type {
@@ -172,6 +173,7 @@ pub async fn list(req: UserListReq, _user: UserPrincipal) -> anyhow::Result<Page
 }
 
 pub async fn add(req: UserAddReq, user_: UserPrincipal) -> anyhow::Result<()> {
+    req.validate()?;
     let user = UserBuilder::default()
         .id(Some(id::next()))
         .nickname(Some(req.nickname.unwrap_or(req.username.clone())))

@@ -1,6 +1,7 @@
 use protocol::common::req::PageReq;
 use protocol::impl_pagination;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoginReq {
@@ -33,10 +34,12 @@ pub struct UserListReq {
 }
 impl_pagination!(UserListReq);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct UserAddReq {
+    #[validate(length(min = 1, max = 50, message = "长度必须大于1且小于50"))]
     pub username: String,
     pub password: String,
+    #[validate(length(min = 1, max = 50, message = "长度必须大于1且小于50"))]
     pub nickname: Option<String>,
 }
 

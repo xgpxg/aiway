@@ -31,6 +31,7 @@ nanoid = "0.4.0"
 config = { version = "0.15", default-features = false, features = ["json"] }
 tokio-cron-scheduler = { version = "0.13.0", features = ["english"] }
 chrono = { version = "0.4", features = ["serde"] }
+validator = { version = "0.20", features = ["derive"] }
 
 [features]
 default = []
