@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct LogEntry {
+    /// 格式为：2022-01-01 00:00:00.000
     pub time: String,
     pub service: String,
     pub level: String,

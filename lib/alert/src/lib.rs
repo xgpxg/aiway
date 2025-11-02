@@ -8,71 +8,88 @@
 //! - 飞书
 //! - 自定义接口
 
-use protocol::gateway::alert::{AlertConfig, AlertMessage};
-use std::sync::Arc;
+pub mod pusher;
 
+use protocol::gateway::alert::AlertMessage;
+use std::sync::OnceLock;
+
+#[derive(Debug)]
 pub struct Alert {
-    /// 告警配置
-    config: Arc<AlertConfig>,
+    /// 控制台地址，格式：127.0.0.1:6000
+    console: String,
+    /// HTTP客户端
     client: reqwest::Client,
 }
 
 impl Alert {
-    pub fn new(config: AlertConfig) -> Self {
+    /// 控制台接收告警消息的接口
+    const ALERT_API: &'static str = "/api/v1/gateway/alert";
+
+    pub fn new(console: String) -> Self {
         Alert {
-            config: Arc::new(config),
+            console: format!("http://{}{}", console, Self::ALERT_API),
             client: Default::default(),
         }
     }
 
-    pub fn info(&self, title: &str, content: &str) {
+    fn info_(&self, title: &str, content: &str) {
         let message = AlertMessage::info(title, content);
-        // TODO: send alert
-    }
-    pub fn warn(&self, title: &str, content: &str) {
-        let message = AlertMessage::warn(title, content);
-        // TODO: send alert
-    }
-    pub fn error(&self, title: &str, content: &str) {
-        let message = AlertMessage::error(title, content);
-        // TODO: send alert
+        self.send(message);
     }
 
-    fn send(&self, message: AlertMessage) -> Result<(), reqwest::Error> {
+    fn warn_(&self, title: &str, content: &str) {
+        let message = AlertMessage::warn(title, content);
+        self.send(message);
+    }
+
+    fn error_(&self, title: &str, content: &str) {
+        let message = AlertMessage::error(title, content);
+        self.send(message);
+    }
+
+    /// 发送告警消息到控制台
+    fn send(&self, message: AlertMessage) {
         let client = self.client.clone();
-        let config = self.config.clone();
+        let console = self.console.clone();
         tokio::spawn(async move {
-            if config.console.enable {
-                client
-                    .post(&config.console.address)
-                    .json(&message)
-                    .send()
-                    .await?;
-            }
-            if config.dingding.enable {
-                client
-                    .post(&config.dingding.address)
-                    .json(&message)
-                    .send()
-                    .await?;
-            }
-            if config.wecom.enable {
-                client
-                    .post(&config.wecom.address)
-                    .json(&message)
-                    .send()
-                    .await?;
-            }
-            if config.feishu.enable {
-                client
-                    .post(&config.feishu.address)
-                    .json(&message)
-                    .send()
-                    .await?;
-            }
+            client.post(&console).json(&message).send().await?;
             Ok::<(), reqwest::Error>(())
         });
+    }
 
-        Ok(())
+    pub fn info(title: &str, content: &str) {
+        let alert = ALERT.get().unwrap();
+        alert.info_(title, content);
+    }
+
+    pub fn warn(title: &str, content: &str) {
+        let alert = ALERT.get().unwrap();
+        alert.warn_(title, content);
+    }
+
+    pub fn error(title: &str, content: &str) {
+        let alert = ALERT.get().unwrap();
+        alert.error_(title, content);
+    }
+}
+
+static ALERT: OnceLock<Alert> = OnceLock::new();
+
+/// 初始化
+///
+/// - console: 控制台地址，格式：127.0.0.1:6000
+pub fn init(console: String) {
+    ALERT.set(Alert::new(console)).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_alert() {
+        init("127.0.0.1:6000".to_string());
+        Alert::info("测试标题", "测试内容");
+
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
 }

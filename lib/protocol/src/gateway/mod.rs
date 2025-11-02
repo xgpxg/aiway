@@ -7,6 +7,8 @@
 //! 4. 服务配置
 //!
 
+#[cfg(feature = "alert")]
+pub mod alert;
 #[cfg(feature = "api-key")]
 mod api_key;
 mod configuration;
