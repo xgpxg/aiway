@@ -5,8 +5,9 @@
 //! 待定：本模块中的接口目前没有做权限验证，后面需要确认请求是否来自gateway。
 //!
 use crate::server;
-use crate::server::gateway::{plugin, reporter, route, service};
+use crate::server::gateway::{alerter, plugin, reporter, route, service};
 use protocol::common::res::Res;
+use protocol::gateway::alert::AlertMessage;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 
@@ -18,6 +19,7 @@ pub fn routes() -> Vec<rocket::Route> {
         configuration,
         firewall,
         report,
+        alert,
     ]
 }
 
@@ -70,6 +72,15 @@ async fn firewall() -> Res<protocol::gateway::Firewall> {
 #[post("/gateway/report", data = "<req>")]
 async fn report(req: Json<protocol::gateway::state::State>) -> Res<()> {
     match reporter::report(req.0).await {
+        Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 接收网关预警
+#[post("/gateway/alert", data = "<req>")]
+async fn alert(req: Json<AlertMessage>) -> Res<()> {
+    match alerter::alert(req.0).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),
     }

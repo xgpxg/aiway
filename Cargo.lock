@@ -39,6 +39,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "alert"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "protocol",
+ "reqwest",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -711,6 +722,7 @@ dependencies = [
 name = "console"
 version = "0.1.0"
 dependencies = [
+ "alert",
  "anyhow",
  "bcrypt",
  "cache",
@@ -1531,6 +1543,7 @@ dependencies = [
 name = "gateway"
 version = "0.1.0"
 dependencies = [
+ "alert",
  "anyhow",
  "cache",
  "chrono",
@@ -3208,6 +3221,7 @@ version = "0.1.0"
 dependencies = [
  "base58",
  "chacha20poly1305",
+ "chrono",
  "dashmap",
  "rbatis",
  "rocket",

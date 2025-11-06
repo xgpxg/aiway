@@ -81,10 +81,12 @@ use rocket::data::{ByteUnit, Limits};
 use std::net::IpAddr;
 use std::str::FromStr;
 
+mod message;
 mod auth;
 mod common;
 pub mod db;
 mod file;
+mod firewall;
 mod gateway;
 mod key;
 mod log;
@@ -94,7 +96,6 @@ mod route;
 mod service;
 pub mod task;
 mod user;
-mod firewall;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     //let config = &AppConfig::server();

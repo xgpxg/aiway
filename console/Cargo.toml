@@ -8,6 +8,7 @@ logging = { path = "../lib/logging" }
 cache = { path = "../lib/cache", optional = true }
 common = { path = "../lib/common" }
 protocol = { path = "../lib/protocol", features = ["rbatis"] }
+alert = { path = "../lib/alert" }
 rocket = { version = "0.5", features = ["json"] }
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }

@@ -38,6 +38,9 @@ pub async fn init(args: &Args) {
 
     // 初始化定时任务
     task::start().await.unwrap();
+
+    // 初始化告警
+    alert::init(format!("{}:{}", args.address, args.port));
 }
 
 fn init_dir() -> anyhow::Result<()> {
