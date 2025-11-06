@@ -1,6 +1,5 @@
 use protocol::gateway::alert::{
-    AlertConfig, AlertMessage, ConsoleConfig, DingdingConfig, FeishuConfig, WebhookConfig,
-    WecomConfig,
+    AlertConfig, AlertMessage, DingdingConfig, FeishuConfig, WebhookConfig, WecomConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, LazyLock};
