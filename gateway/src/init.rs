@@ -1,6 +1,7 @@
 use crate::report::STATE;
 use crate::router::{ConfigFactory, Firewalld, PluginFactory, Router, Servicer};
 use crate::{Args, report};
+use alert::Alert;
 use logging::LogAppender;
 
 pub async fn init(args: &Args) {
@@ -43,6 +44,9 @@ pub async fn init(args: &Args) {
     // 初始化监控
     report::init(args);
 
+    // 初始化告警
+    alert::init(args.console.clone());
+
     // 设置panic hook
     set_panic_hook();
 }
@@ -54,6 +58,8 @@ fn set_panic_hook() {
 
         STATE.inc_status_request_count(500, 1);
         STATE.inc_http_connect_count(-1);
+
+        Alert::error("网关节点出现异常，请关注", &info.to_string());
 
         hook(info);
     }));
