@@ -4,7 +4,6 @@
 
 use crate::gateway::plugin::ConfiguredPlugin;
 use serde::{Deserialize, Serialize};
-use crate::gateway::alert::AlertConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Configuration {
@@ -18,7 +17,7 @@ pub struct Configuration {
 
     // TODO 通知和提醒配置
     // TODO 考虑放在这里还是单独配置？
-    pub alert: AlertConfig
+    // pub alert: AlertConfig
 }
 
 impl Default for Configuration {
@@ -27,7 +26,7 @@ impl Default for Configuration {
             // firewall: Firewall::default(),
             pre_filters: vec![],
             post_filters: vec![],
-            alert: Default::default(),
+            //alert: Default::default(),
         }
     }
 }

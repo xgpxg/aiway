@@ -77,7 +77,7 @@ async fn report(req: Json<protocol::gateway::state::State>) -> Res<()> {
     }
 }
 
-/// 接收网关预警
+/// 接收并推送告警消息
 #[post("/gateway/alert", data = "<req>")]
 async fn alert(req: Json<AlertMessage>) -> Res<()> {
     match alerter::alert(req.0).await {

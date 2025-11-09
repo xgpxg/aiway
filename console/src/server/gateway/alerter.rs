@@ -1,13 +1,10 @@
+use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use alert::pusher::Pusher;
 use protocol::gateway::alert::{AlertConfig, AlertMessage};
 
+/// 接收并推送告警消息
 pub(crate) async fn alert(req: AlertMessage) -> anyhow::Result<()> {
-    println!("alert: {:?}", req);
-
-    let mut config = AlertConfig::default();
-    config.dingding.enable = true;
-    config.dingding.webhook = "webhook地址".to_string();
+    let config = SystemConfig::get::<AlertConfig>(ConfigKey::Alert).await?;
     Pusher::push(config.into(), req);
-
     Ok(())
 }

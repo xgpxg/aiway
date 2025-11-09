@@ -1,5 +1,6 @@
 use crate::server::db::models::gateway_node::{GatewayNode, GatewayNodeBuilder, GatewayNodeStatus};
 use crate::server::db::{Pool, tools};
+use alert::Alert;
 use logging::log;
 use rbs::value;
 use std::time::Duration;
@@ -39,6 +40,15 @@ pub async fn update_timeout_heartbeat_node() {
             if let Err(e) = GatewayNode::update_by_map(tx, &update, value! {"id":node.id}).await {
                 log::error!("update_heartbeat error: {}", e);
             }
+
+            Alert::error(
+                "网关节点状态异常",
+                &format!(
+                    "网关节点心跳超时，请检查节点是否宕机，节点地址：{}:{}",
+                    node.ip.unwrap(),
+                    node.port.unwrap()
+                ),
+            );
         }
     }
 }

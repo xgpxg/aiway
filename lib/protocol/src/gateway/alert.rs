@@ -24,7 +24,7 @@ pub enum AlertLevel {
 
 /// 告警配置
 ///
-/// 该配置由控制台
+/// 该配置由控制台维护
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct AlertConfig {
     /// 钉钉配置
@@ -34,7 +34,7 @@ pub struct AlertConfig {
     /// 飞书配置
     pub feishu: FeishuConfig,
     /// 自定义WebHook
-    pub webhook: WebhookConfig,
+    pub custom: CustomConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,8 +44,14 @@ pub struct FeishuConfig {
     /// 飞书机器人WebHook
     pub webhook: String,
     /// 触发关键词
+    #[serde(default = "default_keyword")]
     pub keyword: String,
 }
+
+fn default_keyword() -> String {
+    "aiway".to_string()
+}
+
 impl Default for FeishuConfig {
     fn default() -> Self {
         Self {
@@ -62,11 +68,12 @@ pub struct DingdingConfig {
     /// 钉钉机器人WebHook
     pub webhook: String,
     /// 触发关键词
+    #[serde(default = "default_keyword")]
     pub keyword: String,
-    /// @手机号
+    /*/// @手机号
     pub at_mobiles: Vec<String>,
     /// 是否@所有人
-    pub is_at_all: bool,
+    pub is_at_all: bool,*/
 }
 impl Default for DingdingConfig {
     fn default() -> Self {
@@ -74,8 +81,6 @@ impl Default for DingdingConfig {
             enable: false,
             webhook: "".to_string(),
             keyword: "aiway".to_string(),
-            at_mobiles: vec![],
-            is_at_all: false,
         }
     }
 }
@@ -88,13 +93,11 @@ pub struct WecomConfig {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct WebhookConfig {
+pub struct CustomConfig {
     /// 是否启用
     pub enable: bool,
     /// 地址
-    pub url: String,
-    /// 请求头
-    pub headers: String,
+    pub webhook: String,
 }
 
 impl AlertMessage {

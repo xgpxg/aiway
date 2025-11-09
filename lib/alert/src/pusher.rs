@@ -1,5 +1,5 @@
 use protocol::gateway::alert::{
-    AlertConfig, AlertMessage, DingdingConfig, FeishuConfig, WebhookConfig, WecomConfig,
+    AlertConfig, AlertMessage, CustomConfig, DingdingConfig, FeishuConfig, WecomConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, LazyLock};
@@ -49,9 +49,6 @@ struct FeishuContent {
     text: String,
 }
 
-/// 触发关键词，仅钉钉和飞书需要
-const KW: &str = "aiway";
-
 static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     reqwest::Client::builder()
         .pool_max_idle_per_host(10)
@@ -63,6 +60,8 @@ static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
 
 pub struct Pusher;
 impl Pusher {
+    /// 触发关键词，仅钉钉和飞书需要
+    const KW: &'static str = "aiway";
     async fn push_dingding(config: &DingdingConfig, message: &AlertMessage) {
         log::debug!("push message to dingding");
 
@@ -138,12 +137,12 @@ impl Pusher {
         }
     }
 
-    async fn push_webhook(config: &WebhookConfig, message: &AlertMessage) {
+    async fn push_webhook(config: &CustomConfig, message: &AlertMessage) {
         todo!()
     }
 
     fn format_title_and_content(title: &str, content: &str) -> (String, String) {
-        let title = format!("【{}】{}", KW, title);
+        let title = format!("【{}】{}", Self::KW, title);
         let content = format!("{title}\n\n{content}");
         (title, content)
     }
@@ -160,8 +159,8 @@ impl Pusher {
             if config.feishu.enable {
                 Pusher::push_feishu(&config.feishu, &message).await;
             }
-            if config.webhook.enable {
-                Pusher::push_webhook(&config.webhook, &message).await;
+            if config.custom.enable {
+                Pusher::push_webhook(&config.custom, &message).await;
             }
             Ok::<(), reqwest::Error>(())
         });
