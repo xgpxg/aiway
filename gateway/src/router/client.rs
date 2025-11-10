@@ -4,7 +4,7 @@ use crate::Args;
 use anyhow::bail;
 use clap::Parser;
 use protocol::common::res::Res;
-use protocol::gateway::{Configuration, Firewall, Plugin, Route, Service};
+use protocol::gateway::{Firewall, GlobalFilter, Plugin, Route, Service};
 use reqwest::{Client, ClientBuilder};
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -97,14 +97,14 @@ impl InnerHttpClient {
         }
     }
 
-    pub async fn fetch_configuration(&self) -> anyhow::Result<Configuration> {
-        let endpoint = format!("http://{}/api/v1/gateway/configuration", self.args.console);
+    pub async fn fetch_global_filter(&self) -> anyhow::Result<GlobalFilter> {
+        let endpoint = format!("http://{}/api/v1/gateway/global/filter", self.args.console);
         match self.get(endpoint, HashMap::new()).await {
             Ok(response) => {
                 if let Err(e) = response.error_for_status_ref() {
-                    bail!("fetch configuration error: {}", e);
+                    bail!("fetch global filter error: {}", e);
                 }
-                let res = response.json::<Res<Configuration>>().await?;
+                let res = response.json::<Res<GlobalFilter>>().await?;
                 if res.is_success() {
                     Ok(res.data.unwrap())
                 } else {
@@ -112,7 +112,7 @@ impl InnerHttpClient {
                 }
             }
             Err(e) => {
-                bail!("fetch configuration error: {}", e);
+                bail!("fetch global filter error: {}", e);
             }
         }
     }

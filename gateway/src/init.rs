@@ -1,5 +1,5 @@
 use crate::report::STATE;
-use crate::router::{ConfigFactory, Firewalld, PluginFactory, Router, Servicer};
+use crate::router::{Firewalld, GlobalFilterConfig, PluginFactory, Router, Servicer};
 use crate::{Args, report};
 use alert::Alert;
 use logging::LogAppender;
@@ -26,8 +26,8 @@ pub async fn init(args: &Args) {
     // 初始化发布订阅
     //pubsub::init("127.0.0.1:4222").await.unwrap();
 
-    // 初始化网关配置
-    ConfigFactory::init().await;
+    // 初始全局路由过滤器配置
+    GlobalFilterConfig::init().await;
 
     // 初始化插件
     PluginFactory::init().await;

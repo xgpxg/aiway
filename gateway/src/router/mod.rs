@@ -1,12 +1,12 @@
 mod client;
-mod config;
+mod global_filter;
 mod firewall;
 mod plugins;
 mod router;
 mod servicer;
 
-pub use config::ConfigFactory;
-pub use config::GATEWAY_CONFIG;
+pub use global_filter::GlobalFilterConfig;
+pub use global_filter::GLOBAL_FILTER;
 pub use firewall::Firewalld;
 pub use plugins::PLUGINS;
 pub use plugins::PluginFactory;

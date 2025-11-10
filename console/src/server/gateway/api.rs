@@ -50,10 +50,10 @@ async fn all_plugins() -> Res<Vec<protocol::gateway::Plugin>> {
     }
 }
 
-/// 查询配置
-#[get("/gateway/configuration")]
-async fn configuration() -> Res<protocol::gateway::Configuration> {
-    match server::gateway::configuration::configuration().await {
+/// 查询全局路由插件
+#[get("/gateway/global/filter")]
+async fn configuration() -> Res<protocol::gateway::GlobalFilter> {
+    match server::gateway::global_filter::config().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
     }

@@ -28,9 +28,8 @@ crud!(SystemConfig {});
 pub enum ConfigKey {
     /// 版本号，用于记录当前系统版本，升级时需要
     Version,
-    /// 网关配置
-    #[deprecated]
-    Gateway,
+    /// 全局路由过滤器配置
+    GlobalFilter,
     /// 防火墙配置
     Firewall,
     /// 通知和提醒配置
@@ -40,7 +39,7 @@ impl Display for ConfigKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ConfigKey::Version => write!(f, "version"),
-            ConfigKey::Gateway => write!(f, "gateway"),
+            ConfigKey::GlobalFilter => write!(f, "global-filter"),
             ConfigKey::Firewall => write!(f, "firewall"),
             ConfigKey::Alert => {
                 write!(f, "alert")

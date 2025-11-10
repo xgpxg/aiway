@@ -11,7 +11,7 @@
 pub mod alert;
 #[cfg(feature = "api-key")]
 mod api_key;
-mod configuration;
+mod global_filter;
 mod firewall;
 pub mod http_context;
 pub mod plugin;
@@ -23,7 +23,7 @@ pub mod state;
 
 #[cfg(feature = "api-key")]
 pub use api_key::ApiKey;
-pub use configuration::Configuration;
+pub use global_filter::GlobalFilter;
 pub use firewall::AllowDenyPolicy;
 pub use firewall::Firewall;
 pub use http_context::HttpContext;

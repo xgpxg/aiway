@@ -1,22 +1,19 @@
-//! # 网关配置
-//! 负责从控制台加载网关全局配置
-
 use crate::router::client::INNER_HTTP_CLIENT;
 use anyhow::Context;
-use protocol::gateway::Configuration;
+use protocol::gateway::GlobalFilter;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tokio::sync::RwLock;
 
-pub struct ConfigFactory {
-    pub config: Arc<RwLock<Configuration>>,
+pub struct GlobalFilterConfig {
+    pub config: Arc<RwLock<GlobalFilter>>,
     hash: Arc<RwLock<String>>,
 }
 
-pub static GATEWAY_CONFIG: OnceLock<ConfigFactory> = OnceLock::new();
+pub static GLOBAL_FILTER: OnceLock<GlobalFilterConfig> = OnceLock::new();
 
-impl ConfigFactory {
+impl GlobalFilterConfig {
     pub async fn init() {
         if let Err(e) = Self::load().await {
             log::error!("{}", e);
@@ -25,13 +22,13 @@ impl ConfigFactory {
     }
 
     pub async fn load() -> anyhow::Result<()> {
-        let config = Self::fetch_configuration().await?;
-        log::info!("loaded gateway config: {:?}", config);
+        let config = Self::fetch_config().await?;
+        log::info!("loaded gateway global filters: {:?}", config);
 
         let hash = md5::compute(serde_json::to_string(&config)?);
         let hash = format!("{:x}", hash);
 
-        GATEWAY_CONFIG.get_or_init(|| Self {
+        GLOBAL_FILTER.get_or_init(|| Self {
             config: Arc::new(RwLock::new(config)),
             hash: Arc::new(RwLock::new(hash)),
         });
@@ -41,8 +38,8 @@ impl ConfigFactory {
         Ok(())
     }
 
-    async fn fetch_configuration() -> anyhow::Result<Configuration> {
-        INNER_HTTP_CLIENT.fetch_configuration().await
+    async fn fetch_config() -> anyhow::Result<GlobalFilter> {
+        INNER_HTTP_CLIENT.fetch_global_filter().await
     }
 
     const INTERVAL: Duration = Duration::from_secs(5);
@@ -52,7 +49,7 @@ impl ConfigFactory {
             let mut interval = tokio::time::interval(Self::INTERVAL);
             loop {
                 interval.tick().await;
-                let config = match Self::fetch_configuration().await {
+                let config = match Self::fetch_config().await {
                     Ok(config) => config,
                     Err(e) => {
                         log::error!("{}", e);
@@ -67,14 +64,14 @@ impl ConfigFactory {
                 );
                 let hash = format!("{:x}", hash);
 
-                let old_config = GATEWAY_CONFIG.get().unwrap();
+                let old_config = GLOBAL_FILTER.get().unwrap();
 
                 if *old_config.hash.read().await == hash {
-                    log::debug!("gateway config not changed, wait next interval");
+                    log::debug!("gateway global filters not changed, wait next interval");
                     continue;
                 }
 
-                log::info!("loaded gateway config: {:?}", config);
+                log::info!("loaded global filters config: {:?}", config);
 
                 {
                     *old_config.config.write().await = config;

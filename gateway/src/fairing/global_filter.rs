@@ -3,7 +3,7 @@
 //! 对请求/响应进行拦截处理，对整个网关有效。
 //!
 //! ## 基本准则
-//! - 在提请求数据后执行。
+//! - 在提取请求数据后执行。
 //! - 可由用户自由配置，串联执行
 //! - 要能够支持执行脚本
 //! - 可能涉及到网络请求，需考虑性能
@@ -18,7 +18,7 @@
 //!
 
 use crate::context::HCM;
-use crate::router::{GATEWAY_CONFIG, PLUGINS};
+use crate::router::{GLOBAL_FILTER, PLUGINS};
 use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
@@ -43,7 +43,7 @@ impl Fairing for GlobalPreFilter {
         skip_if_error!(req);
 
         let context = HCM.get_from_request(req);
-        let config = GATEWAY_CONFIG.get().unwrap().config.read().await;
+        let config = GLOBAL_FILTER.get().unwrap().config.read().await;
         let plugins = &config.pre_filters;
 
         for configured_plugin in plugins.iter() {
@@ -93,7 +93,7 @@ impl Fairing for GlobalPostFilter {
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
         skip_if_error!(req);
         let context = HCM.get_from_request(req);
-        let config = GATEWAY_CONFIG.get().unwrap().config.read().await;
+        let config = GLOBAL_FILTER.get().unwrap().config.read().await;
         let plugins = &config.post_filters;
 
         for configured_plugin in plugins.iter() {
