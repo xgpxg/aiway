@@ -3,6 +3,7 @@ use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::{Client, ClientBuilder, Url};
 use std::str::FromStr;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 /// 对LoadBalanceClient的封装
 pub struct HttpClient {

@@ -112,7 +112,7 @@ impl InnerHttpClient {
                 }
             }
             Err(e) => {
-                bail!("fetch global filter error: {}", e);
+                bail!("fetch global filter error: {:?}", e);
             }
         }
     }

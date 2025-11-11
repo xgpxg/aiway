@@ -1,13 +1,17 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::db::models::route;
 use crate::server::db::models::route::{Route, RouteBuilder, RouteStatus};
+use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use crate::server::db::{Pool, tools};
-use crate::server::route::request::{RouteAddOrUpdateReq, RouteListReq, UpdateStatusReq};
+use crate::server::route::request::{
+    RouteAddOrUpdateReq, RouteListReq, UpdateGlobalFilterConfigReq, UpdateStatusReq,
+};
 use crate::server::route::response::RouteListRes;
 use anyhow::{Context, bail};
 use common::id;
 use protocol::common::req::{IdsReq, Pagination};
 use protocol::common::res::{IntoPageRes, PageRes};
+use protocol::gateway::GlobalFilter;
 use rbs::value;
 
 pub async fn add(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
@@ -100,4 +104,16 @@ pub async fn update_status(req: UpdateStatusReq, user: UserPrincipal) -> anyhow:
     )
     .await?;
     Ok(())
+}
+
+pub async fn update_global_filter_config(
+    req: UpdateGlobalFilterConfigReq,
+    _user: UserPrincipal,
+) -> anyhow::Result<()> {
+    SystemConfig::upsert(ConfigKey::GlobalFilter, &req.inner).await?;
+    Ok(())
+}
+
+pub(crate) async fn get_global_filter_config(p0: UserPrincipal) -> anyhow::Result<GlobalFilter> {
+    Ok(SystemConfig::get(ConfigKey::GlobalFilter).await?)
 }

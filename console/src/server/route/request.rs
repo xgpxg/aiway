@@ -1,5 +1,6 @@
 use crate::server::db::models::route::{Route, RouteStatus};
 use protocol::common::req::PageReq;
+use protocol::gateway::GlobalFilter;
 use protocol::gateway::plugin::ConfiguredPlugin;
 use protocol::impl_pagination;
 use serde::{Deserialize, Serialize};
@@ -77,4 +78,9 @@ impl_pagination!(RouteListReq);
 pub struct UpdateStatusReq {
     pub id: i64,
     pub status: RouteStatus,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateGlobalFilterConfigReq {
+    #[serde(flatten)]
+    pub inner: GlobalFilter,
 }
