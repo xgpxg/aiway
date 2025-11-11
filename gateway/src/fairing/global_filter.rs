@@ -48,7 +48,7 @@ impl Fairing for GlobalPreFilter {
 
         for configured_plugin in plugins.iter() {
             log::debug!(
-                "execute global post filter plugin: {}",
+                "execute global pre filter plugin: {}",
                 configured_plugin.name
             );
             let result = PLUGINS
