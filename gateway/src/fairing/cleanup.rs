@@ -29,9 +29,11 @@ impl Fairing for Cleaner {
             HCM.remove(request_id);
         }
 
+        // 移除掉仅网关内部使用的Header
         res.remove_header(context::Headers::ERROR_CODE);
         res.remove_header(context::Headers::ERROR_MESSAGE);
 
+        // 连接数减1
         STATE.inc_http_connect_count(-1);
 
         log::debug!("cleaner: {}", req.uri());

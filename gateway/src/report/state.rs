@@ -9,7 +9,7 @@ pub struct GatewayState {
 }
 impl GatewayState {
     /// 刷新状态，并清空计数器。返回旧状态。
-    pub fn refresh(&self,node_info: NodeInfo) -> State {
+    pub fn refresh(&self, node_info: NodeInfo) -> State {
         let system_state = self.build_system_state();
 
         // 锁定
@@ -101,6 +101,7 @@ impl GatewayState {
         self.state.lock().unwrap().counter.request_count += n;
     }
 
+    /// 更新不同状态码的计数
     pub fn inc_status_request_count(&self, status_code: u16, n: usize) {
         match status_code {
             200..300 => self.state.lock().unwrap().counter.response_2xx_count += n,

@@ -41,24 +41,17 @@ impl Fairing for Authentication {
                 Some(api_key) => api_key,
                 None => {
                     set_error!(req, 401, "Unauthorized");
-                    // req.set_method(Method::Get);
-                    // req.set_uri(Origin::parse("/eep/401").unwrap());
                     return;
                 }
             },
             None => {
                 set_error!(req, 401, "Unauthorized");
-
-                // req.set_method(Method::Get);
-                // req.set_uri(Origin::parse("/eep/401").unwrap());
                 return;
             }
         };
 
         if let Err(_) = ApiKey::decrypt(ENCRYPT_KEY, api_key) {
             set_error!(req, 401, "Unauthorized");
-            // req.set_method(Method::Get);
-            // req.set_uri(Origin::parse("/eep/401").unwrap());
             return;
         }
 
@@ -67,11 +60,7 @@ impl Fairing for Authentication {
             .unwrap();
         if api_key.is_none() {
             set_error!(req, 401, "Unauthorized");
-            // req.set_method(Method::Get);
-            // req.set_uri(Origin::parse("/eep/401").unwrap());
             return;
         }
-
-        //println!("{:?}", api_key.unwrap().principal);
     }
 }

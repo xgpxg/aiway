@@ -10,7 +10,7 @@ pub fn catch_401(req: &Request) -> String {
     if let Some((_, message)) = extract_error!(req) {
         return message.to_string();
     }
-    "Unauthorized".to_string()
+    "401 Unauthorized".to_string()
 }
 
 #[rocket::catch(403)]
@@ -18,7 +18,7 @@ pub fn catch_403(req: &Request) -> String {
     if let Some((_, message)) = extract_error!(req) {
         return message.to_string();
     }
-    "Forbidden".to_string()
+    "403 Forbidden".to_string()
 }
 
 #[rocket::catch(404)]
@@ -26,5 +26,5 @@ pub fn catch_404(req: &Request) -> String {
     if let Some((_, message)) = extract_error!(req) {
         return message.to_string();
     }
-    "NotFound".to_string()
+    "404 NotFound".to_string()
 }

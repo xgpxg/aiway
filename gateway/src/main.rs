@@ -29,6 +29,7 @@ struct Args {
     /// 日志服务
     #[arg(short, long, default_value = "127.0.0.1:7280")]
     log_server: String,
+    // TODO 缓存服务
 }
 
 impl Args {

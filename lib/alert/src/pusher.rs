@@ -1,3 +1,8 @@
+//! # 推送消息
+//! 推送消息到第三方平台，如钉钉、飞书等。推送操作由控制台触发，这里仅实现推送逻辑。
+//!
+//! 或者，要不要考虑放到控制台？
+//!
 use protocol::gateway::alert::{
     AlertConfig, AlertMessage, CustomConfig, DingdingConfig, FeishuConfig, WecomConfig,
 };
