@@ -18,6 +18,7 @@ pub async fn add(mut req: PluginAddReq<'_>, user: UserPrincipal) -> anyhow::Resu
         .name(Some(req.name))
         .description(Some(req.description))
         .version(Some(req.version))
+        .document(req.document)
         .create_user_id(Some(user.id))
         .create_time(Some(tools::now()))
         .build()?;
@@ -104,6 +105,7 @@ pub async fn update(req: PluginUpdateReq<'_>, user: UserPrincipal) -> anyhow::Re
     let mut update = PluginBuilder::default()
         .description(req.description)
         .version(Some(req.version))
+        .document(req.document)
         .update_user_id(Some(user.id))
         .update_time(Some(tools::now()))
         .build()?;

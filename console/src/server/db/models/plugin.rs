@@ -22,6 +22,8 @@ pub struct Plugin {
     /// - 该配置仅由插件管理处修改；
     /// - 仅作为默认配置展示给前端，在路由插件配置处，会使用该配置作为路由插件的默认配置。
     pub default_config: Option<serde_json::Value>,
+    /// 插件说明文档，Markdown格式
+    pub document: Option<String>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

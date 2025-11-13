@@ -1,10 +1,10 @@
 //! # 负载均衡
 //!
 use crate::context::HCM;
-use crate::router::SERVICES;
+use crate::router::Servicer;
+use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
-use crate::{set_error, skip_if_error};
 
 pub struct LoadBalance {}
 impl LoadBalance {
@@ -36,7 +36,7 @@ impl Fairing for LoadBalance {
             // 没有匹配到service或service为空，修改uri，转发到502端点
             log::warn!("No valid service matched for route path: {}", route.path);
         } else {
-            match SERVICES.get().unwrap().get_instance(service) {
+            match Servicer::get_instance(service) {
                 Some(instance) if !instance.is_empty() => {
                     // 设置最终需要转发的URL
                     context.request.set_routing_url(instance);

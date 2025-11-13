@@ -111,7 +111,7 @@ impl Servicer {
         });
     }
 
-    pub fn get_instance(&self, service_id: &str) -> Option<String> {
+    pub fn get_instance(service_id: &str) -> Option<String> {
         let service = SERVICES.get().unwrap().services.get(service_id);
         if let Some(service) = service {
             return service.lb.select(&service.service.nodes);

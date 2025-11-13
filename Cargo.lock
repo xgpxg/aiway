@@ -707,18 +707,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "config"
-version = "0.15.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "180e549344080374f9b32ed41bf3b6b57885ff6a289367b3dbc10eea8acc1918"
-dependencies = [
- "pathdiff",
- "serde_core",
- "serde_json",
- "winnow",
-]
-
-[[package]]
 name = "console"
 version = "0.1.0"
 dependencies = [
@@ -729,7 +717,6 @@ dependencies = [
  "chrono",
  "clap",
  "common",
- "config",
  "derive_builder",
  "fs_extra",
  "logging",
@@ -2862,12 +2849,6 @@ dependencies = [
  "smallvec",
  "windows-link 0.2.1",
 ]
-
-[[package]]
-name = "pathdiff"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "pear"
