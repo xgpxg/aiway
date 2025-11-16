@@ -20,7 +20,9 @@ pub struct Reporter {
 impl Reporter {
     pub fn new(interval: Duration) -> Self {
         let client = reqwest::ClientBuilder::default()
-            .connect_timeout(Duration::from_secs(common::constants::REPORT_STATE_INTERVAL))
+            .connect_timeout(Duration::from_secs(
+                common::constants::REPORT_STATE_INTERVAL,
+            ))
             .build()
             .unwrap();
         Self { interval, client }
@@ -72,6 +74,7 @@ mod tests {
             address: "".to_string(),
             port: 0,
             console: "127.0.0.1:8080".to_string(),
+            log_server: "127.0.0.1:7281".to_string(),
         };
         init(&args);
         tokio::time::sleep(Duration::from_millis(200)).await;

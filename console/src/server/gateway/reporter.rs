@@ -1,6 +1,7 @@
 use crate::server::db::models::gateway_node::{GatewayNode, GatewayNodeBuilder, GatewayNodeStatus};
 use crate::server::db::models::gateway_node_state::{GatewayNodeState, GatewayNodeStateBuilder};
 use crate::server::db::{Pool, tools};
+use alert::Alert;
 use common::id;
 use logging::log;
 use protocol::gateway::state::State;
@@ -25,8 +26,15 @@ pub async fn report(req: State) -> anyhow::Result<()> {
             .last_heartbeat_time(Some(tools::now()))
             .build()?;
         GatewayNode::insert(tx, &gateway_node).await?;
+        // 发送提醒
+        send_alert(&gateway_node);
     } else {
         // 更新节点心跳时间
+        let gateway_node = gateway_node.first().unwrap().clone();
+        // 发送提醒
+        if gateway_node.status.as_ref().unwrap() == &GatewayNodeStatus::Offline {
+            send_alert(&gateway_node);
+        }
         let gateway_node = GatewayNodeBuilder::default()
             .last_heartbeat_time(Some(tools::now()))
             .status(Some(GatewayNodeStatus::Online))
@@ -101,4 +109,15 @@ pub async fn report(req: State) -> anyhow::Result<()> {
     GatewayNodeState::insert(tx, &gateway_state_log).await?;
 
     Ok(())
+}
+
+fn send_alert(node: &GatewayNode) {
+    Alert::info(
+        "网关节点上线",
+        &format!(
+            "节点地址: {}:{}",
+            node.ip.as_ref().unwrap(),
+            node.port.as_ref().unwrap()
+        ),
+    );
 }

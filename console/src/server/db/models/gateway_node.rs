@@ -36,7 +36,7 @@ pub struct GatewayNode {
     pub is_delete: Option<i8>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum GatewayNodeStatus {
     Online,
     Offline,
