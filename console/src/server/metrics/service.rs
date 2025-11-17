@@ -4,6 +4,7 @@ use crate::server::db::models::gateway_node_state::GatewayNodeState;
 use crate::server::metrics::response::GatewayState;
 use chrono::Timelike;
 use rbs::value;
+use serde::Deserialize;
 
 pub async fn gateway_state() -> anyhow::Result<GatewayState> {
     let mut state = GatewayState::default();
@@ -69,7 +70,7 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
         .unwrap()
         .timestamp_millis();
 
-    state.request_today_count = tx
+    let request_today_count = tx
         .query_decode::<Option<u64>>(
             r#"
            select sum(interval_request_count) from gateway_node_state where ts >= ? group by node_id
@@ -78,6 +79,8 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
         )
         .await?
         .unwrap_or(0) as usize;
+
+    state.request_today_count = request_today_count;
 
     state.request_count = node_states.iter().map(|s| s.request_count).sum::<usize>();
     state.request_invalid_count = node_states
@@ -104,6 +107,31 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
         .iter()
         .map(|s| s.http_connect_count as usize)
         .sum::<usize>();
+
+    // info、warn、error级别的未读消息数
+    #[derive(Deserialize)]
+    struct MessageCount {
+        info_count: Option<usize>,
+        warn_count: Option<usize>,
+        error_count: Option<usize>,
+    }
+    let message_count = tx
+        .query_decode::<MessageCount>(
+            r#"
+                SELECT
+                    SUM(CASE WHEN level = 'Info' THEN 1 ELSE 0 END) as info_count,
+                    SUM(CASE WHEN level = 'Warn' THEN 1 ELSE 0 END) as warn_count,
+                    SUM(CASE WHEN level = 'Error' THEN 1 ELSE 0 END) as error_count
+                FROM message
+                WHERE read_status = 'Unread'
+            "#,
+            vec![],
+        )
+        .await?;
+
+    state.info_count = message_count.info_count.unwrap_or(0);
+    state.warn_count = message_count.warn_count.unwrap_or(0);
+    state.error_count = message_count.error_count.unwrap_or(0);
 
     Ok(state)
 }

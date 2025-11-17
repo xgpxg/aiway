@@ -8,6 +8,8 @@ use protocol::gateway::state::State;
 use rbs::value;
 
 /// 接收gateway上报数据
+///
+/// 注意这里仅接收网关节点的状态数据，告警数据使用alert接口处理。
 pub async fn report(req: State) -> anyhow::Result<()> {
     let node_id = &req.node_info.node_id;
 

@@ -36,4 +36,10 @@ pub struct GatewayState {
     /// 当前连接总数
     /// 取值：gateway_node表的所有节点的连接总数
     pub http_connect_count: usize,
+    /// 未读的错误信息数量
+    pub error_count: usize,
+    /// 未读的警告信息数量
+    pub warn_count: usize,
+    /// 未读的提示信息数量
+    pub info_count: usize,
 }

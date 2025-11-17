@@ -2,7 +2,7 @@ use chrono::Local;
 use serde::{Deserialize, Serialize};
 
 /// 告警消息
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertMessage {
     /// 告警发生的时间，格式为：2022-01-01 00:00:00.000
     pub time: String,
@@ -15,7 +15,7 @@ pub struct AlertMessage {
 }
 
 /// 告警级别
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AlertLevel {
     Info,
     Warn,

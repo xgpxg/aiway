@@ -165,17 +165,20 @@ create table if not exists gateway_node_state
 create index if not exists idx_node_id on gateway_node_state (node_id);
 create index if not exists idx_ts on gateway_node_state (ts);
 
-
+-- 消息（提醒/警告消息等）
 create table if not exists message
 (
     id          bigint primary key,
-    type        varchar(50) not null,           -- 消息类型：system | alert
-    level       varchar(50) not null,           -- 消息级别：info | warn | error
-    title       varchar(500),                   -- 标题
-    content     text        not null,           --  内容
-    read_status tinyint(1)  not null default 0, -- 0未读 1已读
-    create_time datetime    not null
+    -- 移除type字段，不需要类型标记，系统通知使用info级别即可
+    -- type        varchar(50) not null,           -- 消息类型：system | alert
+    level       varchar(50)  not null,                  -- 消息级别：info | warn | error
+    title       varchar(500) not null,                  -- 标题
+    content     text         not null,                  -- 内容
+    read_status varchar(10)  not null default 'Unread', -- Unread 未读 | Read 已读
+    create_time datetime     not null,
+    is_delete   tinyint(1)   not null default 0         -- 是否删除
 );
+
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');
