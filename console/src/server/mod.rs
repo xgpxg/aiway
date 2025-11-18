@@ -123,6 +123,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/log", log::api::routes());
     builder = builder.mount("/api/firewall", firewall::api::routes());
     builder = builder.mount("/api/system", system::routes());
+    builder = builder.mount("/api/message", message::api::routes());
 
     builder = builder.mount("/file/", file::api::routes());
 

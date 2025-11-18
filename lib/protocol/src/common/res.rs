@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use std::any::Any;
+use std::collections::HashMap;
 
 ///通用Json响应返回
 #[derive(Debug, Serialize, Deserialize)]
@@ -57,6 +59,17 @@ pub struct PageRes<T> {
     pub page_size: u64,
     pub total: u64,
     pub list: Vec<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ext: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl<T> PageRes<T> {
+    pub fn ext<V: Serialize>(&mut self, key: &str, value: V) {
+        let value = serde_json::to_value(value).unwrap_or(serde_json::Value::Null);
+        self.ext
+            .get_or_insert(HashMap::new())
+            .insert(key.to_string(), value);
+    }
 }
 
 #[allow(unused)]
@@ -86,6 +99,7 @@ where
             page_size: self.page_size,
             total: self.total,
             list,
+            ext: None,
         }
     }
 }
@@ -101,6 +115,7 @@ where
             page_size: self.page_size,
             total: self.total,
             list: self.records,
+            ext: None,
         }
     }
 }

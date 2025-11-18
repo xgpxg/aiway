@@ -107,6 +107,8 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
         .iter()
         .map(|s| s.http_connect_count as usize)
         .sum::<usize>();
+    state.net_rx = node_states.iter().map(|s| s.net_rx as usize).sum::<usize>();
+    state.net_tx = node_states.iter().map(|s| s.net_tx as usize).sum::<usize>();
 
     // info、warn、error级别的未读消息数
     #[derive(Deserialize)]
@@ -132,6 +134,16 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
     state.info_count = message_count.info_count.unwrap_or(0);
     state.warn_count = message_count.warn_count.unwrap_or(0);
     state.error_count = message_count.error_count.unwrap_or(0);
+
+    // 最新消息标题
+    state.last_message_title = tx
+        .query_decode::<Option<String>>(
+            r#"
+                SELECT title FROM message ORDER BY id DESC LIMIT 1
+            "#,
+            vec![],
+        )
+        .await?;
 
     Ok(state)
 }

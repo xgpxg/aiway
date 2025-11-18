@@ -1,7 +1,7 @@
 use crate::args::Args;
 use crate::server::auth::UserPrincipal;
-use crate::server::firewall::request::DemoReq;
-use crate::server::firewall::response::DemoRes;
+use crate::server::_template::request::DemoReq;
+use crate::server::_template::response::DemoRes;
 use protocol::common::res::{PageRes, Res};
 use protocol::logg::LogEntry;
 use rocket::serde::json::Json;

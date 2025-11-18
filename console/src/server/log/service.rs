@@ -53,5 +53,6 @@ pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes
         page_size: req.page_size(),
         total: res.num_hits as u64,
         list: res.hits,
+        ext: None,
     })
 }

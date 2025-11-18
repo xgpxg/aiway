@@ -40,6 +40,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
 
     builder = builder.mount("/api/v1", api::routes());
 
+    // FIXME
     builder = builder.manage(Logg::new("logs/logs")?);
 
     builder.launch().await?;

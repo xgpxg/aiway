@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+<mapper>
+    <select id="list_page">
+        <if test="do_count == true">
+            select count(1)
+        </if>
+        <if test="do_count == false">
+            select m.*
+        </if>
+        ` `
+        from message m
+        <where>
+            <if test="param.filter_text!=null && param.filter_text!=''">
+                ` and (
+                        m.title like concat('%',#{param.filter_text},'%')
+                        or m.content like concat('%',#{param.filter_text},'%')
+                    ) `
+            </if>
+            <if test="param.level!=null">
+                ` and m.level = #{param.level} `
+            </if>
+        </where>
+        <if test="do_count == false">
+            ` order by m.id desc `
+            ` limit ${page_no},${page_size} `
+        </if>
+    </select>
+
+    <select id="count_unread">
+        SELECT IFNULL(SUM(CASE WHEN level = 'Info' THEN 1 ELSE 0 END), 0)  as info,
+               IFNULL(SUM(CASE WHEN level = 'Warn' THEN 1 ELSE 0 END), 0)  as warn,
+               IFNULL(SUM(CASE WHEN level = 'Error' THEN 1 ELSE 0 END), 0) as error
+        FROM message
+        WHERE read_status = 'Unread'
+    </select>
+</mapper>

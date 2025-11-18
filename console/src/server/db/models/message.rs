@@ -1,7 +1,9 @@
+use crate::server::message::{MessageCountRes, MessageListReq};
 use derive_builder::Builder;
 use protocol::gateway::alert::AlertLevel;
-use rbatis::crud;
+use rbatis::executor::Executor;
 use rbatis::rbdc::DateTime;
+use rbatis::{crud, htmlsql, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
 
 /// 消息通知
@@ -33,3 +35,5 @@ pub enum MessageReadStatus {
 }
 
 crud!(Message {});
+htmlsql_select_page!(list_page(param: &MessageListReq) -> Message => "src/server/db/mapper/message.html");
+htmlsql!(count_unread(rb: &dyn Executor) -> MessageCountRes => "src/server/db/mapper/message.html");
