@@ -20,6 +20,7 @@ pub mod filter;
 pub mod global_filter;
 pub mod lb;
 pub mod logger;
+pub mod pre;
 pub mod request;
 pub mod response;
 pub mod routing;

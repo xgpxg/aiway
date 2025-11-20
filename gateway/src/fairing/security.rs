@@ -21,6 +21,7 @@ use crate::report::STATE;
 use crate::router::Firewalld;
 use crate::set_error;
 use rocket::fairing::Fairing;
+use rocket::http::Header;
 use rocket::{Data, Request};
 
 pub struct PreSecurity {}
@@ -40,9 +41,12 @@ impl Fairing for PreSecurity {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
-        // TODO 校验请求
         let ip = req.client_ip().unwrap();
-        let referer = req.headers().get_one("Referer").unwrap_or_default();
+        let referer = req
+            .headers()
+            .get_one(crate::context::Headers::REFERER)
+            .unwrap_or_default();
+        // 调用防火墙校验请求
         if let Err(e) = Firewalld::check(&ip.to_string(), referer).await {
             // 拦截请求后，无效请求数+1
             STATE.inc_request_invalid_count(1);
@@ -51,12 +55,8 @@ impl Fairing for PreSecurity {
             return;
         }
 
-        // 请求计数（不含无效请求）
-        STATE.inc_request_count(1);
         // http连接计数
         // 该计数会在cleaner以及panic hook中-1
         STATE.inc_http_connect_count(1);
-
-        //println!("Run PreSecurity on request");
     }
 }

@@ -10,17 +10,15 @@
 //! - 上下文应运行在请求流程中被修改。
 //!
 
-use crate::context::HCM;
+use crate::context::{HCM, Headers};
 use crate::skip_if_error;
 use dashmap::DashMap;
 use protocol::SV;
 use protocol::gateway::{HttpContext, RequestContext, ResponseContext};
 use rocket::data::ToByteUnit;
 use rocket::fairing::Fairing;
-use rocket::http::Header;
 use rocket::{Data, Request};
 use std::sync::Arc;
-use uuid::Uuid;
 
 pub struct RequestData {}
 impl RequestData {
@@ -40,8 +38,6 @@ impl Fairing for RequestData {
 
     async fn on_request(&self, req: &mut Request<'_>, data: &mut Data<'_>) {
         skip_if_error!(req);
-        // 请求ID，应仅在此处生成一次，后续通过该ID获取上下文
-        let request_id = Uuid::new_v4().to_string();
 
         // 请求体
         let body_data = data.peek(100.mebibytes().as_u64() as usize).await;
@@ -55,10 +51,15 @@ impl Fairing for RequestData {
             .map(|h| (h.name().to_string(), h.value().to_string()))
             .collect::<DashMap<String, String>>();
 
+        // 请求ID
+        let request_id = req.headers().get_one(Headers::REQUEST_ID).unwrap();
+        // 请求时间戳
+        let request_time = req.headers().get_one(Headers::REQUEST_TIME).unwrap();
+
         // 请求上下文
         let request_context = RequestContext {
-            request_id: request_id.clone(),
-            request_ts: chrono::Local::now().timestamp_millis(),
+            request_id: request_id.to_string(),
+            request_ts: request_time.parse().unwrap(),
             method: SV::new(req.method().as_str().into()),
             path: SV::new(req.uri().path().to_string()),
             headers,
@@ -83,8 +84,5 @@ impl Fairing for RequestData {
         };
 
         HCM.set(&request_id, Arc::new(context));
-
-        // 添加请求ID，用于后续获取上下文
-        req.add_header(Header::new(crate::context::Headers::REQUEST_ID, request_id));
     }
 }

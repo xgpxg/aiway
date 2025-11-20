@@ -63,11 +63,11 @@ async fn handle(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     let context = &wrapper.0.request;
     // 获取匹配的路由
     // SAFE: 在routing fairing处理时已经验证，能走到这里来，一定会有值
-    let route = context.get_route().unwrap();
+    //let route = context.get_route().unwrap();
     //log::info!("匹配到路由：{:?}", route);
 
     // 原始请求路径
-    let path = path.to_string_lossy();
+    //let path = path.to_string_lossy();
     //log::info!("原始请求路径：{?}", path);
 
     //实际路由路径

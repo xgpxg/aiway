@@ -58,6 +58,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     });
 
     ////////////////////////////////// 请求阶段 //////////////////////////////////
+    // 预处理
+    builder = builder.attach(fairing::pre::Pre::new());
     // 前置基础安全校验，内置实现，暂不支持扩展，仅校验基本参数，不提取body数据验证。
     builder = builder.attach(fairing::security::PreSecurity::new());
     // 鉴权，即验证API Key
