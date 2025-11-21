@@ -75,12 +75,12 @@ pub struct NetState {
 pub struct Counter {
     /// 自从上次统计到现在的请求数
     /// 统计范围：
-    /// - 所有进入到网关的请求
+    /// - 所有进入到网关的请求，包含后续可能被防火墙拦截的请求
     pub request_count: usize,
     /// 非法请求数
     /// 统计范围：
     /// - 由安全组件拦截到的无效、非法、恶意请求等
-    /// 拦截的请求会返回403错误，也会被计算到4xx响应数中
+    /// - 拦截的请求会返回403错误，也会被计算到4xx响应数中
     pub request_invalid_count: usize,
     /// 自从上次统计到现在的 2xx 响应数
     pub response_2xx_count: usize,
@@ -111,8 +111,10 @@ pub struct MomentCounter {
     /// 统计范围：
     /// - 所有请求
     /// - 请求时，+1，清理或发生panic时，-1
+    /// - 不含被防火墙拦截的请求
     ///
     pub http_connect_count: isize,
+    // TODO SSE计数？
 }
 
 impl State {
