@@ -1,4 +1,4 @@
-use rocket::serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 /// 网关请求日志
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]

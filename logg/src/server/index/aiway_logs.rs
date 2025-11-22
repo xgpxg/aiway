@@ -5,7 +5,6 @@ use rocket::{Data, Request, State, async_trait, post, routes};
 use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
@@ -47,9 +46,7 @@ pub(crate) struct Logg {
 
 impl Logg {
     const MEMORY_BUDGET_IN_BYTES: usize = 32 * 1024 * 1024;
-    const FLUSH_INTERVAL: Duration = Duration::from_secs(1);
     const TIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S%.3f";
-    const TIME_OFFSET: i64 = 8 * 3600;
     pub(crate) fn new(dir: &str) -> Result<Self, TantivyError> {
         let index = Self::open_or_create_index(dir)?;
         // 添加jie_ba分词器
@@ -70,6 +67,8 @@ impl Logg {
     }
     fn open_or_create_index(dir: &str) -> Result<Index, TantivyError> {
         let mut sb = Schema::builder();
+
+        // 添加字段，注意不要改变顺序，否则Schema验证会失败
         sb.add_date_field(
             "time",
             DateOptions::default()
@@ -145,10 +144,10 @@ impl Logg {
 
         let mut query = vec![];
 
-        if let Some(q) = req.query {
-            if !q.is_empty() {
-                query.push(q);
-            }
+        if let Some(q) = req.query
+            && !q.is_empty()
+        {
+            query.push(q);
         }
 
         if let Some(start_timestamp) = req.start_timestamp {
@@ -165,7 +164,7 @@ impl Logg {
             ));
         }
 
-        if query.len() == 0 {
+        if query.is_empty() {
             query.push("*".to_string());
         }
 
@@ -246,7 +245,7 @@ impl<'r> FromData<'r> for LogEntries {
         let lines = lines.lines();
 
         let entries = lines
-            .map(|line| serde_json::from_str(&line).unwrap())
+            .map(|line| serde_json::from_str(line).unwrap())
             .collect::<Vec<_>>();
 
         Outcome::Success(LogEntries(entries))

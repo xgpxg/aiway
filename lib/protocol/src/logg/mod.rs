@@ -1,5 +1,5 @@
-use rocket::serde::Serialize;
 use serde::Deserialize;
+use serde::Serialize;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct LogEntry {

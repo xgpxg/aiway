@@ -25,7 +25,7 @@ impl ResponseContext {
     }
 
     pub fn get_status(&self) -> Option<u16> {
-        self.status.get().and_then(|opt| opt.clone())
+        self.status.get().and_then(|opt| *opt)
     }
 
     pub fn set_header(&self, key: &str, value: &str) {
@@ -45,6 +45,6 @@ impl ResponseContext {
     }
 
     pub fn get_body(&self) -> Option<&Vec<u8>> {
-        self.body.get().clone()
+        self.body.get()
     }
 }

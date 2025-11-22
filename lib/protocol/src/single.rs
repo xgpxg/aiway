@@ -70,17 +70,10 @@ impl<T: Default> Default for SingleValue<T> {
     }
 }
 
-impl Into<SingleValue<String>> for String {
+impl From<String> for SingleValue<String> {
     #[inline]
-    fn into(self) -> SingleValue<String> {
-        SingleValue::new(self)
-    }
-}
-
-impl Into<SingleValue<Vec<u8>>> for Vec<u8> {
-    #[inline]
-    fn into(self) -> SingleValue<Vec<u8>> {
-        SingleValue::new(self)
+    fn from(value: String) -> Self {
+        SingleValue::new(value)
     }
 }
 

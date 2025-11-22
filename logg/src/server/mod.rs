@@ -1,15 +1,8 @@
 mod index;
 
 use crate::Args;
-use chrono::TimeZone;
 use rocket::Config;
-use rocket::data::{ByteUnit, FromData, Limits};
-use rocket::serde::Serialize;
-use serde::Deserialize;
-use std::fmt::Debug;
-use tantivy::Document;
-use tantivy::query::Query;
-use tantivy::schema::Value;
+use rocket::data::{ByteUnit, Limits};
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     let mut builder = rocket::build().configure(Config {

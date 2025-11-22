@@ -1,25 +1,18 @@
-use chrono::{TimeZone, Utc};
 use protocol::gateway::request_log::RequestLog;
-use protocol::logg::{LogEntry, LogSearchReq, LogSearchRes};
+use protocol::logg::{LogSearchReq, LogSearchRes};
 use rocket::data::{ByteUnit, FromData, Outcome};
 use rocket::serde::json::Json;
 use rocket::{Data, Request, State, async_trait, post, routes};
-use std::any::Any;
 use std::fmt::Debug;
 use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use tantivy::aggregation::agg_req::{Aggregation, Aggregations};
+use tantivy::aggregation::agg_req::Aggregations;
 use tantivy::aggregation::{AggregationCollector, AggregationLimitsGuard};
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::{Query, QueryParser};
-use tantivy::schema::document::CompactDocValue;
-use tantivy::schema::{
-    DateOptions, DateTimePrecision, Field, INDEXED, IndexRecordOption, STORED, Schema, TEXT,
-    TextFieldIndexing, TextOptions, Value,
-};
+use tantivy::schema::{FAST, Field, INDEXED, STORED, Schema, TEXT, Value};
 use tantivy::tokenizer::{LowerCaser, TextAnalyzer};
 use tantivy::{
     DateTime, Document, Index, IndexReader, IndexWriter, Order, ReloadPolicy, TantivyDocument,
@@ -75,9 +68,6 @@ pub(crate) struct Logg {
 
 impl Logg {
     const MEMORY_BUDGET_IN_BYTES: usize = 32 * 1024 * 1024;
-    const FLUSH_INTERVAL: Duration = Duration::from_secs(1);
-    const TIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S%.3f";
-    const TIME_OFFSET: i64 = 8 * 3600;
     pub(crate) fn new(dir: &str) -> Result<Self, TantivyError> {
         let index = Self::open_or_create_index(dir)?;
         // 添加jie_ba分词器
@@ -107,13 +97,7 @@ impl Logg {
         sb.add_text_field("client_city", TEXT | STORED);
         sb.add_text_field("method", STORED);
         sb.add_text_field("path", TEXT | STORED);
-        sb.add_date_field(
-            "request_time",
-            DateOptions::default()
-                .set_fast()
-                .set_precision(DateTimePrecision::Milliseconds)
-                | STORED,
-        );
+        sb.add_date_field("request_time", FAST | STORED);
         sb.add_date_field("response_time", STORED);
         sb.add_i64_field("elapsed", STORED);
         sb.add_u64_field("status_code", INDEXED | STORED);
@@ -200,10 +184,10 @@ impl Logg {
 
         let mut query = vec![];
 
-        if let Some(q) = req.query {
-            if !q.is_empty() {
-                query.push(q);
-            }
+        if let Some(q) = req.query
+            && !q.is_empty()
+        {
+            query.push(q);
         }
 
         if let Some(start_timestamp) = req.start_timestamp {
@@ -220,7 +204,7 @@ impl Logg {
             ));
         }
 
-        if query.len() == 0 {
+        if query.is_empty() {
             query.push("*".to_string());
         }
 
@@ -234,15 +218,6 @@ impl Logg {
             return Ok(LogSearchRes::default());
         }
 
-        /*let mut aggs = Aggregations::new();
-        aggs.insert(
-            "client_ip".into(),
-            serde_json::from_str(
-                r#"
-
-                "#,
-            )?,
-        );*/
         let agg = if let Some(agg) = req.aggs {
             match serde_json::from_value::<Aggregations>(agg) {
                 Ok(aggregations) => Some(AggregationCollector::from_aggs(
@@ -355,7 +330,7 @@ impl<'r> FromData<'r> for LogEntries {
         let lines = lines.lines();
 
         let entries = lines
-            .map(|line| serde_json::from_str(&line).unwrap())
+            .map(|line| serde_json::from_str(line).unwrap())
             .collect::<Vec<_>>();
 
         Outcome::Success(LogEntries(entries))
