@@ -120,7 +120,7 @@ async fn handle(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
                     let stream = response.bytes_stream();
                     let stream_reader =
                         StreamReader::new(stream.map(|result| {
-                            result.map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+                            result.map_err(|e| io::Error::other(e))
                         }));
                     return GatewayResponse::SSE(Box::new(stream_reader));
                 }

@@ -50,6 +50,7 @@ macro_rules! extract_api_path {
 /// - req: rocket的请求对象
 /// - code: 错误码，必须为已知的标准http状态码
 /// - msg: 错误信息
+///
 /// 当设置了错误信息后，后续的fairing将被跳过，然后会被catchers拦截，
 /// 在catchers中提取状态码和错误信息后返回给客户端。
 #[macro_export]

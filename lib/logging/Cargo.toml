@@ -14,3 +14,7 @@ tracing-log = "0.2.0"
 serde = "1"
 serde_json = "1"
 bitflags = "2.9.4"
+
+[features]
+default = []
+request-log = []

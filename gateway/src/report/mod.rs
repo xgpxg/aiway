@@ -47,7 +47,7 @@ pub fn init(args: &Args) {
     let node_info = NodeInfo {
         node_id: args.node_id(),
         ip: args.address.clone(),
-        port: args.port.clone(),
+        port: args.port,
     };
     tokio::spawn(async move {
         // TODO 考虑15秒上报一次

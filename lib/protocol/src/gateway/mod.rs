@@ -11,11 +11,12 @@
 pub mod alert;
 #[cfg(feature = "api-key")]
 mod api_key;
-mod global_filter;
 mod firewall;
+mod global_filter;
 pub mod http_context;
 pub mod plugin;
 pub mod request_context;
+pub mod request_log;
 pub mod response_context;
 pub mod route;
 pub mod service;
@@ -23,9 +24,9 @@ pub mod state;
 
 #[cfg(feature = "api-key")]
 pub use api_key::ApiKey;
-pub use global_filter::GlobalFilter;
 pub use firewall::AllowDenyPolicy;
 pub use firewall::Firewall;
+pub use global_filter::GlobalFilter;
 pub use http_context::HttpContext;
 pub use plugin::ConfiguredPlugin;
 pub use plugin::Plugin;

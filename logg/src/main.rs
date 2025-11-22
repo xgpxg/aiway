@@ -9,7 +9,7 @@ mod server;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// 配置文件，YAML格式
+    /// 服务端口
     #[arg(short, long, default_value_t = 7281)]
     port: u16,
 }

@@ -25,6 +25,8 @@ pub struct LogSearchReq {
     /// 查询最大数量
     #[serde(default = "LogSearchReq::default_max_hits")]
     pub max_hits: usize,
+    /// 聚合参数
+    pub aggs: Option<serde_json::Value>,
 }
 impl LogSearchReq {
     fn default_start_offset() -> usize {
@@ -36,7 +38,9 @@ impl LogSearchReq {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-pub struct LogSearchRes {
+pub struct LogSearchRes<T> {
     pub num_hits: usize,
-    pub hits: Vec<LogEntry>,
+    pub hits: Vec<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aggregations: Option<serde_json::Value>,
 }

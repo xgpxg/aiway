@@ -105,7 +105,7 @@ impl SystemConfig {
             SystemConfig::update_by_map(
                 Pool::get()?,
                 &SystemConfigBuilder::default()
-                    .config_value(Some(serde_json::to_string(value.clone())?))
+                    .config_value(Some(serde_json::to_string(value)?))
                     .build()?,
                 value! {"config_key": &config_key},
             )

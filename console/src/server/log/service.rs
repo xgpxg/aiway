@@ -38,6 +38,7 @@ pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes
             .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
         start_offset,
         max_hits,
+        aggs: None,
     };
 
     let res = HTTP_CLIENT
@@ -45,7 +46,7 @@ pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes
         .json(&param)
         .send()
         .await?
-        .json::<LogSearchRes>()
+        .json::<LogSearchRes<LogEntry>>()
         .await?;
 
     Ok(PageRes {

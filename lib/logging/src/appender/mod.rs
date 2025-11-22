@@ -1,3 +1,6 @@
+//! # 自定义的Appender
+//! 目前统一使用quickwit作为日志的集中存储
+//!
 mod quickwit_appender;
 pub use quickwit_appender::QuickwitAppender;
 use serde::Serialize;

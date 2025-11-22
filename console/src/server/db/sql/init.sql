@@ -179,6 +179,16 @@ create table if not exists message
     is_delete   tinyint(1)   not null default 0         -- 是否删除
 );
 
+/*create table if not exists request_region_statistics
+(
+    day int not null ,
+    country varchar(100) not null ,
+    province varchar(100) not null ,
+    city varchar(100) not null,
+
+
+);*/
+
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');

@@ -1,12 +1,15 @@
 //! # 日志
-//! ## 输出到控制台
-//! 默认std:io::stderr
+//! 负责日志输出、收集和统一推送。
 //!
-//! ## 输出到文件
-//! 默认按天生成文件，异步写入。
+//! ## 通用日志
+//! - 输出到控制台：默认std:io::stderr
 //!
-//! ## 输出到远程
-//! 需要部署quickwit
+//! - 输出到文件：默认按天生成文件，异步写入。
+//!
+//! - 输出到远程：需要部署quickwit或者logg。
+//!
+//! ## 网关请求日志
+//! 收集所有网关的请求日志，并推送到quickwit或者logg。
 //!
 
 use crate::appender::QuickwitAppender;
@@ -19,6 +22,10 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{Registry, fmt};
 
 mod appender;
+#[cfg(feature = "request-log")]
+mod request_logging;
+#[cfg(feature = "request-log")]
+pub use request_logging::log_request;
 
 bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -60,17 +67,20 @@ impl Config {
         "127.0.0.1:7280".to_string()
     }
 
-    // 日志索引ID
-    const INDEX_ID: &'static str = "aiway-logs";
+    // 通用日志索引ID
+    const AIWAY_LOGS_INDEX: &'static str = "aiway-logs";
+
+    // 网关请求日志索引ID
+    const REQUEST_LOGS_INDEX: &'static str = "request-logs";
 
     // 构建quickwit restful的api
-    fn build_quickwit_endpoint(&self) -> String {
+    fn build_quickwit_endpoint(&self, index: &str) -> String {
         format!(
             "http://{}/api/v1/{}/ingest",
             self.quickwit_endpoint
                 .clone()
                 .unwrap_or(Self::default_quickwit_endpoint()),
-            Self::INDEX_ID,
+            index,
         )
     }
 }
@@ -140,8 +150,10 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
             if config.quickwit_endpoint.is_none() {
                 panic!("quickwit endpoint is required");
             }
-            let quickwit_appender =
-                QuickwitAppender::new(config.build_quickwit_endpoint(), config.service.clone());
+            let quickwit_appender = QuickwitAppender::new(
+                config.build_quickwit_endpoint(Config::AIWAY_LOGS_INDEX),
+                config.service.clone(),
+            );
             let (appender, guard) = tracing_appender::non_blocking(quickwit_appender);
 
             let layer = fmt::Layer::default()
@@ -165,6 +177,10 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
 
     // 保持引用，non_blocking需要
     HOLDING_WORKER_GUARDS.get_or_init(|| guards);
+
+    // 初始化网关请求日志，仅在网关处需要
+    #[cfg(feature = "request-log")]
+    request_logging::init(config.build_quickwit_endpoint(Config::REQUEST_LOGS_INDEX));
 }
 
 // 获取当前进程名
