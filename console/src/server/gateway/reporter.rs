@@ -53,11 +53,7 @@ pub async fn report(req: State) -> anyhow::Result<()> {
         )
         .await?;
 
-    let last = if last.is_none() {
-        GatewayNodeState::default()
-    } else {
-        last.unwrap()
-    };
+    let last = last.unwrap_or_default();
 
     let gateway_state_log = GatewayNodeStateBuilder::default()
         .id(Some(id::next()))

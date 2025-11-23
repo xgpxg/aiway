@@ -4,6 +4,7 @@ use logging::log;
 use rbatis::RBatis;
 use std::sync::OnceLock;
 
+#[allow(unused)]
 mod migrations;
 pub mod models;
 mod mysql;

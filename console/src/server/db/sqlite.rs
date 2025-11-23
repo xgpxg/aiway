@@ -36,7 +36,7 @@ pub(crate) async fn init(url: &str) {
 /// 执行事务闭包
 /// - exec：闭包，返回Ok则提交事务，否则回滚
 #[allow(unused)]
-pub async fn tx<'a, F, R, RV>(exec: F) -> anyhow::Result<RV>
+pub async fn tx<F, R, RV>(exec: F) -> anyhow::Result<RV>
 where
     F: Fn(RBatisTxExecutor) -> R,
     R: Future<Output = anyhow::Result<RV>>,
@@ -79,6 +79,7 @@ where
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(unused)]
 pub struct Count {
     pub count: usize,
 }

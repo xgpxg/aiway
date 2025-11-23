@@ -1,14 +1,10 @@
-use crate::args::Args;
 use crate::server::auth::UserPrincipal;
-use crate::server::db::Pool;
-use crate::server::db::models::system_config::SystemConfig;
 use crate::server::system::notify::request::NotifyConfigUpdateReq;
 use crate::server::system::notify::service;
-use protocol::common::res::{PageRes, Res};
+use protocol::common::res::Res;
 use protocol::gateway::alert::AlertConfig;
-use protocol::logg::LogEntry;
 use rocket::serde::json::Json;
-use rocket::{State, get, post, routes};
+use rocket::{get, post};
 
 /// 更新通知和提醒配置
 #[post("/notify/config/update", data = "<req>")]

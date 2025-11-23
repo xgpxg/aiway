@@ -1,7 +1,6 @@
 use crate::server::db::Pool;
 use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use protocol::gateway;
-use protocol::gateway::{AllowDenyPolicy, Firewall};
 use rbs::value;
 pub(crate) async fn config() -> anyhow::Result<gateway::GlobalFilter> {
     let config = SystemConfig::select_by_map(
@@ -21,7 +20,7 @@ pub(crate) async fn config() -> anyhow::Result<gateway::GlobalFilter> {
     }
     let config = config.first().unwrap();
     let config_value = config.config_value.clone().unwrap_or_default();
-    if config_value == "" {
+    if config_value.is_empty() {
         return Ok(gateway::GlobalFilter::default());
     }
     let config: gateway::GlobalFilter = serde_json::from_str(&config_value)?;

@@ -1,4 +1,3 @@
-use std::sync::atomic::Ordering;
 use crate::args::Args;
 use crate::server::auth::UserPrincipal;
 use crate::server::log::request::LogListReq;

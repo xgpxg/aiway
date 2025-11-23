@@ -12,7 +12,7 @@ use anyhow::bail;
 use cache::caches::CacheKey;
 use common::id;
 use protocol::common::req::{IdsReq, Pagination};
-use protocol::common::res::{IntoPageRes, PageRes};
+use protocol::common::res::PageRes;
 use rbs::value;
 use std::time::Duration;
 use validator::Validate;
@@ -31,15 +31,14 @@ pub(crate) async fn login(req: LoginReq) -> anyhow::Result<LoginRes> {
                 bail!("用户名或密码不正确");
             }
             // 匹配密码，只要有一个匹配即可
-            let user_id = user_auth
+            user_auth
                 .into_iter()
                 .find(|auth| {
                     bcrypt::verify(&req.secret, &auth.secret.clone().unwrap_or_default())
                         .unwrap_or(false)
                 })
                 .map(|auth| auth.user_id.unwrap())
-                .ok_or_else(|| anyhow::anyhow!("用户名或密码不正确"))?;
-            user_id
+                .ok_or_else(|| anyhow::anyhow!("用户名或密码不正确"))?
         }
         _ => bail!("登录方式不支持"),
     };

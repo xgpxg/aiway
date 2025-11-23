@@ -71,6 +71,7 @@ impl Config {
     const AIWAY_LOGS_INDEX: &'static str = "aiway-logs";
 
     // 网关请求日志索引ID
+    #[cfg(feature = "request-log")]
     const REQUEST_LOGS_INDEX: &'static str = "request-logs";
 
     // 构建quickwit restful的api

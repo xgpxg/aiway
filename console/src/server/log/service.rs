@@ -14,10 +14,10 @@ pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes
     let url = format!("http://{}/api/v1/{}/search", log_server, LOG_INDEX);
 
     let mut query = Vec::new();
-    if let Some(filter_text) = &req.filter_text {
-        if !filter_text.is_empty() {
-            query.push(format!("message:{}", filter_text));
-        }
+    if let Some(filter_text) = &req.filter_text
+        && !filter_text.is_empty()
+    {
+        query.push(format!("message:{}", filter_text));
     }
     if let Some(level) = &req.level {
         query.push(format!("level:{}", level));
@@ -30,11 +30,9 @@ pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes
         query: Some(query.join(" AND ")),
         start_timestamp: req
             .start_time
-            .clone()
             .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
         end_timestamp: req
             .end_time
-            .clone()
             .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
         start_offset,
         max_hits,

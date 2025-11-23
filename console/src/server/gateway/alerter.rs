@@ -1,6 +1,6 @@
+use crate::server::db::Pool;
 use crate::server::db::models::message::{Message, MessageBuilder, MessageReadStatus};
 use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
-use crate::server::db::{Pool, tools};
 use alert::pusher::Pusher;
 use common::id;
 use logging::log;

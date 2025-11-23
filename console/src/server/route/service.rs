@@ -114,6 +114,6 @@ pub async fn update_global_filter_config(
     Ok(())
 }
 
-pub(crate) async fn get_global_filter_config(p0: UserPrincipal) -> anyhow::Result<GlobalFilter> {
-    Ok(SystemConfig::get(ConfigKey::GlobalFilter).await?)
+pub(crate) async fn get_global_filter_config(_user: UserPrincipal) -> anyhow::Result<GlobalFilter> {
+    SystemConfig::get(ConfigKey::GlobalFilter).await
 }

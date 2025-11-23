@@ -17,11 +17,13 @@ pub struct UpdatePasswordReq {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(unused)]
 pub struct SendVerifyCodeReq {
     pub identity: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(unused)]
 pub struct UpdateEmailReq {
     pub email: String,
     pub secret: String,

@@ -50,7 +50,7 @@ impl Display for ConfigKey {
 
 /// 系统配置缓存
 static CACHED_SYSTEM_CONFIG: LazyLock<Arc<RwLock<HashMap<String, SystemConfig>>>> =
-    LazyLock::new(|| Default::default());
+    LazyLock::new(Default::default);
 
 impl SystemConfig {
     /// 获取系统配置。
@@ -63,15 +63,14 @@ impl SystemConfig {
             .read()
             .await
             .get(&config_key.to_string())
+            && let Some(value) = &cached.config_value
         {
-            if let Some(value) = &cached.config_value {
-                log::debug!(
-                    "hit system config cache, key: {}, value: {}",
-                    config_key,
-                    value
-                );
-                return Ok(serde_json::from_str(value)?);
-            }
+            log::debug!(
+                "hit system config cache, key: {}, value: {}",
+                config_key,
+                value
+            );
+            return Ok(serde_json::from_str(value)?);
         }
         let config =
             SystemConfig::select_by_map(Pool::get()?, value! {"config_key": &config_key}).await?;

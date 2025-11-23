@@ -8,5 +8,5 @@ pub async fn update(req: NotifyConfigUpdateReq) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn get() -> anyhow::Result<AlertConfig> {
-    Ok(SystemConfig::get(ConfigKey::Alert).await?)
+    SystemConfig::get(ConfigKey::Alert).await
 }

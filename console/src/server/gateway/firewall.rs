@@ -23,7 +23,7 @@ pub(crate) async fn configuration() -> anyhow::Result<Firewall> {
     }
     let config = config.first().unwrap();
     let config_value = config.config_value.clone().unwrap_or_default();
-    if config_value == "" {
+    if config_value.is_empty() {
         return Ok(Firewall::default());
     }
     let config: Firewall = serde_json::from_str(&config_value)?;

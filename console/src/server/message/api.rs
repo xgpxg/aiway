@@ -1,13 +1,11 @@
-use crate::args::Args;
 use crate::server::auth::UserPrincipal;
 use crate::server::message::request::MessageListReq;
 use crate::server::message::response::{MessageCountRes, MessageListRes};
 use crate::server::message::service;
 use protocol::common::req::IdReq;
 use protocol::common::res::{PageRes, Res};
-use protocol::logg::LogEntry;
 use rocket::serde::json::Json;
-use rocket::{State, post, routes};
+use rocket::{post, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![count_unread, list, read, delete]

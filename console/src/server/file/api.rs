@@ -26,7 +26,7 @@ pub async fn download_file(file_name: &str) -> Result<NamedFile, rocket::http::S
 }
 
 #[derive(Debug, FromForm)]
-pub(self) struct UploadFile<'a> {
+struct UploadFile<'a> {
     file_name: String,
     file: TempFile<'a>,
 }

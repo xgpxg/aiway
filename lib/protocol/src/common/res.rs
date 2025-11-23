@@ -105,16 +105,16 @@ where
 }
 
 #[cfg(feature = "rbatis")]
-impl<I> Into<PageRes<I>> for rbatis::page::Page<I>
+impl<I> From<rbatis::page::Page<I>> for PageRes<I>
 where
     I: Send + Sync,
 {
-    fn into(self) -> PageRes<I> {
+    fn from(page: rbatis::page::Page<I>) -> Self {
         PageRes {
-            page_num: self.page_no,
-            page_size: self.page_size,
-            total: self.total,
-            list: self.records,
+            page_num: page.page_no,
+            page_size: page.page_size,
+            total: page.total,
+            list: page.records,
             ext: None,
         }
     }
