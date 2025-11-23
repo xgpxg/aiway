@@ -1,7 +1,6 @@
 use base58::{FromBase58, ToBase58};
 use chacha20poly1305::aead::Aead;
 use chacha20poly1305::{AeadCore, ChaCha20Poly1305, KeyInit, Nonce};
-use std::usize;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -30,6 +29,12 @@ pub struct ApiKey {
     pub principal: String,
 }
 
+impl Default for ApiKey {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ApiKey {
     pub fn new() -> Self {
         let mut nonce = Self::generate_nonce();
@@ -44,7 +49,7 @@ impl ApiKey {
     pub fn new_with_principal<P: Into<String>>(principal: P) -> Self {
         let mut nonce = Self::generate_nonce();
         let principal = principal.into();
-        let principal_len = principal.as_bytes().len();
+        let principal_len = principal.len();
         Self {
             nonce,
             s1: 0,
@@ -63,8 +68,10 @@ impl ApiKey {
     }
     /// 加密
     pub fn encrypt(&self, key: &[u8; 32]) -> String {
+        #[allow(deprecated)]
         let key = chacha20poly1305::Key::from_slice(key);
         let cipher = ChaCha20Poly1305::new(key);
+        #[allow(deprecated)]
         let nonce = Nonce::from_slice(&self.nonce);
         let mut data = Vec::new();
         data.extend_from_slice(&[self.s1, self.s2]);
@@ -83,6 +90,7 @@ impl ApiKey {
 
     /// 解密
     pub fn decrypt(key: &[u8; 32], ciphertext: &str) -> Result<ApiKey, ApiKeyError> {
+        #[allow(deprecated)]
         let key = chacha20poly1305::Key::from_slice(key);
         let cipher = ChaCha20Poly1305::new(key);
 
@@ -100,16 +108,13 @@ impl ApiKey {
         let ciphertext = &nonce_ciphertext[12..];
 
         // 解密
+        #[allow(deprecated)]
         let plaintext = cipher
             .decrypt(Nonce::from_slice(nonce), ciphertext.as_ref())
             .map_err(|_| ApiKeyError::InvalidApiKey)?;
 
-        let s1: u8 = plaintext[0]
-            .try_into()
-            .map_err(|_| ApiKeyError::InvalidApiKey)?;
-        let s2: u8 = plaintext[1]
-            .try_into()
-            .map_err(|_| ApiKeyError::InvalidApiKey)?;
+        let s1: u8 = plaintext[0];
+        let s2: u8 = plaintext[1];
         let principal_len_bytes: [u8; 8] = plaintext[2..10]
             .try_into()
             .map_err(|_| ApiKeyError::InvalidApiKey)?;
