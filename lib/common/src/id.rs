@@ -8,7 +8,7 @@ pub fn init() {
         .base_time(BASE_TIME)
         .worker_id(1)
         .worker_id_bit_len(2);
-    let _ = IdInstance::init(options).unwrap();
+    IdInstance::init(options).unwrap();
 }
 
 pub fn next() -> i64 {

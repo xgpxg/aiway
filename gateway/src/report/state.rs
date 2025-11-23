@@ -118,21 +118,19 @@ impl GatewayState {
 
     pub fn inc_http_connect_count(&self, n: isize) {
         let state = &mut self.state.lock().unwrap();
-        // 这里减的时候可能导致小于0，暂时加了个判断，但这样多一次判断，也不太好，后面再看怎么优化。
-        if n > 0 {
-            state.moment_counter.http_connect_count += n;
-        } else if state.moment_counter.http_connect_count > 0 {
-            state.moment_counter.http_connect_count += n;
-        }
+        // 这里减的时候可能导致小于0，需要保证不能小于0
+        state.moment_counter.http_connect_count =
+            0.max(state.moment_counter.http_connect_count + n);
     }
 
     pub fn inc_request_invalid_count(&self, n: usize) {
         self.state.lock().unwrap().counter.request_invalid_count += n;
     }
 
+    #[allow(unused)]
     pub fn get_http_connect_count(&self) -> isize {
         self.state.lock().unwrap().moment_counter.http_connect_count
     }
 }
 
-pub static STATE: LazyLock<GatewayState> = LazyLock::new(|| GatewayState::default());
+pub static STATE: LazyLock<GatewayState> = LazyLock::new(GatewayState::default);

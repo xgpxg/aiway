@@ -7,17 +7,16 @@
 //! - 流式响应支持恢复（插件实现）
 //!
 mod client;
-#[deprecated]
-pub mod eep;
 mod error;
 mod response;
+#[deprecated]
+#[allow(unused)]
 mod sse;
 
 use crate::context::HttpContextWrapper;
 use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::{GatewayResponse, ResponseExt};
-use dashmap::DashMap;
 use reqwest::Url;
 use rocket::futures::StreamExt;
 use rocket::{delete, get, head, options, patch, post, put};
@@ -59,7 +58,7 @@ pub async fn call_options(wrapper: HttpContextWrapper, path: PathBuf) -> Gateway
     handle(wrapper, path).await
 }
 
-async fn handle(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse {
     let context = &wrapper.0.request;
     // 获取匹配的路由
     // SAFE: 在routing fairing处理时已经验证，能走到这里来，一定会有值
@@ -120,9 +119,9 @@ async fn handle(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
                     let stream = response.bytes_stream();
                     let stream_reader =
                         StreamReader::new(stream.map(|result| {
-                            result.map_err(|e| io::Error::other(e))
+                            result.map_err(io::Error::other)
                         }));
-                    return GatewayResponse::SSE(Box::new(stream_reader));
+                    return GatewayResponse::Sse(Box::new(stream_reader));
                 }
                 GatewayResponse::Raw(status.as_u16(), response.bytes().await.unwrap())
             }

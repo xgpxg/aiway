@@ -11,12 +11,12 @@ pub enum GatewayError {
     ///
     /// 当服务本身错误，如无响应时，返回该错误
     ServiceUnavailable,
-    /// 鉴权错误，对应状态码：401
-    #[deprecated]
-    Unauthorized,
-    /// 鉴权错误，对应状态码：403
-    #[deprecated]
-    Forbidden,
+    // /// 鉴权错误，对应状态码：401
+    // #[deprecated]
+    // Unauthorized,
+    // /// 鉴权错误，对应状态码：403
+    // #[deprecated]
+    // Forbidden,
 }
 
 impl<'r> Responder<'r, 'r> for GatewayError {
@@ -28,12 +28,12 @@ impl<'r> Responder<'r, 'r> for GatewayError {
             GatewayError::ServiceUnavailable => rocket::response::Response::build()
                 .status(rocket::http::Status::ServiceUnavailable)
                 .ok(),
-            GatewayError::Unauthorized => rocket::response::Response::build()
-                .status(rocket::http::Status::Unauthorized)
-                .ok(),
-            GatewayError::Forbidden => rocket::response::Response::build()
-                .status(rocket::http::Status::Forbidden)
-                .ok(),
+            // GatewayError::Unauthorized => rocket::response::Response::build()
+            //     .status(rocket::http::Status::Unauthorized)
+            //     .ok(),
+            // GatewayError::Forbidden => rocket::response::Response::build()
+            //     .status(rocket::http::Status::Forbidden)
+            //     .ok(),
         }
     }
 }

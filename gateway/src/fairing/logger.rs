@@ -9,13 +9,12 @@
 //! - 网关本身不应该对日志做任何处理，只做收集和发送，避免影响性能。
 //!
 
-use crate::context::{HCM, Headers};
-use crate::{Args, skip_if_error};
+use crate::Args;
+use crate::context::Headers;
 use clap::Parser;
 use protocol::gateway::request_log::RequestLog;
 use rocket::Request;
 use rocket::fairing::Fairing;
-use tokio::sync::mpsc;
 
 pub struct Logger {
     args: Args,

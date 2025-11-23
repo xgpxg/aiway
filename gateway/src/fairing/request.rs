@@ -43,7 +43,7 @@ impl Fairing for RequestData {
         let body_data = data.peek(100.mebibytes().as_u64() as usize).await;
 
         // 注意Key为小写
-        let mut headers = req
+        let  headers = req
             .headers()
             .iter()
             // 移除不需要透传到下游服务的Header
@@ -83,6 +83,6 @@ impl Fairing for RequestData {
             response: response_context,
         };
 
-        HCM.set(&request_id, Arc::new(context));
+        HCM.set(request_id, Arc::new(context));
     }
 }

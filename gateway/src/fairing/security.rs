@@ -21,7 +21,6 @@ use crate::report::STATE;
 use crate::router::Firewalld;
 use crate::set_error;
 use rocket::fairing::Fairing;
-use rocket::http::Header;
 use rocket::{Data, Request};
 
 pub struct PreSecurity {}

@@ -5,7 +5,7 @@ pub enum SseEvent {
 }
 
 impl SseEvent {
-   pub fn to_string(&self) -> String {
+    pub fn to_sse_string(&self) -> String {
         match self {
             SseEvent::Data(data) => format!("data: {}\n\n", data),
             SseEvent::Error(error) => {

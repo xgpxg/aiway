@@ -33,3 +33,9 @@ impl PluginManager {
         self.plugins.clear();
     }
 }
+
+impl Default for PluginManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}

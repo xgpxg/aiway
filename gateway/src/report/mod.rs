@@ -13,19 +13,18 @@ use protocol::gateway::state::{NodeInfo, State};
 pub use state::STATE;
 use std::time::Duration;
 pub struct Reporter {
-    interval: Duration,
     client: reqwest::Client,
 }
 
 impl Reporter {
-    pub fn new(interval: Duration) -> Self {
+    pub fn new() -> Self {
         let client = reqwest::ClientBuilder::default()
             .connect_timeout(Duration::from_secs(
                 common::constants::REPORT_STATE_INTERVAL,
             ))
             .build()
             .unwrap();
-        Self { interval, client }
+        Self { client }
     }
 
     async fn report(&self, addr: &str, state: &State) {
@@ -51,7 +50,7 @@ pub fn init(args: &Args) {
     };
     tokio::spawn(async move {
         // TODO 考虑15秒上报一次
-        let reporter = Reporter::new(Duration::from_secs(5));
+        let reporter = Reporter::new();
         let mut timer = tokio::time::interval(Duration::from_secs(5));
         STATE.refresh(node_info.clone());
         loop {

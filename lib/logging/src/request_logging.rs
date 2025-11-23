@@ -3,8 +3,6 @@
 //! 注意该模块应该仅处理网关的请求日志。
 //!
 use reqwest::ClientBuilder;
-use serde::{Deserialize, Serialize};
-use std::cell::OnceCell;
 use std::sync::OnceLock;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;

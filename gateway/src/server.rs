@@ -36,7 +36,7 @@
 //!
 //!
 //!
-use crate::openapi::eep;
+// use crate::openapi::eep;
 use crate::{Args, fairing, openapi};
 use rocket::data::{ByteUnit, Limits};
 use rocket::fairing::AdHoc;
@@ -101,7 +101,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
             openapi::call_options,
         ],
     );
-    builder = builder.mount("/eep", eep::routes());
+    //builder = builder.mount("/eep", eep::routes());
 
     builder = builder.attach(AdHoc::on_liftoff("Print Banner", |_| {
         Box::pin(async {

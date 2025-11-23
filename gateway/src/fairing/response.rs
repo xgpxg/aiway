@@ -8,12 +8,11 @@
 //!
 use crate::context::{HCM, Headers};
 use crate::report::STATE;
+use crate::skip_if_error;
 use rocket::Request;
 use rocket::fairing::Fairing;
 use rocket::http::{Header, Status};
 use std::io::Cursor;
-use rocket::yansi::Paint;
-use crate::skip_if_error;
 
 pub struct ResponseData {}
 impl ResponseData {
@@ -33,24 +32,24 @@ impl Fairing for ResponseData {
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
         skip_if_error!(req);
-        let request_context = &HCM.get_from_request(&req).request;
-        let response_context = &HCM.get_from_request(&req).response;
+        let request_context = &HCM.get_from_request(req).request;
+        let response_context = &HCM.get_from_request(req).response;
         response_context.set_response_ts(chrono::Local::now().timestamp_millis());
         // 设置状态码
-        if let Some(status) = response_context.status.get() {
-            if let Some(status) = status {
-                res.set_status(Status::new(*status));
-            }
+        if let Some(status) = response_context.status.get()
+            && let Some(status) = status
+        {
+            res.set_status(Status::new(*status));
         }
 
         response_context.headers.iter().for_each(|header| {
             res.set_header(Header::new(header.key().clone(), header.value().clone()));
         });
 
-        if let Some(body) = response_context.body.get() {
-            if body.len() > 0 {
-                res.set_sized_body(body.len(), Cursor::new(body.clone()));
-            }
+        if let Some(body) = response_context.body.get()
+            && !body.is_empty()
+        {
+            res.set_sized_body(body.len(), Cursor::new(body.clone()));
         }
 
         // 添加请求ID

@@ -2,6 +2,7 @@ mod client;
 mod global_filter;
 mod firewall;
 mod plugins;
+#[allow(clippy::module_inception)]
 mod router;
 mod servicer;
 
@@ -12,5 +13,4 @@ pub use plugins::PLUGINS;
 pub use plugins::PluginFactory;
 pub use router::ROUTER;
 pub use router::Router;
-pub use servicer::SERVICES;
 pub use servicer::Servicer;

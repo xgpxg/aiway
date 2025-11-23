@@ -15,7 +15,6 @@ use crate::router::client::INNER_HTTP_CLIENT;
 use dashmap::DashMap;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use protocol::gateway::{HttpContext, Route};
-use std::collections::BTreeMap;
 use std::process::exit;
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;
@@ -133,7 +132,7 @@ impl Router {
                     // 先按路径匹配，减小范围
                     if let Some(route) = routes.get(*index) {
                         // Host匹配
-                        if !Self::matches_host(&route, host) {
+                        if !Self::matches_host(route, host) {
                             continue;
                         }
                         // Header匹配

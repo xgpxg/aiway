@@ -13,6 +13,11 @@ impl RoundRobinLoadBalance {
         }
     }
 }
+impl Default for RoundRobinLoadBalance {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<T: Clone> LoadBalance<T> for RoundRobinLoadBalance {
     fn select(&self, instances: &[T]) -> Option<T> {

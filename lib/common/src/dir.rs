@@ -15,7 +15,7 @@ pub struct AppDir {
     log_dir: PathBuf,
 }
 // 目录缓存
-static DIR: LazyLock<AppDir> = LazyLock::new(|| AppDir::new());
+static DIR: LazyLock<AppDir> = LazyLock::new(AppDir::new);
 impl AppDir {
     pub fn new() -> Self {
         let app_root = std::env::current_exe()
@@ -59,6 +59,13 @@ impl AppDir {
         &DIR.log_dir
     }
 }
+
+impl Default for AppDir {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[macro_export]
 macro_rules! app_dir {
     () => {

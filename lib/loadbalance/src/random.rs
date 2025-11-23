@@ -9,6 +9,12 @@ impl RandomLoadBalance {
     }
 }
 
+impl Default for RandomLoadBalance {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Clone> LoadBalance<T> for RandomLoadBalance {
     fn select(&self, instances: &[T]) -> Option<T> {
         if instances.is_empty() {

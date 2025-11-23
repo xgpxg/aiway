@@ -50,7 +50,7 @@ impl Fairing for Authentication {
             }
         };
 
-        if let Err(_) = ApiKey::decrypt(ENCRYPT_KEY, api_key) {
+        if ApiKey::decrypt(ENCRYPT_KEY, api_key).is_err() {
             set_error!(req, 401, "Unauthorized");
             return;
         }

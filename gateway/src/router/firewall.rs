@@ -1,7 +1,6 @@
 use crate::router::client::INNER_HTTP_CLIENT;
-use crate::router::{GlobalFilterConfig, GLOBAL_FILTER};
 use anyhow::Context;
-use protocol::gateway::{AllowDenyPolicy, GlobalFilter, Firewall};
+use protocol::gateway::{AllowDenyPolicy, Firewall};
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;

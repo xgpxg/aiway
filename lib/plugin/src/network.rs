@@ -14,4 +14,4 @@ impl Network {
     }
 }
 
-pub(crate) static NETWORK: LazyLock<Network> = LazyLock::new(|| Network::new());
+pub(crate) static NETWORK: LazyLock<Network> = LazyLock::new(Network::new);

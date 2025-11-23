@@ -12,7 +12,7 @@ pub struct HttpContextManager {
     contexts: DashMap<String, Arc<HttpContext>>,
 }
 
-pub static HCM: LazyLock<HttpContextManager> = LazyLock::new(|| HttpContextManager::new());
+pub static HCM: LazyLock<HttpContextManager> = LazyLock::new(HttpContextManager::new);
 
 impl HttpContextManager {
     pub fn new() -> Self {

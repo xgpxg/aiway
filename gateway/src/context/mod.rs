@@ -26,7 +26,7 @@ impl<'r> FromRequest<'r> for HttpContextWrapper {
         if let Some(error) = extract_error!(req) {
             return Outcome::Error((Status::from_code(error.0).unwrap(), error.1));
         }
-        let context = HCM.get_from_request(&req);
+        let context = HCM.get_from_request(req);
         Outcome::Success(HttpContextWrapper(context))
     }
 }

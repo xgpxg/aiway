@@ -59,18 +59,15 @@ impl LocalCache {
         // 如果内存中没有，从磁盘获取
         // 这种情况会出现在内存缓存已满，被移除了内存，但是缓存还没有过期
         // 如果过期，则从磁盘中删除
-        match self.disk_db.get(key.as_bytes()) {
-            Ok(Some(data)) => {
-                if let Ok(entry) = serde_json::from_slice::<CacheEntry>(&data) {
-                    if !self.is_expired(&entry) {
-                        self.memory_cache.insert(key.to_string(), entry.clone());
-                        return Some(entry);
-                    } else {
-                        let _ = self.disk_db.remove(key.as_bytes());
-                    }
-                }
+        if let Ok(Some(data)) = self.disk_db.get(key.as_bytes())
+            && let Ok(entry) = serde_json::from_slice::<CacheEntry>(&data)
+        {
+            if !self.is_expired(&entry) {
+                self.memory_cache.insert(key.to_string(), entry.clone());
+                return Some(entry);
+            } else {
+                let _ = self.disk_db.remove(key.as_bytes());
             }
-            _ => {}
         }
 
         None
@@ -189,6 +186,7 @@ impl LocalCache {
 
         for result in self.disk_db.iter() {
             let (key, value) = result?;
+            #[allow(clippy::collapsible_if)]
             if let Ok(key_str) = std::str::from_utf8(&key) {
                 if let Ok(entry) = serde_json::from_slice::<CacheEntry>(&value) {
                     if self.is_expired(&entry) {

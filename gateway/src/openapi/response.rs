@@ -13,11 +13,13 @@ use tokio_util::bytes::Bytes;
 pub enum GatewayResponse {
     Raw(u16, Bytes),
     /// JSON响应
+    #[allow(unused)]
     Json(serde_json::Value),
     /// 流式响应，以纯文本返回
+    #[allow(unused)]
     Stream(Box<dyn AsyncRead + Unpin + Send>),
     /// SSE响应，以SSE格式返回
-    SSE(Box<dyn AsyncRead + Unpin + Send>),
+    Sse(Box<dyn AsyncRead + Unpin + Send>),
     /// 错误响应
     Error(GatewayError),
 }
@@ -40,7 +42,7 @@ impl<'r> Responder<'r, 'r> for GatewayResponse {
                 .header(rocket::http::ContentType::Plain)
                 .streamed_body(reader)
                 .ok(),
-            GatewayResponse::SSE(reader) => rocket::response::Response::build()
+            GatewayResponse::Sse(reader) => rocket::response::Response::build()
                 .header(rocket::http::ContentType::EventStream)
                 .streamed_body(reader)
                 .ok(),

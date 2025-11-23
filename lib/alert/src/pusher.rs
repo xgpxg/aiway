@@ -142,7 +142,7 @@ impl Pusher {
         }
     }
 
-    async fn push_webhook(config: &CustomConfig, message: &AlertMessage) {
+    async fn push_webhook(_config: &CustomConfig, _message: &AlertMessage) {
         todo!()
     }
 
