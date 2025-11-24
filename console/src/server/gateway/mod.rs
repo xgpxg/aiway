@@ -6,3 +6,4 @@ mod global_filter;
 mod reporter;
 mod firewall;
 mod alerter;
+mod ip_region;

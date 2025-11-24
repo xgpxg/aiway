@@ -1,7 +1,7 @@
 //! # 负载均衡
 //!
 use crate::context::HCM;
-use crate::router::Servicer;
+use crate::components::Servicer;
 use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};

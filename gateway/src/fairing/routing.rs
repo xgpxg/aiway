@@ -2,7 +2,7 @@
 //! 通过请求的path匹配路由，并将路由设置到上下文。
 //!
 use crate::context::HCM;
-use crate::router::ROUTER;
+use crate::components::ROUTER;
 use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};

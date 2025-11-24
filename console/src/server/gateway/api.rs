@@ -4,8 +4,9 @@
 //!
 //! 待定：本模块中的接口目前没有做权限验证，后面需要确认请求是否来自gateway。
 //!
+
 use crate::server;
-use crate::server::gateway::{alerter, plugin, reporter, route, service};
+use crate::server::gateway::{alerter, ip_region, plugin, reporter, route, service};
 use protocol::common::res::Res;
 use protocol::gateway::alert::AlertMessage;
 use rocket::serde::json::Json;
@@ -20,6 +21,7 @@ pub fn routes() -> Vec<rocket::Route> {
         firewall,
         report,
         alert,
+        download_ip_region_file
     ]
 }
 
@@ -83,5 +85,14 @@ async fn alert(req: Json<AlertMessage>) -> Res<()> {
     match alerter::alert(req.0).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 下载ip region数据文件
+#[get("/gateway/download-ip-region-file")]
+async fn download_ip_region_file() -> Result<Vec<u8>, String> {
+    match ip_region::download_ip_region_file().await {
+        Ok(res) => Ok(res),
+        Err(e) => Err(e.to_string()),
     }
 }

@@ -8,7 +8,7 @@
 //! - 需要支持自定义脚本执行
 //!
 use crate::context::HCM;
-use crate::router::PLUGINS;
+use crate::components::PLUGINS;
 use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};

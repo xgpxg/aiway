@@ -18,7 +18,7 @@
 //! 从控制台定时拉取网Firewall配置
 //!
 use crate::report::STATE;
-use crate::router::Firewalld;
+use crate::components::Firewalld;
 use crate::set_error;
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};

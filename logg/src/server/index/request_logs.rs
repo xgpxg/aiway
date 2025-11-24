@@ -91,10 +91,10 @@ impl Logg {
 
         // 添加字段，注意不要改变顺序，否则Schema验证会失败
         sb.add_text_field("request_id", TEXT | STORED);
-        sb.add_text_field("client_ip", TEXT | STORED);
-        sb.add_text_field("client_country", TEXT | STORED);
-        sb.add_text_field("client_province", TEXT | STORED);
-        sb.add_text_field("client_city", TEXT | STORED);
+        sb.add_text_field("client_ip", TEXT | STORED | FAST);
+        sb.add_text_field("client_country", TEXT | STORED | FAST);
+        sb.add_text_field("client_province", TEXT | STORED | FAST);
+        sb.add_text_field("client_city", TEXT | STORED | FAST);
         sb.add_text_field("method", STORED);
         sb.add_text_field("path", TEXT | STORED);
         sb.add_date_field("request_time", FAST | STORED);

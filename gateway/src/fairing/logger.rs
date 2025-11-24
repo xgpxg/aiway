@@ -10,6 +10,7 @@
 //!
 
 use crate::Args;
+use crate::components::IpRegion;
 use crate::context::Headers;
 use clap::Parser;
 use protocol::gateway::request_log::RequestLog;
@@ -19,6 +20,7 @@ use rocket::fairing::Fairing;
 pub struct Logger {
     args: Args,
 }
+
 impl Logger {
     pub fn new() -> Self {
         Self {
@@ -45,7 +47,10 @@ impl Fairing for Logger {
         // let req_cxt = &context.request;
         // let res_cxt = &context.response;
 
-        let client_ip = req.client_ip().unwrap();
+        let client_ip = generate_random_ip(); //req.client_ip().unwrap().to_string();
+
+        // 请求ID
+        let request_id = req.headers().get_one(Headers::REQUEST_ID).unwrap();
 
         // 请求时间戳
         let request_time = req
@@ -54,16 +59,19 @@ impl Fairing for Logger {
             .unwrap()
             .parse::<i64>()
             .unwrap();
-        let request_id = req.headers().get_one(Headers::REQUEST_ID).unwrap();
 
+        // 响应时间戳
         let response_time = chrono::Local::now().timestamp_millis();
+
+        // 地理位置
+        let region = IpRegion::search(&client_ip);
 
         let request_log = RequestLog {
             request_id: request_id.to_string(),
             client_ip: client_ip.to_string(),
-            client_country: None,
-            client_province: None,
-            client_city: None,
+            client_country: region.0,
+            client_province: region.1,
+            client_city: region.2,
             method: req.method().to_string(),
             path: req.uri().path().to_string(),
             request_time,
@@ -87,4 +95,16 @@ impl Fairing for Logger {
             Err(e) => log::error!("Failed to serialize RequestLog to JSON: {}", e),
         }
     }
+}
+/// 生成随机IPv4地址
+fn generate_random_ip() -> String {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    format!(
+        "{}.{}.{}.{}",
+        rng.gen_range(1..=255),
+        rng.gen_range(0..=255),
+        rng.gen_range(0..=255),
+        rng.gen_range(0..=255)
+    )
 }

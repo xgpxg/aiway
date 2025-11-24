@@ -1,5 +1,5 @@
+use crate::components::{Firewalld, GlobalFilterConfig, IpRegion, PluginFactory, Router, Servicer};
 use crate::report::STATE;
-use crate::router::{Firewalld, GlobalFilterConfig, PluginFactory, Router, Servicer};
 use crate::{Args, report};
 use alert::Alert;
 use logging::LogAppender;
@@ -40,6 +40,9 @@ pub async fn init(args: &Args) {
 
     // 初始化防火墙
     Firewalld::init().await;
+
+    // 初始化IpRegion
+    IpRegion::init().await;
 
     // 初始化监控
     report::init(args);

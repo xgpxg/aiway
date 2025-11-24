@@ -32,6 +32,7 @@ nanoid = "0.4.0"
 tokio-cron-scheduler = { version = "0.13.0", features = ["english"] }
 chrono = { version = "0.4", features = ["serde"] }
 validator = { version = "0.20", features = ["derive"] }
+rust-embed = "8"
 
 [features]
 default = []

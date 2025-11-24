@@ -18,7 +18,7 @@
 //!
 
 use crate::context::HCM;
-use crate::router::{GLOBAL_FILTER, PLUGINS};
+use crate::components::{GLOBAL_FILTER, PLUGINS};
 use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};

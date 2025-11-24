@@ -50,7 +50,7 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
     state.avg_qps = online_node_states.iter().map(|s| s.avg_qps).sum::<usize>();
 
     // 网关整体的平均响应时间
-    if online_node_ids.is_empty() {
+    if !online_node_ids.is_empty() {
         state.avg_response_time = online_node_states
             .iter()
             .map(|s| s.avg_response_time)

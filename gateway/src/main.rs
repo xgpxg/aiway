@@ -6,7 +6,7 @@ mod fairing;
 mod init;
 mod openapi;
 mod report;
-mod router;
+mod components;
 mod server;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
