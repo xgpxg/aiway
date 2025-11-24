@@ -27,7 +27,6 @@ sysinfo = "0.37"
 md5 = "0.8"
 chrono = "0.4"
 ip2region = { git = "https://github.com/lionsoul2014/ip2region.git", branch = "master" }
-rand = "0.8.5"
 
 [features]
 default = []

@@ -1549,7 +1549,6 @@ dependencies = [
  "md5",
  "plugin",
  "protocol",
- "rand 0.8.5",
  "reqwest",
  "rocket",
  "serde_json",

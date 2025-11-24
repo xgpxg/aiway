@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// 网关请求日志
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct RequestLog {
-    /// 请求ID，由网关统一生成，唯一的请求标识
+    /// 请求ID，由网关统一生成，唯一的请求标识，标准的36位UUID
     pub request_id: String,
     /// 客户端IP地址，通过该地址定位到客户端所在区域
     pub client_ip: String,
@@ -25,12 +25,12 @@ pub struct RequestLog {
     pub elapsed: i64,
     /// HTTP状态码
     pub status_code: u16,
-    /// 响应大小
+    /// 响应大小，流式响应为None
     pub response_size: Option<usize>,
-    /// UA
+    /// 取Header里的User-Agent
     pub user_agent: Option<String>,
-    /// 来源
+    /// 取Header里的Referer
     pub referer: Option<String>,
-    /// 网关节点地址，格式：ip:port
+    /// 网关节点地址，格式：ip:port，该字段用于记录请求被哪个网关节点处理
     pub node_address: String,
 }
