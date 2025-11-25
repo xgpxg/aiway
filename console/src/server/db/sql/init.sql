@@ -179,15 +179,14 @@ create table if not exists message
     is_delete   tinyint(1)   not null default 0         -- 是否删除
 );
 
-/*create table if not exists request_region_statistics
+-- 请求地区统计（小时级，保留近1年的）
+create table if not exists statistics_request_province
 (
-    day int not null ,
-    country varchar(100) not null ,
-    province varchar(100) not null ,
-    city varchar(100) not null,
-
-
-);*/
+    province   varchar(50) not null,           -- 省份
+    count      bigint      not null default 0, -- 数量
+    start_time bigint      not null,           -- 起始时间戳（秒）
+    end_time   bigint      not null            -- 结束时间戳（秒）
+);
 
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)

@@ -1,10 +1,11 @@
-pub mod route;
-pub mod system_config;
-pub mod user;
-pub mod user_auth;
-pub mod service;
-pub mod plugin;
 pub mod api_key;
 pub mod gateway_node;
 pub mod gateway_node_state;
 pub mod message;
+pub mod plugin;
+pub mod route;
+pub mod service;
+pub mod statistics_request_province;
+pub mod system_config;
+pub mod user;
+pub mod user_auth;

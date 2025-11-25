@@ -34,6 +34,8 @@ pub enum ConfigKey {
     Firewall,
     /// 通知和提醒配置
     Alert,
+    /// 最后更新区域调用统计数据的时间，秒级时间戳
+    IpRegionLastUpdate,
 }
 impl Display for ConfigKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -43,6 +45,9 @@ impl Display for ConfigKey {
             ConfigKey::Firewall => write!(f, "firewall"),
             ConfigKey::Alert => {
                 write!(f, "alert")
+            }
+            ConfigKey::IpRegionLastUpdate => {
+                write!(f, "ip-region-last-update")
             }
         }
     }
