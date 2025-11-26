@@ -1,7 +1,9 @@
 use crate::server::db::Pool;
 use crate::server::db::models::gateway_node::GatewayNode;
 use crate::server::db::models::gateway_node_state::GatewayNodeState;
-use crate::server::metrics::response::GatewayState;
+use crate::server::db::models::statistics_request_province;
+use crate::server::metrics::request::RegionRequestCountReq;
+use crate::server::metrics::response::{GatewayState, RegionRequestCountRes};
 use chrono::Timelike;
 use rbs::value;
 use serde::Deserialize;
@@ -146,4 +148,11 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
         .await?;
 
     Ok(state)
+}
+
+pub(crate) async fn request_region_count(
+    req: RegionRequestCountReq,
+) -> anyhow::Result<Vec<RegionRequestCountRes>> {
+    let list = statistics_request_province::region_request_count(Pool::get()?, &req).await?;
+    Ok(list)
 }

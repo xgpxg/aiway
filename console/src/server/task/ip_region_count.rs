@@ -75,11 +75,17 @@ async fn ip_region_count_(args: Arc<Args>) -> anyhow::Result<()> {
     let tx = Pool::get()?;
 
     while last_datetime < now_datetime {
+        // 小时整点时间戳
         let start_timestamp = last_datetime.timestamp();
-        let end_datetime = last_datetime + chrono::Duration::hours(1);
+        // 小时结束时间戳
+        let end_datetime = last_datetime
+            .with_minute(59)
+            .and_then(|dt| dt.with_second(59))
+            .unwrap();
         let end_timestamp = end_datetime.timestamp();
 
-        let counts = search(&api, start_timestamp, end_timestamp).await?;
+        // end_timestamp + 1 是为了兼容日志服务的查询，日志服务是左开右闭区间，不包含结束时间。
+        let counts = search(&api, start_timestamp, end_timestamp + 1).await?;
 
         log::info!(
             "[ip_region_count] 区间 [{}, {}) 统计结果: {:?}",

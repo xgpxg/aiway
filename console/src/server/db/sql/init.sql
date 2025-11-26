@@ -184,8 +184,8 @@ create table if not exists statistics_request_province
 (
     province   varchar(50) not null,           -- 省份
     count      bigint      not null default 0, -- 数量
-    start_time bigint      not null,           -- 起始时间戳（秒）
-    end_time   bigint      not null            -- 结束时间戳（秒）
+    start_time bigint      not null,           -- 起始时间戳（秒，0分0秒）
+    end_time   bigint      not null            -- 结束时间戳（秒，59分59秒）
 );
 
 -- -------------------------------- 初始化用户 --------------------------------------

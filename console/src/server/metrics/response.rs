@@ -49,3 +49,9 @@ pub struct GatewayState {
     /// 最新一条消息的消息标题
     pub last_message_title: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RegionRequestCountRes {
+    name: String,
+    value: i64,
+}
