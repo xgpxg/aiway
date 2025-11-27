@@ -4,14 +4,17 @@ use crate::server::log::request::LogListReq;
 use chrono::TimeZone;
 use protocol::common::req::Pagination;
 use protocol::common::res::PageRes;
+use protocol::gateway::request_log::RequestLog;
 use protocol::logg::{LogEntry, LogSearchReq, LogSearchRes};
 use rocket::State;
 
-const LOG_INDEX: &str = "aiway-logs";
+const AIWAY_LOG_INDEX: &str = "aiway-logs";
+const REQUEST_LOG_INDEX: &str = "request-logs";
+
 pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes<LogEntry>> {
     let log_server = &args.log_server;
 
-    let url = format!("http://{}/api/v1/{}/search", log_server, LOG_INDEX);
+    let url = format!("http://{}/api/v1/{}/search", log_server, AIWAY_LOG_INDEX);
 
     let mut query = Vec::new();
     if let Some(filter_text) = &req.filter_text
@@ -45,6 +48,54 @@ pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes
         .send()
         .await?
         .json::<LogSearchRes<LogEntry>>()
+        .await?;
+
+    Ok(PageRes {
+        page_num: req.page_num(),
+        page_size: req.page_size(),
+        total: res.num_hits as u64,
+        list: res.hits,
+        ext: None,
+    })
+}
+
+pub(crate) async fn request_log_list(
+    req: LogListReq,
+    args: &State<Args>,
+) -> anyhow::Result<PageRes<RequestLog>> {
+    let log_server = &args.log_server;
+
+    let url = format!("http://{}/api/v1/{}/search", log_server, REQUEST_LOG_INDEX);
+
+    let mut query = Vec::new();
+    if let Some(filter_text) = &req.filter_text
+        && !filter_text.is_empty()
+    {
+        query.push(format!("{}", filter_text));
+    }
+
+    let start_offset = ((req.page_num() - 1) * req.page_size()) as usize;
+    let max_hits = req.page_size() as usize;
+
+    let param = LogSearchReq {
+        query: Some(query.join(" AND ")),
+        start_timestamp: req
+            .start_time
+            .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
+        end_timestamp: req
+            .end_time
+            .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
+        start_offset,
+        max_hits,
+        aggs: None,
+    };
+
+    let res = HTTP_CLIENT
+        .post(url)
+        .json(&param)
+        .send()
+        .await?
+        .json::<LogSearchRes<RequestLog>>()
         .await?;
 
     Ok(PageRes {

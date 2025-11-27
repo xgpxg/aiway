@@ -29,7 +29,7 @@ pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
 
 #[cfg(test)]
 mod tests {
-    use config::{Config, FileFormat};
+    //use config::{Config, FileFormat};
     #[test]
     fn test_config() {
        /* let config = Config::builder()

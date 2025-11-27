@@ -39,3 +39,11 @@ rust-embed = "8"
 default = []
 standalone = ["cache/share-cache"]
 cluster = ["cache/redis-cache"]
+
+
+[dev-dependencies]
+criterion = "0.7"
+
+[[bench]]
+name = "other"
+harness = false

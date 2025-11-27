@@ -96,3 +96,15 @@ impl Fairing for Logger {
         }
     }
 }
+
+// fn generate_random_ip() -> String {
+//     use rand::Rng;
+//     let mut rng = rand::thread_rng();
+//     format!(
+//         "{}.{}.{}.{}",
+//         rng.gen_range(1..=255),
+//         rng.gen_range(0..=255),
+//         rng.gen_range(0..=255),
+//         rng.gen_range(0..=255)
+//     )
+// }

@@ -12,7 +12,9 @@ use tantivy::aggregation::{AggregationCollector, AggregationLimitsGuard};
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::{Query, QueryParser};
-use tantivy::schema::{FAST, Field, INDEXED, STORED, Schema, TEXT, Value};
+use tantivy::schema::{
+    DateOptions, DateTimePrecision, FAST, Field, INDEXED, STORED, Schema, TEXT, Value,
+};
 use tantivy::tokenizer::{LowerCaser, TextAnalyzer};
 use tantivy::{
     DateTime, Document, Index, IndexReader, IndexWriter, Order, ReloadPolicy, TantivyDocument,
@@ -97,7 +99,14 @@ impl Logg {
         sb.add_text_field("client_city", TEXT | STORED | FAST);
         sb.add_text_field("method", STORED);
         sb.add_text_field("path", TEXT | STORED);
-        sb.add_date_field("request_time", FAST | STORED);
+        // 注意设置精度，否则虽然能够存储毫秒，但在排序时会默认以秒排序，毫秒精度将丢失，会导致同一秒内的毫秒顺序不正确
+        sb.add_date_field(
+            "request_time",
+            DateOptions::default()
+                .set_fast()
+                .set_precision(DateTimePrecision::Microseconds)
+                | STORED,
+        );
         sb.add_date_field("response_time", STORED);
         sb.add_i64_field("elapsed", STORED);
         sb.add_u64_field("status_code", FAST | STORED);
