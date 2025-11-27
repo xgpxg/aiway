@@ -83,12 +83,22 @@ impl Firewalld {
     pub async fn check(ip: &str, referer: &str) -> Result<(), String> {
         let firewall = FIREWALLD.get().unwrap().config.read().await;
 
-        // 可信IP直接通过
+        // 受信IP直接通过
         if firewall.trust_ips.contains(ip) {
             return Ok(());
         }
 
         // 检查IP策略
+        Self::check_ip_policy(&firewall, ip)?;
+        // 检查Referer策略
+        Self::check_referer_policy(&firewall, referer)?;
+
+        // 检查最大连接数
+
+        Ok(())
+    }
+
+    fn check_ip_policy(firewall: &Firewall, ip: &str) -> Result<(), String> {
         match firewall.ip_policy_mode {
             AllowDenyPolicy::Allow => {
                 if !firewall.ip_policy.contains(ip) {
@@ -102,8 +112,10 @@ impl Firewalld {
             }
             AllowDenyPolicy::Disable => {}
         }
+        Ok(())
+    }
 
-        // 检查referer策略
+    fn check_referer_policy(firewall: &Firewall, referer: &str) -> Result<(), String> {
         match firewall.referer_policy_mode {
             AllowDenyPolicy::Allow => {
                 if referer.is_empty() && !firewall.allow_empty_referer {
@@ -123,9 +135,6 @@ impl Firewalld {
             }
             AllowDenyPolicy::Disable => {}
         }
-
-        // 检查最大连接数
-
         Ok(())
     }
 }

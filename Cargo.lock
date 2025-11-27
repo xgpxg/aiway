@@ -1635,6 +1635,7 @@ dependencies = [
  "protocol",
  "reqwest",
  "rocket",
+ "serde",
  "serde_json",
  "sysinfo",
  "tokio",

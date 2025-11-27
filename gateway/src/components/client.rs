@@ -6,6 +6,8 @@ use clap::Parser;
 use protocol::common::res::Res;
 use protocol::gateway::{Firewall, GlobalFilter, Plugin, Route, Service};
 use reqwest::{Client, ClientBuilder};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -41,101 +43,57 @@ impl InnerHttpClient {
             .await
     }
 
-    pub async fn fetch_routes(&self) -> anyhow::Result<Vec<Route>> {
-        let endpoint = format!("http://{}/api/v1/gateway/routes", self.args.console);
+    async fn fetch_resource<T>(&self, endpoint: String) -> anyhow::Result<T>
+    where
+        T: DeserializeOwned + Serialize,
+    {
         match self.get(endpoint, HashMap::new()).await {
             Ok(response) => {
-                let res = response.json::<Res<Vec<Route>>>().await?;
+                if let Err(e) = response.error_for_status_ref() {
+                    bail!("http error: {}", e);
+                }
+                let res = response.json::<Res<T>>().await?;
                 if res.is_success() {
-                    Ok(res.data.unwrap_or_default())
+                    res.data.ok_or_else(|| anyhow::anyhow!("no data returned"))
                 } else {
-                    bail!("console return error: {}", res.msg);
+                    bail!("console returned error: {}", res.msg);
                 }
             }
-            Err(e) => {
-                bail!("fetch routes error: {}", e);
-            }
+            Err(e) => bail!("network error: {}", e),
         }
+    }
+
+    pub async fn fetch_routes(&self) -> anyhow::Result<Vec<Route>> {
+        let endpoint = format!("http://{}/api/v1/gateway/routes", self.args.console);
+        let mut routes = self.fetch_resource::<Vec<Route>>(endpoint).await?;
+        routes.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(routes)
     }
 
     pub async fn fetch_services(&self) -> anyhow::Result<Vec<Service>> {
         let endpoint = format!("http://{}/api/v1/gateway/services", self.args.console);
-        match self.get(endpoint, HashMap::new()).await {
-            Ok(response) => {
-                let res = response.json::<Res<Vec<Service>>>().await?;
-                if res.is_success() {
-                    let mut list = res.data.unwrap_or_default();
-                    // 排序，防止因顺序导致hash验证不一致
-                    list.sort_by(|a, b| a.name.cmp(&b.name));
-                    Ok(list)
-                } else {
-                    bail!("console return error: {}", res.msg);
-                }
-            }
-            Err(e) => {
-                bail!("fetch routes error: {}", e);
-            }
-        }
+        let mut services = self.fetch_resource::<Vec<Service>>(endpoint).await?;
+        services.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(services)
     }
 
     pub async fn fetch_plugins(&self) -> anyhow::Result<Vec<Plugin>> {
         let endpoint = format!("http://{}/api/v1/gateway/plugins", self.args.console);
-        match self.get(endpoint, HashMap::new()).await {
-            Ok(response) => {
-                let res = response.json::<Res<Vec<Plugin>>>().await?;
-                if res.is_success() {
-                    let mut list = res.data.unwrap_or_default();
-                    // 排序，防止因顺序导致hash验证不一致
-                    list.sort_by(|a, b| a.name.cmp(&b.name));
-                    Ok(list)
-                } else {
-                    bail!("console return error: {}", res.msg);
-                }
-            }
-            Err(e) => {
-                bail!("fetch plugins error: {}", e);
-            }
-        }
+        let mut plugins = self.fetch_resource::<Vec<Plugin>>(endpoint).await?;
+        plugins.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(plugins)
     }
 
     pub async fn fetch_global_filter(&self) -> anyhow::Result<GlobalFilter> {
         let endpoint = format!("http://{}/api/v1/gateway/global/filter", self.args.console);
-        match self.get(endpoint, HashMap::new()).await {
-            Ok(response) => {
-                if let Err(e) = response.error_for_status_ref() {
-                    bail!("fetch global filter error: {}", e);
-                }
-                let res = response.json::<Res<GlobalFilter>>().await?;
-                if res.is_success() {
-                    Ok(res.data.unwrap())
-                } else {
-                    bail!("console return error: {}", res.msg);
-                }
-            }
-            Err(e) => {
-                bail!("fetch global filter error: {:?}", e);
-            }
-        }
+        let global_filter = self.fetch_resource::<GlobalFilter>(endpoint).await?;
+        Ok(global_filter)
     }
 
     pub async fn fetch_firewall(&self) -> anyhow::Result<Firewall> {
         let endpoint = format!("http://{}/api/v1/gateway/firewall", self.args.console);
-        match self.get(endpoint, HashMap::new()).await {
-            Ok(response) => {
-                if let Err(e) = response.error_for_status_ref() {
-                    bail!("fetch firewall error: {}", e);
-                }
-                let res = response.json::<Res<Firewall>>().await?;
-                if res.is_success() {
-                    Ok(res.data.unwrap())
-                } else {
-                    bail!("console return error: {}", res.msg);
-                }
-            }
-            Err(e) => {
-                bail!("fetch firewall error: {}", e);
-            }
-        }
+        let firewall = self.fetch_resource::<Firewall>(endpoint).await?;
+        Ok(firewall)
     }
 
     pub async fn fetch_ip_region_file(&self) -> anyhow::Result<PathBuf> {

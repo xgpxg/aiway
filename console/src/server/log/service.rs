@@ -71,7 +71,7 @@ pub(crate) async fn request_log_list(
     if let Some(filter_text) = &req.filter_text
         && !filter_text.is_empty()
     {
-        query.push(format!("{}", filter_text));
+        query.push(filter_text.clone());
     }
 
     let start_offset = ((req.page_num() - 1) * req.page_size()) as usize;
