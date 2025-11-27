@@ -9,3 +9,4 @@ pub mod statistics_request_province;
 pub mod system_config;
 pub mod user;
 pub mod user_auth;
+pub mod statistics_request_status_code;

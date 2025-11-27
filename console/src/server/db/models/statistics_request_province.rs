@@ -4,7 +4,7 @@ use rbatis::executor::Executor;
 use rbatis::{crud, htmlsql};
 use rocket::serde::{Deserialize, Serialize};
 
-/// 请求地区统计（小时级，保留近30天内的），当前小时区间内的每分钟更新一次
+/// 请求地区统计（小时级，保留近1年的），当前小时区间内的每分钟更新一次
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
 #[builder(default)]
 pub struct StatisticsRequestProvince {

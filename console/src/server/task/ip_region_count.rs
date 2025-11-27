@@ -37,10 +37,11 @@ const PROVINCES: [&str; 34] = ["北京", "广东省", "台湾省", "浙江省", 
 /// - 由定时任务清理1年以前的数据，每天执行一次。
 async fn ip_region_count_(args: Arc<Args>) -> anyhow::Result<()> {
     log::info!("[ip_region_count] 区域请求统计开始执行");
-    // 上次更新时间
-    let last_time = SystemConfig::get::<i64>(ConfigKey::IpRegionLastUpdate).await?;
-    if last_time == 0 {
-        // 首次执行，设置初始时间
+    // 上次更新时间戳
+    let last_timestamp = SystemConfig::get::<i64>(ConfigKey::IpRegionLastUpdate).await?;
+    // 首次执行
+    if last_timestamp == 0 {
+        // 设置初始时间
         SystemConfig::upsert(
             ConfigKey::IpRegionLastUpdate,
             &chrono::Local::now().timestamp(),
@@ -50,13 +51,24 @@ async fn ip_region_count_(args: Arc<Args>) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    log::info!("[ip_region_count] 上次更新时间: {}", last_time);
-
+    log::info!(
+        "[request_status_count] 上次统计区间: [{}, {}]",
+        chrono::DateTime::from_timestamp_secs(last_timestamp)
+            .unwrap()
+            .with_timezone(&chrono_tz::Asia::Shanghai)
+            .format("%Y-%m-%d %H:%M:%S"),
+        chrono::DateTime::from_timestamp_secs(last_timestamp)
+            .unwrap()
+            .with_timezone(&chrono_tz::Asia::Shanghai)
+            .with_second(59)
+            .unwrap()
+            .format("%Y-%m-%d %H:%M:%S")
+    );
     // 当前时间
     let now = chrono::Local::now().timestamp();
 
     // 时间戳转时间
-    let last_datetime: DateTime<Utc> = Utc.timestamp_opt(last_time, 0).unwrap();
+    let last_datetime: DateTime<Utc> = Utc.timestamp_opt(last_timestamp, 0).unwrap();
     let now_datetime: DateTime<Utc> = Utc.timestamp_opt(now, 0).unwrap();
 
     // 上次更新时间，调整到小时的开始
@@ -78,19 +90,29 @@ async fn ip_region_count_(args: Arc<Args>) -> anyhow::Result<()> {
         // 小时整点时间戳
         let start_timestamp = last_datetime.timestamp();
         // 小时结束时间戳
-        let end_datetime = last_datetime
+        let end_timestamp = last_datetime
             .with_minute(59)
             .and_then(|dt| dt.with_second(59))
-            .unwrap();
-        let end_timestamp = end_datetime.timestamp();
+            .unwrap()
+            .timestamp();
 
-        // end_timestamp + 1 是为了兼容日志服务的查询，日志服务是左开右闭区间，不包含结束时间。
+        // end_timestamp + 1 是为了兼容日志服务的查询，日志服务是左闭右开区间，不包含结束时间。
         let counts = search(&api, start_timestamp, end_timestamp + 1).await?;
 
         log::info!(
             "[ip_region_count] 区间 [{}, {}) 统计结果: {:?}",
-            start_timestamp,
-            end_timestamp,
+            chrono::DateTime::from_timestamp_secs(start_timestamp)
+                .unwrap()
+                .with_timezone(&chrono_tz::Asia::Shanghai)
+                .with_second(59)
+                .unwrap()
+                .format("%Y-%m-%d %H:%M:%S"),
+            chrono::DateTime::from_timestamp_secs(end_timestamp)
+                .unwrap()
+                .with_timezone(&chrono_tz::Asia::Shanghai)
+                .with_second(59)
+                .unwrap()
+                .format("%Y-%m-%d %H:%M:%S"),
             counts
         );
 
@@ -186,13 +208,14 @@ async fn clean_() -> anyhow::Result<()> {
         .and_then(|dt| dt.with_second(0))
         .unwrap()
         .timestamp();
-    let result = StatisticsRequestProvince::delete_by_map(
-        Pool::get()?,
-        value! {
-            "start_time" : one_year_ago,
-        },
-    )
-    .await?;
+
+    let tx = Pool::get()?;
+    let result = tx
+        .exec(
+            "DELETE FROM statistics_request_province WHERE start_time < ?",
+            vec![one_year_ago.into()],
+        )
+        .await?;
 
     log::info!(
         "[ip_region_count] 清理数据完成，删除了{}条数据",

@@ -55,3 +55,12 @@ pub struct RegionRequestCountRes {
     name: String,
     value: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RequestStatusCountRes {
+    pub state_time: i64,
+    pub status_2xx: i64,
+    pub status_3xx: i64,
+    pub status_4xx: i64,
+    pub status_5xx: i64,
+}

@@ -13,7 +13,7 @@ use rbs::value;
 pub async fn report(req: State) -> anyhow::Result<()> {
     let node_id = &req.node_info.node_id;
 
-    log::info!("node_id:{}, state: {:?}", node_id, req);
+    log::debug!("node_id:{}, state: {:?}", node_id, req);
 
     let tx = Pool::get()?;
     let gateway_node = GatewayNode::select_by_map(tx, value! {"node_id": node_id}).await?;

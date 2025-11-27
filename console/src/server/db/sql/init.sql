@@ -188,6 +188,14 @@ create table if not exists statistics_request_province
     end_time   bigint      not null            -- 结束时间戳（秒，59分59秒）
 );
 
+-- 状态码统计（分钟级，保留近1年的）
+create table if not exists statistics_request_status_code
+(
+    status_code bigint not null,           -- 状态码
+    count       bigint not null default 0, -- 数量
+    state_time  bigint not null            -- 分钟起始时间戳（秒，0分0秒），范围为[state_time, state_time+59]
+);
+
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');

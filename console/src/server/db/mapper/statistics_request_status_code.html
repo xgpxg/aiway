@@ -1,16 +1,15 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
         "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
 <mapper>
-    <select id="region_request_count">
-        select province as name, sum(count) as value from statistics_request_province
+    <select id="status_code_request_count">
+        select * from statistics_request_status_code
         <where>
             <if test="param.start_timestamp!=null">
-                ` and start_time >= #{param.start_timestamp} `
+                ` and state_time >= #{param.start_timestamp} `
             </if>
             <if test="param.end_timestamp!=null">
-                ` and end_time <= #{param.end_timestamp} `
+                ` and state_time <= #{param.end_timestamp} `
             </if>
         </where>
-        group by province
     </select>
 </mapper>

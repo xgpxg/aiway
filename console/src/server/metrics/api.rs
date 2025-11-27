@@ -1,13 +1,13 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::metrics::request::RegionRequestCountReq;
-use crate::server::metrics::response::{GatewayState, RegionRequestCountRes};
+use crate::server::metrics::request::{RegionRequestCountReq, RequestStatusCountReq};
+use crate::server::metrics::response::{GatewayState, RegionRequestCountRes, RequestStatusCountRes};
 use crate::server::metrics::service;
 use protocol::common::res::Res;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![gateway_state, request_region_count]
+    routes![gateway_state, request_region_count, request_status_count]
 }
 
 /// 网关状态
@@ -26,6 +26,18 @@ async fn request_region_count(
     _user: UserPrincipal,
 ) -> Res<Vec<RegionRequestCountRes>> {
     match service::request_region_count(req.0).await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 状态码统计
+#[post("/status/count", data = "<req>")]
+async fn request_status_count(
+    req: Json<RequestStatusCountReq>,
+    _user: UserPrincipal,
+) -> Res<Vec<RequestStatusCountRes>> {
+    match service::request_status_count(req.0).await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
     }

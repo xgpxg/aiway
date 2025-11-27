@@ -100,7 +100,7 @@ impl Logg {
         sb.add_date_field("request_time", FAST | STORED);
         sb.add_date_field("response_time", STORED);
         sb.add_i64_field("elapsed", STORED);
-        sb.add_u64_field("status_code", INDEXED | STORED);
+        sb.add_u64_field("status_code", FAST | STORED);
         sb.add_u64_field("response_size", STORED);
         sb.add_text_field("user_agent", TEXT | STORED);
         sb.add_text_field("referer", TEXT | STORED);

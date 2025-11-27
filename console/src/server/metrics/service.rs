@@ -1,9 +1,12 @@
 use crate::server::db::Pool;
 use crate::server::db::models::gateway_node::GatewayNode;
 use crate::server::db::models::gateway_node_state::GatewayNodeState;
-use crate::server::db::models::statistics_request_province;
-use crate::server::metrics::request::RegionRequestCountReq;
-use crate::server::metrics::response::{GatewayState, RegionRequestCountRes};
+use crate::server::db::models::statistics_request_status_code::StatisticsRequestStatusCode;
+use crate::server::db::models::{statistics_request_province, statistics_request_status_code};
+use crate::server::metrics::request::{RegionRequestCountReq, RequestStatusCountReq};
+use crate::server::metrics::response::{
+    GatewayState, RegionRequestCountRes, RequestStatusCountRes,
+};
 use chrono::Timelike;
 use rbs::value;
 use serde::Deserialize;
@@ -155,4 +158,69 @@ pub(crate) async fn request_region_count(
 ) -> anyhow::Result<Vec<RegionRequestCountRes>> {
     let list = statistics_request_province::region_request_count(Pool::get()?, &req).await?;
     Ok(list)
+}
+
+pub(crate) async fn request_status_count(
+    req: RequestStatusCountReq,
+) -> anyhow::Result<Vec<RequestStatusCountRes>> {
+    let list: Vec<StatisticsRequestStatusCode> =
+        statistics_request_status_code::status_code_request_count(Pool::get()?, &req).await?;
+
+    // 获取时间范围
+    let start_timestamp = req
+        .start_timestamp
+        .unwrap_or_else(|| (chrono::Local::now() - chrono::Duration::hours(1)).timestamp());
+    let end_timestamp = req
+        .end_timestamp
+        .unwrap_or_else(|| chrono::Local::now().timestamp());
+
+    // 创建完整的时间序列（按分钟）
+    let mut minute_stats: std::collections::HashMap<i64, [i64; 4]> =
+        std::collections::HashMap::new();
+
+    // 初始化所有分钟点为0
+    let mut current_minute = start_timestamp / 60 * 60;
+    while current_minute <= end_timestamp {
+        minute_stats.insert(current_minute, [0; 4]);
+        current_minute += 60;
+    }
+
+    // 填充实际数据
+    for item in list {
+        if let Some(timestamp) = item.state_time {
+            let minute_start = timestamp / 60 * 60;
+
+            // 只处理时间范围内的数据
+            if minute_start >= start_timestamp
+                && minute_start <= end_timestamp
+                && let Some(stats) = minute_stats.get_mut(&minute_start)
+                && let Some(status_code) = item.status_code
+            {
+                match status_code {
+                    200..=299 => stats[0] += item.count.unwrap_or(0),
+                    300..=399 => stats[1] += item.count.unwrap_or(0),
+                    400..=499 => stats[2] += item.count.unwrap_or(0),
+                    500..=599 => stats[3] += item.count.unwrap_or(0),
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    // 转换为返回结果
+    let mut result: Vec<RequestStatusCountRes> = minute_stats
+        .into_iter()
+        .map(|(minute, stats)| RequestStatusCountRes {
+            state_time: minute,
+            status_2xx: stats[0],
+            status_3xx: stats[1],
+            status_4xx: stats[2],
+            status_5xx: stats[3],
+        })
+        .collect();
+
+    // 按时间排序
+    result.sort_by_key(|r| r.state_time);
+
+    Ok(result)
 }
