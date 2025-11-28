@@ -70,6 +70,7 @@ pub async fn report(req: State) -> anyhow::Result<()> {
         .net_tx(req.system_state.net_state.tx)
         .net_tcp_conn_count(req.system_state.net_state.tcp_conn_count)
         .http_connect_count(req.moment_counter.http_connect_count)
+        .sse_connect_count(req.moment_counter.sse_connect_count)
         .avg_qps(if req.counter.response_time_since_last > 0 {
             req.counter.request_count / common::constants::REPORT_STATE_INTERVAL as usize
         } else {

@@ -115,6 +115,8 @@ pub struct MomentCounter {
     ///
     pub http_connect_count: isize,
     // TODO SSE计数？
+    pub sse_connect_count: isize,
+
 }
 
 impl State {

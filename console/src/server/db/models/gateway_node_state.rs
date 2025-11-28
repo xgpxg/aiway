@@ -36,6 +36,8 @@ pub struct GatewayNodeState {
     pub net_tcp_conn_count: usize,
     /// HTTP连接数
     pub http_connect_count: isize,
+    /// SSE连接数
+    pub sse_connect_count: isize,
     /// 平均QPS(统计周期内)
     pub avg_qps: usize,
     //////////////////////////// 区间内统计 ////////////////////////////

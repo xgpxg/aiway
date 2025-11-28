@@ -112,6 +112,10 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
         .iter()
         .map(|s| s.http_connect_count as usize)
         .sum::<usize>();
+    state.sse_connect_count = node_states
+        .iter()
+        .map(|s| s.sse_connect_count as usize)
+        .sum::<usize>();
     state.net_rx = node_states.iter().map(|s| s.net_rx as usize).sum::<usize>();
     state.net_tx = node_states.iter().map(|s| s.net_tx as usize).sum::<usize>();
 

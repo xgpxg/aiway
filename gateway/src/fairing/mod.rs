@@ -13,6 +13,13 @@
 //! 在第二阶段，即后置处理阶段，按顺序执行已配置的插件，并传递给下一个插件。
 //! 可在此阶段修改响应结果。
 //!
+//! ## on_request 和 on_response的执行顺序
+//! - fairing按照attach的顺序依次执行
+//! - 如果一个fairing同时实现on_request和on_response，则在on_request和on_response也按顺序执行
+//!
+//! 例如：A(Req,Res) -> B(Req) -> C(Res)
+//! 则执行顺序为：A(Req) -> B(Req) -> A(Res) -> C(Res)
+//!
 pub mod auth;
 pub mod catchers;
 pub mod cleanup;

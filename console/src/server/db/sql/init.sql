@@ -158,7 +158,8 @@ create table if not exists gateway_node_state
     response_3xx_count             bigint       not null default 0, -- 累计3xx响应数
     response_4xx_count             bigint       not null default 0, -- 累计4xx响应数
     response_5xx_count             bigint       not null default 0, -- 累计5xx响应数
-    http_connect_count             bigint       not null default 0, -- 累计http连接数
+    http_connect_count             bigint       not null default 0, -- http连接数
+    sse_connect_count              bigint       not null default 0, -- sse连接数
     avg_response_time              bigint       not null default 0, -- 累计平均响应时间
     create_time                    datetime                         -- 创建时间
 );

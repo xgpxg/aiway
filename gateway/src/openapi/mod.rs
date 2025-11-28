@@ -17,11 +17,13 @@ use crate::context::HttpContextWrapper;
 use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::{GatewayResponse, ResponseExt};
+use crate::report::STATE;
 use reqwest::Url;
-use rocket::futures::StreamExt;
+use rocket::futures::{StreamExt, stream};
 use rocket::{delete, get, head, options, patch, post, put};
 use std::io;
 use std::path::PathBuf;
+use tokio_util::bytes;
 use tokio_util::io::StreamReader;
 
 #[get("/<path..>")]
@@ -116,12 +118,17 @@ async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse 
                 let status = response.status();
                 // 处理SSE流
                 if response.is_sse() {
-                    let stream = response.bytes_stream();
+                    // 处理SSE流结束，将这个流合并在响应流的最后
+                    let end_handler = stream::once(async {
+                        // SSE连接数减1，这里不用处理HTTP连接数，会在cleanup中处理
+                        STATE.inc_sse_connect_count(-1);
+                        Ok(bytes::Bytes::new())
+                    });
+
+                    let stream = response.bytes_stream().chain(end_handler);
                     let stream_reader =
-                        StreamReader::new(stream.map(|result| {
-                            result.map_err(io::Error::other)
-                        }));
-                    return GatewayResponse::Sse(Box::new(stream_reader));
+                        StreamReader::new(stream.map(|result| result.map_err(io::Error::other)));
+                    return GatewayResponse::Sse(Box::new(Box::pin(stream_reader)));
                 }
                 GatewayResponse::Raw(status.as_u16(), response.bytes().await.unwrap())
             }

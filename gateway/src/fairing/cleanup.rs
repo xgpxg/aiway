@@ -2,8 +2,7 @@
 //!
 //! 最后执行，清理RequestContext
 //!
-use crate::context;
-use crate::context::HCM;
+use crate::context::{HCM, Headers};
 use crate::report::STATE;
 use rocket::Request;
 use rocket::fairing::Fairing;
@@ -25,13 +24,13 @@ impl Fairing for Cleaner {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
-        if let Some(request_id) = req.headers().get_one(context::Headers::REQUEST_ID) {
+        if let Some(request_id) = req.headers().get_one(Headers::REQUEST_ID) {
             HCM.remove(request_id);
         }
 
         // 移除掉仅网关内部使用的Header
-        res.remove_header(context::Headers::ERROR_CODE);
-        res.remove_header(context::Headers::ERROR_MESSAGE);
+        res.remove_header(Headers::ERROR_CODE);
+        res.remove_header(Headers::ERROR_MESSAGE);
 
         // 连接数减1
         STATE.inc_http_connect_count(-1);

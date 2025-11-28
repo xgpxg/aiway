@@ -9,6 +9,7 @@ impl Headers {
     pub const ERROR_MESSAGE: &'static str = "X-Error-Message";
     pub const REFERER: &'static str = "Referer";
     pub const USER_AGENT: &'static str = "User-Agent";
+    pub const CONTENT_TYPE: &'static str = "Content-Type";
 }
 
 impl Headers {

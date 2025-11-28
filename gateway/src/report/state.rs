@@ -123,6 +123,12 @@ impl GatewayState {
             0.max(state.moment_counter.http_connect_count + n);
     }
 
+    pub fn inc_sse_connect_count(&self, n: isize) {
+        let state = &mut self.state.lock().unwrap();
+        // 这里减的时候可能导致小于0，需要保证不能小于0
+        state.moment_counter.sse_connect_count = 0.max(state.moment_counter.sse_connect_count + n);
+    }
+
     pub fn inc_request_invalid_count(&self, n: usize) {
         self.state.lock().unwrap().counter.request_invalid_count += n;
     }

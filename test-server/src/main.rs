@@ -29,9 +29,9 @@ fn hello() -> &'static str {
 #[get("/sse")]
 fn sse() -> EventStream![] {
     EventStream! {
-        for _ in 0..10 {
+        for _ in 0..100 {
             yield Event::data("ping");
-            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         }
     }
 }
