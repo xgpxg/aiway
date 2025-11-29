@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+<mapper>
+    <select id="list_page">
+        <if test="do_count == true">
+            select count(1)
+        </if>
+        <if test="do_count == false">
+            select gn.*
+        </if>
+        ` `
+        from gateway_node gn
+        <where>
+            <if test="param.filter_text!=null && param.filter_text!=''">
+                ` and (
+                        gn.ip like concat('%',#{param.filter_text},'%')
+                    ) `
+            </if>
+        </where>
+        <if test="do_count == false">
+            ` order by gn.id desc `
+            ` limit ${page_no},${page_size} `
+        </if>
+    </select>
+
+</mapper>

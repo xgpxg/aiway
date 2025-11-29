@@ -1,6 +1,7 @@
 use derive_builder::Builder;
-use rbatis::crud;
+use rbatis::executor::Executor;
 use rbatis::rbdc::DateTime;
+use rbatis::{crud, htmlsql};
 use rocket::serde::{Deserialize, Serialize};
 
 /// 网关节点状态记录
@@ -75,3 +76,6 @@ pub struct GatewayNodeState {
 }
 
 crud!(GatewayNodeState {});
+
+// 查询网关节点的最新状态
+htmlsql!(lastest_state(rb: &dyn Executor, node_ids :&Vec<String>)  -> Vec<GatewayNodeState> => "src/server/db/mapper/gateway_node_state.html");

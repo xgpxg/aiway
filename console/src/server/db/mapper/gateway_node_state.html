@@ -1,0 +1,16 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+<mapper>
+    <select id="lastest_state">
+        select * from gateway_node_state where (node_id, id) in (
+        select node_id, max(id) from gateway_node_state
+        where node_id in (
+        <foreach collection="node_ids" item="node_id" separator=",">
+            #{node_id}
+        </foreach>
+        )
+        group by node_id
+        )
+    </select>
+
+</mapper>

@@ -1,6 +1,7 @@
+use crate::server::node::GatewayNodeListReq;
 use derive_builder::Builder;
-use rbatis::crud;
 use rbatis::rbdc::DateTime;
+use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
 
 /// 网关节点信息
@@ -27,8 +28,10 @@ pub struct GatewayNode {
     /// 修改人ID
     pub update_user_id: Option<i64>,
     /// 创建时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub create_time: Option<DateTime>,
     /// 更新时间
+    #[serde(serialize_with = "crate::server::common::serialize_datetime")]
     pub update_time: Option<DateTime>,
     /// 备注
     pub remark: Option<String>,
@@ -53,3 +56,4 @@ impl GatewayNode {
 }
 
 crud!(GatewayNode {});
+htmlsql_select_page!(list_page(param: &GatewayNodeListReq) -> GatewayNode => "src/server/db/mapper/gateway_node.html");
