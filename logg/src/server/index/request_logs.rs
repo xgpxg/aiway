@@ -12,9 +12,7 @@ use tantivy::aggregation::{AggregationCollector, AggregationLimitsGuard};
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::{Query, QueryParser};
-use tantivy::schema::{
-    DateOptions, DateTimePrecision, FAST, Field, INDEXED, STORED, Schema, TEXT, Value,
-};
+use tantivy::schema::{DateOptions, DateTimePrecision, FAST, Field, STORED, Schema, TEXT, Value};
 use tantivy::tokenizer::{LowerCaser, TextAnalyzer};
 use tantivy::{
     DateTime, Document, Index, IndexReader, IndexWriter, Order, ReloadPolicy, TantivyDocument,
