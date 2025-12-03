@@ -34,6 +34,8 @@ impl Fairing for Authentication {
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         skip_if_error!(req);
 
+        // TODO 白名单？
+
         let bearer_token = req.headers().get_one(Headers::AUTHORIZATION);
 
         let api_key = match bearer_token {
