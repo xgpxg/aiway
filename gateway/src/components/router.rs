@@ -35,7 +35,7 @@ impl Router {
         }
     }
     async fn load() -> anyhow::Result<()> {
-        let mut routes = Self::fetch_routes()
+        let routes = Self::fetch_routes()
             .await?
             .into_iter()
             .map(Arc::new)
@@ -43,7 +43,7 @@ impl Router {
 
         log::info!("loaded {} routes", routes.len());
 
-        let matcher = Self::build_matcher(&mut routes);
+        let matcher = Self::build_matcher(&routes);
 
         let router = Router {
             routes: Arc::new(RwLock::new(routes)),
@@ -57,9 +57,10 @@ impl Router {
         Ok(())
     }
 
-    fn build_matcher(routes: &mut [Arc<Route>]) -> matchit::Router<Arc<Route>> {
+    fn build_matcher(routes: &[Arc<Route>]) -> matchit::Router<Arc<Route>> {
         // 对routes排序，按照host长度降序、path长度降序、header个数降序、query个数降序的顺序排序
         // 这样保证更具体的优先匹配
+        let mut routes = routes.iter().collect::<Vec<_>>();
         routes.sort_unstable_by(|a, b| {
             b.host
                 .as_ref()
@@ -121,9 +122,9 @@ impl Router {
                 log::debug!("old routes: {}", old);
                 log::debug!("new routes: {}", new);
 
-                let mut routes = routes.into_iter().map(Arc::new).collect::<Vec<_>>();
+                let routes = routes.into_iter().map(Arc::new).collect::<Vec<_>>();
 
-                let matcher = Self::build_matcher(&mut routes);
+                let matcher = Self::build_matcher(&routes);
 
                 {
                     *ROUTER.get().unwrap().routes.write().unwrap() = routes;
