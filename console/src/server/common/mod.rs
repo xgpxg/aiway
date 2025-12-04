@@ -1,5 +1,5 @@
 use rbatis::rbdc::DateTime;
-use serde::{Deserializer, Serializer, de};
+use serde::{Deserialize, Deserializer, Serializer, de};
 
 #[allow(unused)]
 pub(crate) mod pool;
@@ -167,4 +167,12 @@ where
     }
 
     deserializer.deserialize_any(VecStringVisitor)
+}
+
+pub fn deserialize_bool_from_int<'de, D>(deserializer: D) -> Result<Option<bool>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<i8> = Option::deserialize(deserializer)?;
+    Ok(value.map(|v| v == 1))
 }

@@ -14,13 +14,6 @@ pub struct Route {
     //pub prefix: Option<String>,
     /// 路径，支持通配符，必须以"/"开头，全局唯一。
     pub path: String,
-    // 是否去除路径前缀，默认为false
-    // #[serde(
-    //     default = "bool::default",
-    //     alias = "strip_prefix",
-    //     alias = "strip-prefix"
-    // )]
-    // pub strip_prefix: bool,
     /// 需要路由到的服务ID
     pub service: String,
     /*/// 协议：http | sse
@@ -43,6 +36,14 @@ pub struct Route {
         alias = "post-filters"
     )]
     pub post_filters: Vec<ConfiguredPlugin>,
+    /// 是否开启鉴权
+    ///
+    /// 备注：网关本身只支持API Key鉴权即可，如果需要其他类型的鉴权方式，可将此处鉴权关闭，然后通过插件实现。
+    /// 考虑提供一些内置的鉴权插件。
+    #[serde(default = "bool::default", alias = "is_auth", alias = "is-auth")]
+    pub is_auth: bool,
+    /// 鉴权白名单
+    pub auth_white_list: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

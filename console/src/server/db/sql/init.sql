@@ -35,25 +35,27 @@ create table if not exists user_auth
 
 create table if not exists route
 (
-    id             bigint primary key,
-    name           varchar(100)  not null,                   -- 路由名称
-    description    varchar(500),                             -- 路由描述
-    status         varchar(20)   not null default 'Disable', -- 状态：Disable | Ok
-    host           varchar(100),                             -- 需要匹配的域名
+    id              bigint primary key,
+    name            varchar(100)  not null,                   -- 路由名称
+    description     varchar(500),                             -- 路由描述
+    status          varchar(20)   not null default 'Disable', -- 状态：Disable | Ok
+    host            varchar(100),                             -- 需要匹配的域名
     -- prefix         varchar(100),                             -- 路由前缀
-    path           varchar(500)  not null,                   -- 路由路径
+    path            varchar(500)  not null,                   -- 路由路径
     -- strip_prefix   tinyint(1)    not null default 1,         -- 是否去除路径前缀
-    service        varchar(100)  not null,                   -- 目标服务名
-    header         varchar(1000) not null,                   -- 按请求头匹配
-    query          varchar(1000) not null,                   -- 按请求参数匹配
-    pre_filters    varchar(500)  not null,                   -- 请求阶段过滤器，JSON数组
-    post_filters   varchar(500)  not null,                   -- 响应阶段过滤器，JSON数组
-    create_user_id bigint,                                   -- 创建人ID
-    update_user_id bigint,                                   -- 修改人ID
-    create_time    datetime,                                 -- 创建时间
-    update_time    datetime,                                 -- 更新时间
-    remark         varchar(500),                             -- 备注
-    is_delete      tinyint(1)    not null default 0          -- 是否删除
+    service         varchar(100)  not null,                   -- 目标服务名
+    header          varchar(1000) not null,                   -- 按请求头匹配
+    query           varchar(1000) not null,                   -- 按请求参数匹配
+    pre_filters     varchar(500)  not null,                   -- 请求阶段过滤器，JSON数组
+    post_filters    varchar(500)  not null,                   -- 响应阶段过滤器，JSON数组
+    is_auth         tinyint(1)    not null default 0,         -- 是否需要认证
+    auth_white_list varchar(1000),                            -- 认证白名单
+    create_user_id  bigint,                                   -- 创建人ID
+    update_user_id  bigint,                                   -- 修改人ID
+    create_time     datetime,                                 -- 创建时间
+    update_time     datetime,                                 -- 更新时间
+    remark          varchar(500),                             -- 备注
+    is_delete       tinyint(1)    not null default 0          -- 是否删除
 );
 create table if not exists service
 (

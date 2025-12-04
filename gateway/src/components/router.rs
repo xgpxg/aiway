@@ -109,6 +109,8 @@ impl Router {
                 }
 
                 log::info!("loaded {} routes", routes.len());
+                log::debug!("old routes: {}", old);
+                log::debug!("new routes: {}", new);
 
                 let routes = routes.into_iter().map(Arc::new).collect::<Vec<_>>();
 

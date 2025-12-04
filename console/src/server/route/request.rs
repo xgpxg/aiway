@@ -36,6 +36,10 @@ pub struct RouteAddOrUpdateReq {
     /// 后置过滤器
     #[serde(default = "Default::default")]
     pub post_filters: Vec<ConfiguredPlugin>,
+    /// 是否需要认证
+    pub is_auth: Option<bool>,
+    /// 认证白名单
+    pub auth_white_list: Option<Vec<String>>,
 }
 
 impl From<RouteAddOrUpdateReq> for Route {
@@ -54,6 +58,8 @@ impl From<RouteAddOrUpdateReq> for Route {
             query: req.query.into(),
             pre_filters: req.pre_filters.into(),
             post_filters: req.post_filters.into(),
+            is_auth: req.is_auth,
+            auth_white_list: req.auth_white_list,
             create_user_id: None,
             update_user_id: None,
             create_time: None,

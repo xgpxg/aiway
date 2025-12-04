@@ -18,6 +18,8 @@ pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
             query: route.query.unwrap_or_default(),
             pre_filters: route.pre_filters.unwrap_or_default(),
             post_filters: route.post_filters.unwrap_or_default(),
+            is_auth: route.is_auth.unwrap_or_default(),
+            auth_white_list: route.auth_white_list.unwrap_or_default(),
         });
     }
 
@@ -32,7 +34,7 @@ mod tests {
     //use config::{Config, FileFormat};
     #[test]
     fn test_config() {
-       /* let config = Config::builder()
+        /* let config = Config::builder()
             .add_source(config::File::from_str(
                 "name: aaa\naddress: \n  city: 123",
                 FileFormat::Yaml,

@@ -39,6 +39,11 @@ pub struct Route {
     pub pre_filters: Option<Vec<ConfiguredPlugin>>,
     /// 响应阶段过滤器，JSON数组
     pub post_filters: Option<Vec<ConfiguredPlugin>>,
+    /// 是否开启鉴权
+    #[serde(deserialize_with = "crate::server::common::deserialize_bool_from_int")]
+    pub is_auth: Option<bool>,
+    /// 鉴权白名单
+    pub auth_white_list: Option<Vec<String>>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

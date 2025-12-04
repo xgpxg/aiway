@@ -4,7 +4,7 @@
 //!
 //! 考虑是调用另外的服务验证，还是对API Key解密验证?
 //!
-use crate::context::Headers;
+use crate::context::{HCM, Headers};
 use crate::{set_error, skip_if_error};
 use cache::caches::CacheKey;
 use common::constants::ENCRYPT_KEY;
@@ -34,7 +34,25 @@ impl Fairing for Authentication {
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         skip_if_error!(req);
 
-        // TODO 白名单？
+        // 获取上下文
+        let ctx = HCM.get_from_request(req);
+        // SAFE: 此时路由一定存在
+        let route = ctx.request.get_route().unwrap();
+
+        // 未开启权限验证的不用校验
+        if !route.is_auth {
+            log::debug!("路由 {} 未开启权限验证，无需鉴权", route.name);
+            return;
+        }
+        // FIXME 修改匹配方式
+        if route.auth_white_list.contains(&ctx.request.get_path()) {
+            log::info!(
+                "匹配到白名单，跳过鉴权，{} => {}",
+                route.path,
+                ctx.request.path
+            );
+            return;
+        }
 
         let bearer_token = req.headers().get_one(Headers::AUTHORIZATION);
 
