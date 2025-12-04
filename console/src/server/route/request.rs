@@ -22,6 +22,8 @@ pub struct RouteAddOrUpdateReq {
     // pub strip_prefix: i8,
     /// 路径匹配
     pub path: String,
+    #[serde(default = "Default::default")]
+    pub methods: Vec<String>,
     /// 目标服务
     pub service: String,
     /// header匹配
@@ -54,6 +56,7 @@ impl From<RouteAddOrUpdateReq> for Route {
             //strip_prefix: req.strip_prefix.into(),
             path: req.path.into(),
             service: req.service.into(),
+            methods: req.methods.into(),
             header: req.header.into(),
             query: req.query.into(),
             pre_filters: req.pre_filters.into(),

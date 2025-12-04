@@ -30,6 +30,21 @@ pub async fn add(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Resul
     Ok(())
 }
 
+async fn check_path_conflict(path: &str) -> anyhow::Result<()> {
+   /* // 查询已存在的路由
+    let list = Route::select_all(Pool::get()?).await?;
+    let paths = list.into_iter().map(|item| item.path).collect::<Vec<_>>();
+  let mut matcher = matchit::Router::new();
+    for item in paths {
+        if let Err(e) = matcher.insert(&item, ())?{
+            bail!("路由路径: {}", e)
+        }
+    }
+    Ok(())*/
+    todo!()
+}
+
+
 async fn check_exists(route: &Route, exclude_id: Option<i64>) -> anyhow::Result<bool> {
     let mut list = Route::select_by_map(
         Pool::get()?,

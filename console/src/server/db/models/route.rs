@@ -29,8 +29,8 @@ pub struct Route {
     pub service: Option<String>,
     // 请求协议：http | https
     //pub protocol: Option<String>,
-    // 请求方法：GET | POST | PUT | DELETE | HEAD | OPTIONS | PATCH | TRACE | CONNECT
-    //pub method: Option<String>,
+    /// 请求方法：GET | POST | PUT | DELETE | HEAD | OPTIONS | PATCH | TRACE | CONNECT
+    pub methods: Option<Vec<String>>,
     /// 按请求头匹配
     pub header: Option<BTreeMap<String, String>>,
     /// 按请求参数匹配
@@ -43,6 +43,7 @@ pub struct Route {
     #[serde(deserialize_with = "crate::server::common::deserialize_bool_from_int")]
     pub is_auth: Option<bool>,
     /// 鉴权白名单
+    #[serde(deserialize_with = "crate::server::common::deserialize_to_string_vec")]
     pub auth_white_list: Option<Vec<String>>,
     /// 创建人ID
     pub create_user_id: Option<i64>,

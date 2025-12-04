@@ -55,6 +55,9 @@ impl RequestContext {
         self.request_ts
     }
 
+    pub fn get_host(&self) -> &str {
+        &self.host
+    }
     pub fn get_method(&self) -> Option<&str> {
         self.method.get().map(|s| s.as_str())
     }

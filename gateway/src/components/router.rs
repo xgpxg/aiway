@@ -13,7 +13,6 @@
 
 use crate::components::client::INNER_HTTP_CLIENT;
 use dashmap::DashMap;
-use globset::{Glob, GlobSet, GlobSetBuilder};
 use protocol::gateway::{HttpContext, Route};
 use std::process::exit;
 use std::sync::{Arc, OnceLock, RwLock};
@@ -23,7 +22,7 @@ pub struct Router {
     /// 路由表
     routes: Arc<RwLock<Vec<Arc<Route>>>>,
     /// 路由匹配器
-    matcher: Arc<RwLock<GlobSet>>,
+    matcher: Arc<RwLock<matchit::Router<Arc<Route>>>>,
 }
 
 pub static ROUTER: OnceLock<Router> = OnceLock::new();
@@ -36,7 +35,7 @@ impl Router {
         }
     }
     async fn load() -> anyhow::Result<()> {
-        let routes = Self::fetch_routes()
+        let mut routes = Self::fetch_routes()
             .await?
             .into_iter()
             .map(Arc::new)
@@ -44,7 +43,7 @@ impl Router {
 
         log::info!("loaded {} routes", routes.len());
 
-        let matcher = Self::build_matcher(&routes);
+        let matcher = Self::build_matcher(&mut routes);
 
         let router = Router {
             routes: Arc::new(RwLock::new(routes)),
@@ -58,18 +57,28 @@ impl Router {
         Ok(())
     }
 
-    fn build_matcher(routes: &[Arc<Route>]) -> GlobSet {
-        let mut builder = GlobSetBuilder::new();
+    fn build_matcher(routes: &mut [Arc<Route>]) -> matchit::Router<Arc<Route>> {
+        // 对routes排序，按照host长度降序、path长度降序、header个数降序、query个数降序的顺序排序
+        // 这样保证更具体的优先匹配
+        routes.sort_unstable_by(|a, b| {
+            b.host
+                .as_ref()
+                .map_or(0, |h| h.len())
+                .cmp(&a.host.as_ref().map_or(0, |h| h.len()))
+                .then_with(|| b.path.len().cmp(&a.path.len()))
+                .then_with(|| b.header.len().cmp(&a.header.len()))
+                .then_with(|| b.query.len().cmp(&a.query.len()))
+        });
+        // 匹配器，key为路径
+        let mut matcher = matchit::Router::new();
+
         for route in routes {
-            /*// 匹配规则为：前缀+路径
-            let pattern = format!(
-                "{}{}",
-                route.prefix.as_deref().unwrap_or_default(),
-                route.path
-            );*/
-            builder.add(Glob::new(&route.path).unwrap());
+            // 这里可能会发生路径冲突，应该在控制台保存的时候进行验证
+            if let Err(e) = matcher.insert(route.path.clone(), route.clone()) {
+                log::error!("build route matcher error: {}", e);
+            }
         }
-        builder.build().unwrap()
+        matcher
     }
 
     async fn fetch_routes() -> anyhow::Result<Vec<Route>> {
@@ -112,9 +121,9 @@ impl Router {
                 log::debug!("old routes: {}", old);
                 log::debug!("new routes: {}", new);
 
-                let routes = routes.into_iter().map(Arc::new).collect::<Vec<_>>();
+                let mut routes = routes.into_iter().map(Arc::new).collect::<Vec<_>>();
 
-                let matcher = Self::build_matcher(&routes);
+                let matcher = Self::build_matcher(&mut routes);
 
                 {
                     *ROUTER.get().unwrap().routes.write().unwrap() = routes;
@@ -125,35 +134,65 @@ impl Router {
     }
 
     pub fn matches(&self, context: Arc<HttpContext>) -> Option<Arc<Route>> {
-        if let Ok(matcher) = self.matcher.read() {
-            let indexes = matcher.matches(context.request.get_path());
-            let host = &context.request.host;
-            let query = &context.request.query;
-            for index in indexes.iter() {
-                if let Ok(routes) = self.routes.read() {
-                    // 先按路径匹配，减小范围
-                    if let Some(route) = routes.get(*index) {
-                        // Host匹配
-                        if !Self::matches_host(route, host) {
-                            continue;
-                        }
-                        // Header匹配
-                        if !Self::matches_headers(route, &context) {
-                            continue;
-                        }
-                        // Query匹配
-                        if !Self::matches_query(route, query) {
-                            continue;
-                        }
+        if let Ok(router) = self.matcher.read()
+            && let Ok(result) = router.at(&context.request.get_path())
+        {
+            let route = result.value;
+            // 依次匹配 Host/Method/Header/Query
+            if Self::match_host(route, context.request.get_host())
+                && Self::match_method(route, context.request.get_method())
+                && Self::matches_host(route, &context.request.host)
+                && Self::matches_headers(route, &context)
+                && Self::matches_query(route, &context.request.query)
+            {
+                return Some(route.clone());
+            }
+        }
 
-                        log::debug!("matched route: {:?}", route);
-                        return Some(route.clone());
-                    }
+        None
+    }
+
+    fn match_host(route: &Route, host: &str) -> bool {
+        let route_host = match &route.host {
+            None => return true,
+            Some(h) => h.as_str(),
+        };
+
+        // 精确匹配
+        // 因为大部分情况下Host配置的都是具体的，所以优先完全匹配，避免没必要的检查
+        if route_host == host {
+            return true;
+        }
+
+        // 通配符匹配
+        // 目前仅支持单个通配符，如 *.example.com
+        if let Some(suffix) = route_host.strip_prefix('*') {
+            // 尝试直接匹配后缀部分 (example.com 匹配 *.example.com)
+            if host == &suffix[1..] {
+                return true;
+            }
+
+            // 子域名匹配 (sub.example.com 匹配 *.example.com)
+            if host.ends_with(suffix) {
+                let prefix_len = host.len() - suffix.len();
+                // 确保是完整的子域名
+                if prefix_len > 0 {
+                    return true;
                 }
             }
         }
-        None
+
+        false
     }
+
+    fn match_method(route: &Route, method: Option<&str>) -> bool {
+        route.methods.is_empty()
+            || route
+                .methods
+                .iter()
+                .any(|route_method| Some(route_method.as_str()) == method)
+    }
+
     fn matches_host(route: &Route, host: &String) -> bool {
         route.host.is_none() || route.host.as_ref() == Some(host)
     }
@@ -170,5 +209,20 @@ impl Router {
             .query
             .iter()
             .all(|(key, value)| query.get(key).map(|v| v.value() == value).unwrap_or(false))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_matches() {
+        let mut router = matchit::Router::new();
+        router.insert("/api", 0).unwrap();
+        router.insert("/api/", 0).unwrap();
+        router.insert("/api/hello", 0).unwrap();
+        router.insert("/api/{*any}", 0).unwrap();
+
+        let matched = router.at("/api/").unwrap();
+        println!("{:?}", matched);
     }
 }

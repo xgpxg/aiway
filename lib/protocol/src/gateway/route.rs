@@ -7,8 +7,7 @@ use std::str::FromStr;
 pub struct Route {
     /// 名称
     pub name: String,
-    /// Host
-    /// TODO 必须的还是可选呢？？
+    /// Host，可选，为空则不限制
     pub host: Option<String>,
     // 前缀，必须以"/"开头，全局唯一。
     //pub prefix: Option<String>,
@@ -17,9 +16,9 @@ pub struct Route {
     /// 需要路由到的服务ID
     pub service: String,
     /*/// 协议：http | sse
-    pub protocol: String,
+    pub protocol: String,*/
     /// 请求方法：get | post | put | delete | patch | options
-    pub method: String,*/
+    pub methods: Vec<String>,
     /// header匹配条件
     #[serde(alias = "header_condition", alias = "header-condition")]
     pub header: BTreeMap<String, String>,
