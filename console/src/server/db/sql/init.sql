@@ -36,41 +36,40 @@ create table if not exists user_auth
 create table if not exists route
 (
     id              bigint primary key,
-    name            varchar(100)  not null,                   -- 路由名称
-    description     varchar(500),                             -- 路由描述
-    status          varchar(20)   not null default 'Disable', -- 状态：Disable | Ok
-    host            varchar(100),                             -- 需要匹配的域名
-    -- prefix         varchar(100),                             -- 路由前缀
-    path            varchar(500)  not null,                   -- 路由路径
-    -- strip_prefix   tinyint(1)    not null default 1,         -- 是否去除路径前缀
-    service         varchar(100)  not null,                   -- 目标服务名
-    header          varchar(1000) not null,                   -- 按请求头匹配
-    query           varchar(1000) not null,                   -- 按请求参数匹配
-    pre_filters     varchar(500)  not null,                   -- 请求阶段过滤器，JSON数组
-    post_filters    varchar(500)  not null,                   -- 响应阶段过滤器，JSON数组
-    is_auth         tinyint(1)    not null default 0,         -- 是否需要认证
-    auth_white_list varchar(1000),                            -- 认证白名单
-    create_user_id  bigint,                                   -- 创建人ID
-    update_user_id  bigint,                                   -- 修改人ID
-    create_time     datetime,                                 -- 创建时间
-    update_time     datetime,                                 -- 更新时间
-    remark          varchar(500),                             -- 备注
-    is_delete       tinyint(1)    not null default 0          -- 是否删除
+    name            varchar(100)  not null,           -- 路由名称
+    description     varchar(500),                     -- 路由描述
+    status          varchar(20)   not null,           -- 状态：Disable | Ok
+    host            varchar(100)  not null,           -- 需要匹配的域名
+    path            varchar(500)  not null,           -- 路由路径
+    methods         varchar(1000) not null,           -- 请求方法，支持多个，JSON数组格式
+    service         varchar(100)  not null,           -- 目标服务名
+    header          varchar(1000) not null,           -- 按请求头匹配
+    query           varchar(1000) not null,           -- 按请求参数匹配
+    pre_filters     varchar(500)  not null,           -- 请求阶段过滤器，JSON数组
+    post_filters    varchar(500)  not null,           -- 响应阶段过滤器，JSON数组
+    is_auth         tinyint(1)    not null default 0, -- 是否需要认证
+    auth_white_list varchar(1000),                    -- 认证白名单
+    create_user_id  bigint,                           -- 创建人ID
+    update_user_id  bigint,                           -- 修改人ID
+    create_time     datetime,                         -- 创建时间
+    update_time     datetime,                         -- 更新时间
+    remark          varchar(500),                     -- 备注
+    is_delete       tinyint(1)    not null default 0  -- 是否删除
 );
 create table if not exists service
 (
     id             bigint primary key,
-    name           varchar(100)  not null,                   -- 服务名称，全局唯一
-    description    varchar(500)  not null,                   -- 服务描述。注意这个描述要求非空，用于在控制台展示
-    status         varchar(20)   not null default 'Disable', -- 状态：Disable | Ok
-    nodes          varchar(5000) not null,                   -- 服务节点，JSON数组，支持IP和域名，如["http://127.0.0.1:8080"]
-    lb             varchar(20)   not null,                   -- 负载均衡策略：random | round_robin
-    create_user_id bigint,                                   -- 创建人ID
-    update_user_id bigint,                                   -- 修改人ID
-    create_time    datetime,                                 -- 创建时间
-    update_time    datetime,                                 -- 更新时间
-    remark         varchar(500),                             -- 备注
-    is_delete      tinyint(1)    not null default 0          -- 是否删除
+    name           varchar(100)  not null,          -- 服务名称，全局唯一
+    description    varchar(500)  not null,          -- 服务描述。注意这个描述要求非空，用于在控制台展示
+    status         varchar(20)   not null,          -- 状态：Disable | Ok
+    nodes          varchar(5000) not null,          -- 服务节点，JSON数组，支持IP和域名，如["http://127.0.0.1:8080"]
+    lb             varchar(20)   not null,          -- 负载均衡策略：random | round_robin
+    create_user_id bigint,                          -- 创建人ID
+    update_user_id bigint,                          -- 修改人ID
+    create_time    datetime,                        -- 创建时间
+    update_time    datetime,                        -- 更新时间
+    remark         varchar(500),                    -- 备注
+    is_delete      tinyint(1)    not null default 0 -- 是否删除
 );
 
 create table if not exists plugin
@@ -93,19 +92,19 @@ create table if not exists plugin
 create table if not exists api_key
 (
     id             bigint primary key,
-    name           varchar(100) not null,              -- 密钥名称
-    principal      varchar(500),                       -- 密钥所属的主体标识，可以为空
-    secret         varchar(100) not null,              -- 密钥
-    status         varchar(20)  not null default 'Ok', -- 状态：Disable | Ok
-    eff_time       datetime     not null,              -- 生效时间，默认当前时间
-    exp_time       datetime,                           -- 失效时间，为空表示永久有效
-    source         varchar(20)  not null,              -- 密钥来源
-    create_user_id bigint,                             -- 创建人ID
-    update_user_id bigint,                             -- 修改人ID
-    create_time    datetime,                           -- 创建时间
-    update_time    datetime,                           -- 更新时间
-    remark         varchar(500),                       -- 备注
-    is_delete      tinyint(1)   not null default 0     -- 是否删除
+    name           varchar(100) not null,          -- 密钥名称
+    principal      varchar(500),                   -- 密钥所属的主体标识，可以为空
+    secret         varchar(100) not null,          -- 密钥
+    status         varchar(20)  not null,          -- 状态：Disable | Ok
+    eff_time       datetime     not null,          -- 生效时间，默认当前时间
+    exp_time       datetime,                       -- 失效时间，为空表示永久有效
+    source         varchar(20)  not null,          -- 密钥来源
+    create_user_id bigint,                         -- 创建人ID
+    update_user_id bigint,                         -- 修改人ID
+    create_time    datetime,                       -- 创建时间
+    update_time    datetime,                       -- 更新时间
+    remark         varchar(500),                   -- 备注
+    is_delete      tinyint(1)   not null default 0 -- 是否删除
 );
 
 
@@ -174,12 +173,12 @@ create table if not exists message
     id          bigint primary key,
     -- 移除type字段，不需要类型标记，系统通知使用info级别即可
     -- type        varchar(50) not null,           -- 消息类型：system | alert
-    level       varchar(50)  not null,                  -- 消息级别：info | warn | error
-    title       varchar(500) not null,                  -- 标题
-    content     text         not null,                  -- 内容
-    read_status varchar(10)  not null default 'Unread', -- Unread 未读 | Read 已读
+    level       varchar(50)  not null,          -- 消息级别：info | warn | error
+    title       varchar(500) not null,          -- 标题
+    content     text         not null,          -- 内容
+    read_status varchar(10)  not null,          -- Unread 未读 | Read 已读
     create_time datetime     not null,
-    is_delete   tinyint(1)   not null default 0         -- 是否删除
+    is_delete   tinyint(1)   not null default 0 -- 是否删除
 );
 
 -- 请求地区统计（小时级，保留近1年的）

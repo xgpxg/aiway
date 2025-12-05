@@ -17,18 +17,12 @@ pub struct Route {
     pub description: Option<String>,
     /// 状态：0停用 1启用
     pub status: Option<RouteStatus>,
-    /// 需要匹配的域名
+    /// 需要匹配的域名，非空，默认为 *
     pub host: Option<String>,
-    // /// 路由前缀
-    // pub prefix: Option<String>,
-    /// 路由路径
+    /// 路由路径，非空
     pub path: Option<String>,
-    // /// 是否去除路径前缀
-    // pub strip_prefix: Option<i8>,
-    /// 目标服务名称
+    /// 目标服务名称，非空
     pub service: Option<String>,
-    // 请求协议：http | https
-    //pub protocol: Option<String>,
     /// 请求方法：GET | POST | PUT | DELETE | HEAD | OPTIONS | PATCH | TRACE | CONNECT
     pub methods: Option<Vec<String>>,
     /// 按请求头匹配

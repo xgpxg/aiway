@@ -8,8 +8,7 @@ pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
     for route in routes {
         list.push(protocol::gateway::route::Route {
             name: route.name.unwrap(),
-            host: route.host,
-            //prefix: route.prefix,
+            host: route.host.unwrap(),
             path: route.path.unwrap(),
             // 由路径重写插件实现
             //strip_prefix: route.strip_prefix.unwrap() == 1,

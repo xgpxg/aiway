@@ -7,22 +7,25 @@ use std::str::FromStr;
 pub struct Route {
     /// 名称
     pub name: String,
-    /// Host，可选，为空则不限制
-    pub host: Option<String>,
-    // 前缀，必须以"/"开头，全局唯一。
-    //pub prefix: Option<String>,
+    /// Host，可选，* 代表不限制。
+    /// 支持泛域名，格式为 *.example.com，通配符只能出现在域名开头，需要在控制台校验。
+    pub host: String,
     /// 路径，支持通配符，必须以"/"开头，全局唯一。
+    /// 同一域名下的路径不能存在冲突，如/api/*和/api/**就是冲突的路径，在控制台保存时需要校验。
+    /// 所有为 * 的域名下的路径也不能冲突。
     pub path: String,
     /// 需要路由到的服务ID
     pub service: String,
-    /*/// 协议：http | sse
-    pub protocol: String,*/
     /// 请求方法：get | post | put | delete | patch | options
+    /// 支持配置多个。
+    /// 不参与路由唯一性验证。
     pub methods: Vec<String>,
     /// header匹配条件
+    /// 不参与路由唯一性验证。
     #[serde(alias = "header_condition", alias = "header-condition")]
     pub header: BTreeMap<String, String>,
-    /// query匹配条件，满足
+    /// query匹配条件
+    /// 不参与路由唯一性验证。
     #[serde(alias = "query_condition", alias = "query-condition")]
     pub query: BTreeMap<String, String>,
     /// 前置过滤器插件，在请求阶段执行，多个按顺序串联执行
@@ -41,7 +44,7 @@ pub struct Route {
     /// 考虑提供一些内置的鉴权插件。
     #[serde(default = "bool::default", alias = "is_auth", alias = "is-auth")]
     pub is_auth: bool,
-    /// 鉴权白名单
+    /// 鉴权路径白名单
     pub auth_white_list: Vec<String>,
 }
 

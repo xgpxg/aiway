@@ -13,13 +13,9 @@ pub struct RouteAddOrUpdateReq {
     pub name: String,
     /// 描述
     pub description: Option<String>,
-    /// host匹配
-    pub host: Option<String>,
-    // /// 前缀
-    // pub prefix: Option<String>,
-    // /// 是否移除前缀
-    // #[serde(default = "Default::default")]
-    // pub strip_prefix: i8,
+    /// host匹配，默认 *
+    #[serde(default = "default_host")]
+    pub host: String,
     /// 路径匹配
     pub path: String,
     #[serde(default = "Default::default")]
@@ -44,6 +40,10 @@ pub struct RouteAddOrUpdateReq {
     pub auth_white_list: Option<Vec<String>>,
 }
 
+fn default_host() -> String {
+    "*".into()
+}
+
 impl From<RouteAddOrUpdateReq> for Route {
     fn from(req: RouteAddOrUpdateReq) -> Self {
         Route {
@@ -51,9 +51,7 @@ impl From<RouteAddOrUpdateReq> for Route {
             name: req.name.into(),
             description: req.description,
             status: Some(Default::default()),
-            host: req.host,
-            //prefix: req.prefix,
-            //strip_prefix: req.strip_prefix.into(),
+            host: req.host.into(),
             path: req.path.into(),
             service: req.service.into(),
             methods: req.methods.into(),

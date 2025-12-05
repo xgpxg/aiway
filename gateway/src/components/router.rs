@@ -63,9 +63,8 @@ impl Router {
         let mut routes = routes.iter().collect::<Vec<_>>();
         routes.sort_unstable_by(|a, b| {
             b.host
-                .as_ref()
-                .map_or(0, |h| h.len())
-                .cmp(&a.host.as_ref().map_or(0, |h| h.len()))
+                .len()
+                .cmp(&a.host.len())
                 .then_with(|| b.path.len().cmp(&a.path.len()))
                 .then_with(|| b.header.len().cmp(&a.header.len()))
                 .then_with(|| b.query.len().cmp(&a.query.len()))
@@ -74,7 +73,9 @@ impl Router {
         let mut matcher = matchit::Router::new();
 
         for route in routes {
-            // 这里可能会发生路径冲突，应该在控制台保存的时候进行验证
+            // 这里理论上不会发生路径冲突，因为在控制台保存的时候已经验证了
+            // 但为了避免错误，这里这里还是输出一下日志
+            // 如果这里输出错误日志了，应该检查控制台的验证逻辑是否正确
             if let Err(e) = matcher.insert(route.path.clone(), route.clone()) {
                 log::error!("build route matcher error: {}", e);
             }
@@ -142,9 +143,9 @@ impl Router {
             // 依次匹配 Host/Method/Header/Query
             if Self::match_host(route, context.request.get_host())
                 && Self::match_method(route, context.request.get_method())
-                && Self::matches_host(route, &context.request.host)
-                && Self::matches_headers(route, &context)
-                && Self::matches_query(route, &context.request.query)
+                && Self::match_host(route, &context.request.host)
+                && Self::match_header(route, &context)
+                && Self::match_query(route, &context.request.query)
             {
                 return Some(route.clone());
             }
@@ -154,10 +155,7 @@ impl Router {
     }
 
     fn match_host(route: &Route, host: &str) -> bool {
-        let route_host = match &route.host {
-            None => return true,
-            Some(h) => h.as_str(),
-        };
+        let route_host = &route.host;
 
         // 精确匹配
         // 因为大部分情况下Host配置的都是具体的，所以优先完全匹配，避免没必要的检查
@@ -165,12 +163,18 @@ impl Router {
             return true;
         }
 
+        // 匹配所有的
+        if route_host == "*" {
+            return true;
+        }
+
         // 通配符匹配
         // 目前仅支持单个通配符，如 *.example.com
         if let Some(suffix) = route_host.strip_prefix('*') {
-            // 尝试直接匹配后缀部分 (example.com 匹配 *.example.com)
+            // 避免匹配 *.example.com 匹配 *.example.com
+            // 通配符应该只匹配子域名
             if host == &suffix[1..] {
-                return true;
+                return false;
             }
 
             // 子域名匹配 (sub.example.com 匹配 *.example.com)
@@ -194,18 +198,14 @@ impl Router {
                 .any(|route_method| Some(route_method.as_str()) == method)
     }
 
-    fn matches_host(route: &Route, host: &String) -> bool {
-        route.host.is_none() || route.host.as_ref() == Some(host)
-    }
-
-    fn matches_headers(route: &Route, context: &HttpContext) -> bool {
+    fn match_header(route: &Route, context: &HttpContext) -> bool {
         route
             .header
             .iter()
             .all(|(key, value)| context.request.get_header(key).as_ref() == Some(value))
     }
 
-    fn matches_query(route: &Route, query: &DashMap<String, String>) -> bool {
+    fn match_query(route: &Route, query: &DashMap<String, String>) -> bool {
         route
             .query
             .iter()
@@ -218,12 +218,35 @@ mod tests {
     #[test]
     fn test_matches() {
         let mut router = matchit::Router::new();
-        router.insert("/api", 0).unwrap();
-        router.insert("/api/", 0).unwrap();
-        router.insert("/api/hello", 0).unwrap();
-        router.insert("/api/{*any}", 0).unwrap();
+        router.insert(convert("/api/b/"), 1).unwrap();
+        router.insert(convert("/api/**"), 2).unwrap();
 
-        let matched = router.at("/api/").unwrap();
-        println!("{:?}", matched);
+        let matched = router.at("/api/b/").unwrap();
+        assert_eq!(matched.value, &1);
+    }
+
+    fn convert(pattern: &str) -> String {
+        let mut result = String::new();
+        let mut param_count = 1;
+        let mut chars = pattern.chars().peekable();
+
+        while let Some(ch) = chars.next() {
+            if ch == '*' {
+                // Check if it's a tailing "**" capturing all remaining path
+                if chars.peek() == Some(&'*') {
+                    chars.next(); // consume the second '*'
+                    result.push_str("{*p}");
+                } else {
+                    // Single '*' - named parameter
+                    result.push_str(&format!("{{p{}}}", param_count));
+                    param_count += 1;
+                }
+            } else {
+                result.push(ch);
+            }
+        }
+
+        println!("{}", result);
+        result
     }
 }

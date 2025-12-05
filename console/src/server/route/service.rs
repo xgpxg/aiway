@@ -3,6 +3,7 @@ use crate::server::db::models::route;
 use crate::server::db::models::route::{Route, RouteBuilder, RouteStatus};
 use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use crate::server::db::{Pool, tools};
+use crate::server::route::PathPatterns;
 use crate::server::route::request::{
     RouteAddOrUpdateReq, RouteListReq, UpdateGlobalFilterConfigReq, UpdateStatusReq,
 };
@@ -22,43 +23,43 @@ pub async fn add(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Resul
         create_time: Some(tools::now()),
         ..Route::from(req)
     };
-    if check_exists(&route, None).await? {
-        bail!("Route already exists")
-    }
+
+    check_exists(&route, None).await?;
 
     Route::insert(Pool::get()?, &route).await?;
     Ok(())
 }
 
-async fn check_path_conflict(path: &str) -> anyhow::Result<()> {
-   /* // 查询已存在的路由
-    let list = Route::select_all(Pool::get()?).await?;
-    let paths = list.into_iter().map(|item| item.path).collect::<Vec<_>>();
-  let mut matcher = matchit::Router::new();
-    for item in paths {
-        if let Err(e) = matcher.insert(&item, ())?{
-            bail!("路由路径: {}", e)
-        }
-    }
-    Ok(())*/
-    todo!()
-}
+/// 检查路由是否存在
+///
+/// 唯一路由：Host + Path 唯一，且同一 Host 下的 Path 不能冲突。
+/// 由于 Host 不是必须的，所以在检查是否冲突时需要处理 None 的情况
+async fn check_exists(route: &Route, exclude_id: Option<i64>) -> anyhow::Result<()> {
+    let host = route.host.as_deref();
+    let path = route.path.as_deref();
+    let tx = Pool::get()?;
+    let mut list: Vec<Route> = if host.is_some() {
+        tx.query_decode("select * from route where host = ?", vec![value!(host)])
+            .await?
+    } else {
+        tx.query_decode("select * from route where host is null", vec![])
+            .await?
+    };
 
-
-async fn check_exists(route: &Route, exclude_id: Option<i64>) -> anyhow::Result<bool> {
-    let mut list = Route::select_by_map(
-        Pool::get()?,
-        value! {
-            "host": &route.host,
-            //"prefix": &route.prefix,
-            "path": &route.path,
-        },
-    )
-    .await?;
-
+    // 移除排除的 ID，一般用来忽略自身
     list.retain(|item| item.id != exclude_id);
 
-    Ok(!list.is_empty())
+    let mut paths = vec![path.map(|s| s.to_string()).context("Route path required")?];
+    paths.extend(
+        list.into_iter()
+            .map(|item| item.path.unwrap())
+            .collect::<Vec<_>>(),
+    );
+    if let Err(e) = matchit::Router::try_from(PathPatterns::new(paths)) {
+        bail!("路径验证失败：{}", e);
+    }
+
+    Ok(())
 }
 
 pub async fn list(
@@ -89,9 +90,7 @@ pub async fn update(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Re
         ..new
     };
 
-    if check_exists(&update, Some(id)).await? {
-        bail!("Route already exists")
-    }
+    check_exists(&update, Some(id)).await?;
 
     Route::update_by_map(Pool::get()?, &update, value! { "id":id}).await?;
     Ok(())
