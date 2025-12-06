@@ -40,6 +40,7 @@ pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes
         start_offset,
         max_hits,
         aggs: None,
+        sort_by: Some("time".into()),
     };
 
     let res = HTTP_CLIENT
@@ -88,6 +89,7 @@ pub(crate) async fn request_log_list(
         start_offset,
         max_hits,
         aggs: None,
+        sort_by: Some("request_time".into()),
     };
 
     let res = HTTP_CLIENT

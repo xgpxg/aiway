@@ -13,8 +13,8 @@ doc_mapping:
       input_formats:
         - "%Y-%m-%d %H:%M:%S.%f"
       output_format: "%Y-%m-%d %H:%M:%S.%f"
+      fast_precision: milliseconds
       fast: true
-      indexed: true
 
     - name: service
       type: text

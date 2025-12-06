@@ -27,6 +27,12 @@ pub struct LogSearchReq {
     pub max_hits: usize,
     /// 聚合参数
     pub aggs: Option<serde_json::Value>,
+    /// 排序参数
+    /// 参考文档：https://quickwit.io/docs/reference/rest-api#search-in-an-index
+    /// 但文档里写的是`[String]`类型，传数组确会报错？
+    ///
+    /// 该字段目前仅对quickwit生效，在logg的实现中，会默认按时间倒序。
+    pub sort_by: Option<String>,
 }
 impl LogSearchReq {
     fn default_start_offset() -> usize {

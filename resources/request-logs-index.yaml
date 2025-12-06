@@ -1,6 +1,7 @@
 version: 0.7
 
 index_id: request-logs
+index_uri: file://data/request-logs
 
 doc_mapping:
   mode: strict
@@ -12,8 +13,7 @@ doc_mapping:
       fast: true
     # 客户端IP，条件查询，不分词
     - name: client_ip
-      type: text
-      tokenizer: raw
+      type: ip
       fast: true
     # 国家
     - name: client_country
@@ -40,8 +40,9 @@ doc_mapping:
     - name: request_time
       type: datetime
       input_formats:
-        - unix_timestamp_millis
+        - unix_timestamp
       output_format: unix_timestamp_millis
+      fast_precision: milliseconds
       fast: true
     # 响应时间
     - name: response_time
@@ -49,6 +50,7 @@ doc_mapping:
       input_formats:
         - unix_timestamp
       output_format: unix_timestamp_millis
+      fast_precision: milliseconds
       fast: true
     # 耗时
     - name: elapsed
