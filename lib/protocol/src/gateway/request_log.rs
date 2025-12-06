@@ -26,10 +26,13 @@ pub struct RequestLog {
     /// HTTP状态码
     pub status_code: u16,
     /// 响应大小，流式响应为None
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub response_size: Option<usize>,
     /// 取Header里的User-Agent
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub user_agent: Option<String>,
     /// 取Header里的Referer
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub referer: Option<String>,
     /// 网关节点地址，格式：ip:port，该字段用于记录请求被哪个网关节点处理
     pub node_address: String,

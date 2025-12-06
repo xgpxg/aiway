@@ -146,7 +146,7 @@ async fn search(
     api: &str,
     start_timestamp: i64,
     end_timestamp: i64,
-) -> anyhow::Result<Vec<(i64, i64)>> {
+) -> anyhow::Result<Vec<(u16, i64)>> {
     let result = HTTP_CLIENT
         .post(api)
         .json(&json!({
@@ -178,11 +178,14 @@ async fn search(
     let counts = buckets
         .iter()
         .map(|bucket| {
-            let status_code = bucket.get("key").unwrap().as_i64().unwrap();
+            // status_code理论上是u16类型，但tantivy和quickwit在聚合后返回值类型不一致，
+            // tantivy返回的是整数，而quickwit返回的是浮点数。
+            // 所以这里统一先转f64再转u16
+            let status_code = bucket.get("key").unwrap().as_f64().unwrap() as u16;
             let doc_count = bucket.get("doc_count").unwrap().as_i64().unwrap();
             (status_code, doc_count)
         })
-        .collect::<Vec<(i64, i64)>>();
+        .collect::<Vec<(u16, i64)>>();
 
     Ok(counts)
 }

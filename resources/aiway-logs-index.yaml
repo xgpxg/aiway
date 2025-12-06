@@ -1,0 +1,51 @@
+version: 0.7
+
+# 索引元数据
+index_id: aiway-logs
+index_uri: file://data/aiway-logs
+
+# 索引配置
+doc_mapping:
+  # 字段定义
+  field_mappings:
+    - name: time
+      type: datetime
+      input_formats:
+        - "%Y-%m-%d %H:%M:%S.%f"
+      output_format: "%Y-%m-%d %H:%M:%S.%f"
+      fast: true
+      indexed: true
+
+    - name: service
+      type: text
+      tokenizer: raw
+      fast: true
+
+    - name: level
+      type: text
+      tokenizer: raw
+      fast: true
+
+    - name: message
+      type: text
+      tokenizer: default
+      record: position
+
+  # 时间戳字段
+  timestamp_field: time
+
+  # 分区字段
+  partition_key: service
+
+# 索引设置
+indexing_settings:
+  # 提交间隔
+  commit_timeout_secs: 10
+  # 分片大小，1百万
+  split_num_docs_target: 1000000
+
+# 搜索设置
+search_settings:
+  # 搜索默认字段
+  default_search_fields:
+    - message

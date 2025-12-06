@@ -1,0 +1,85 @@
+version: 0.7
+
+index_id: request-logs
+
+doc_mapping:
+  mode: strict
+  field_mappings:
+    # 请求ID，条件查询，不分词
+    - name: request_id
+      type: text
+      tokenizer: raw
+      fast: true
+    # 客户端IP，条件查询，不分词
+    - name: client_ip
+      type: text
+      tokenizer: raw
+      fast: true
+    # 国家
+    - name: client_country
+      type: text
+      fast: true
+    # 省份
+    - name: client_province
+      type: text
+      fast: true
+    # 城市
+    - name: client_city
+      type: text
+      fast: true
+    # 请求方法
+    - name: method
+      type: text
+      tokenizer: raw
+      fast: true
+    # 请求路径
+    - name: path
+      type: text
+      fast: true
+    # 请求时间
+    - name: request_time
+      type: datetime
+      input_formats:
+        - unix_timestamp_millis
+      output_format: unix_timestamp_millis
+      fast: true
+    # 响应时间
+    - name: response_time
+      type: datetime
+      input_formats:
+        - unix_timestamp
+      output_format: unix_timestamp_millis
+      fast: true
+    # 耗时
+    - name: elapsed
+      type: i64
+      fast: true
+    # 状态码
+    - name: status_code
+      type: u64
+      fast: true
+    # 请求大小
+    - name: response_size
+      type: u64
+      fast: true
+    # 响应内容
+    - name: user_agent
+      type: text
+      fast: false
+    #  来源
+    - name: referer
+      type: text
+      tokenizer: raw
+      fast: false
+    # 处理请求的节点地址
+    - name: node_address
+      type: text
+      fast: true
+
+  timestamp_field: request_time
+
+indexing_settings:
+  # 提交间隔
+  commit_timeout_secs: 10
+  # 分片大小，1百万
+  split_num_docs_target: 1000000

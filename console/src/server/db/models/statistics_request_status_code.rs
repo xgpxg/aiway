@@ -9,7 +9,7 @@ use rocket::serde::{Deserialize, Serialize};
 #[builder(default)]
 pub struct StatisticsRequestStatusCode {
     /// 状态码
-    pub status_code: Option<i64>,
+    pub status_code: Option<u16>,
     ///  数量
     pub count: Option<i64>,
     /// 分钟起始时间戳（秒，0秒），包含，范围为`[state_time, state_time+59]`
