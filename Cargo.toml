@@ -8,5 +8,5 @@ openssl = { version = "0.10", features = ["vendored"] }
 [target.x86_64-pc-windows-msvc.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
 
-[target.aarch64-apple-darwin]
+[target.aarch64-apple-darwin.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
