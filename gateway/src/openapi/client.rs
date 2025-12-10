@@ -40,14 +40,15 @@ pub trait IntoHeaderMap {
 }
 
 impl IntoHeaderMap for DashMap<String, String> {
-    /// DashMap转换为HeaderMap
     fn into_header_map(self) -> HeaderMap {
         let mut headers = HeaderMap::new();
         for item in self.iter() {
-            headers.insert(
-                HeaderName::from_str(item.key().as_str()).unwrap(),
-                item.value().parse().unwrap(),
-            );
+            if let (Ok(name), Ok(value)) = (
+                HeaderName::from_str(item.key().as_str()),
+                item.value().parse(),
+            ) {
+                headers.insert(name, value);
+            }
         }
         headers
     }
