@@ -40,10 +40,10 @@ jobs:
       # 构建单机版
       - name: Build Standalone
         run: |
-          cargo build -r --bin gateway -F standalone
-          cargo build -r --bin console -F standalone
-          cargo build -r --bin logg
-          cargo build -r --bin aiway
+          cargo build -r --bin gateway -F standalone  --target ${{ matrix.target }}
+          cargo build -r --bin console -F standalone --target ${{ matrix.target }}
+          cargo build -r --bin logg --target ${{ matrix.target }}
+          cargo build -r --bin aiway --target ${{ matrix.target }}
 
       # 构建集群版
       - name: Build Cluster
