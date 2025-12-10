@@ -10,8 +10,7 @@ cargo build --bin logg && \
 cargo run --bin aiway
 ```
 
-控制台: http://127.0.0.1:6000 (默认账号/密码：admin/admin)
-网关: http://127.0.0.1:5000
+UI：https://github.com/xgpxg/aiway-ui
 
 ## 功能
 - 动态路由
