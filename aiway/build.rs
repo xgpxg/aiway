@@ -10,9 +10,9 @@ fn main() {
 
     // 二进制文件目录，需要提前编译console和gateway
     let release_dir = if let Ok(target) = env::var("TARGET") {
-        project_dir.join(format!("target/{}/release", target))
+        project_dir.join("target").join(&target).join("release")
     } else {
-        project_dir.join("target/release")
+        project_dir.join("target").join("release")
     };
 
     // 嵌入的二进制文件目录

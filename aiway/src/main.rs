@@ -33,7 +33,7 @@ impl AiwayApp {
         log::info!("console started");
         // 等待console启动完成
         // 这里实现 不优雅，先这样，后续处理
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_secs(2));
         let gateway = embed::EmbedApp::new("gateway", &gateway.data, &["--log-server","127.0.0.1:7281"]).unwrap();
         log::info!("gateway started");
         AiwayApp {
