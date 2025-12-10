@@ -9,7 +9,11 @@ fn main() {
     let project_dir = get_project_root().unwrap();
 
     // 二进制文件目录，需要提前编译console和gateway
-    let release_dir = project_dir.join("target/release");
+    let release_dir = if let Some(target) = env::var("TARGET") {
+        project_dir.join(format!("target/{}/release", target))
+    } else {
+        project_dir.join("target/release")
+    };
 
     // 嵌入的二进制文件目录
     let bin_dir = project_dir.join("aiway/bin");
