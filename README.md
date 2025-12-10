@@ -24,4 +24,4 @@ UI：https://github.com/xgpxg/aiway-ui
 
 ### 截图
 
-![Dashhoard](docs/images/1.png)
+![Dashboard](docs/images/1.png)

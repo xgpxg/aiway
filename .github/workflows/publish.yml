@@ -1,0 +1,96 @@
+name: Publish
+
+on:
+  push:
+    tags: [ "*" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            asset_name_standalone: aiway-linux-amd64-standalone.tar.gz
+            asset_name_cluster: aiway-linux-amd64-cluster.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name_standalone: aiway-windows-amd64-standalone.tar.gz
+            asset_name_cluster: aiway-windows-amd64-cluster.tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            asset_name_standalone: aiway-macos-arm64-standalone.tar.gz
+            asset_name_cluster: aiway-macos-arm64-cluster.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # 安装 musl 工具
+      - name: Install musl tools
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      # 添加目标平台
+      - name: Add target
+        run: rustup target add ${{ matrix.target }}
+
+      # 构建单机版
+      - name: Build Standalone
+        run: |
+          cargo build -r --bin gateway -F standalone
+          cargo build -r --bin console -F standalone
+          cargo build -r --bin logg
+          cargo build -r --bin aiway
+
+      # 构建集群版
+      - name: Build Cluster
+        run: |
+          cargo build -r --bin gateway -F cluster
+          cargo build -r --bin console -F cluster
+
+      # 压缩单机版二进制文件(windows)
+      - name: Compress standalone binary
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czf ${{ matrix.asset_name_standalone }} aiway.exe
+        shell: bash
+
+      # 压缩单机版二进制文件(非windows)
+      - name: Compress standalone binary
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czf ${{ matrix.asset_name_standalone }} aiway
+        shell: bash
+
+      # 压缩集群版二进制文件(windows)
+      - name: Compress cluster binary
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czf ${{ matrix.asset_name_cluster }} gateway.exe console.exe
+        shell: bash
+
+      # 压缩集群版二进制文件(非windows)
+      - name: Compress cluster binary
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czf ${{ matrix.asset_name_cluster }} gateway console
+        shell: bash
+
+      # 创建 Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          files: |
+            target/${{ matrix.target }}/release/${{ matrix.asset_name_standalone }}
+            target/${{ matrix.target }}/release/${{ matrix.asset_name_cluster }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
