@@ -1,12 +1,3 @@
 [workspace]
 resolver = "3"
 members = ["console", "gateway", "message", "lib/logging", "lib/plugin", "lib/pubsub", "lib/security", "lib/protocol", "lib/sdk", "plugins/demo", "test-server", "lib/loadbalance", "lib/cache", "cli", "aiway", "plugins/rewrite-path", "logg", "lib/alert"]
-
-[target.x86_64-unknown-linux-musl.dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
-
-[target.x86_64-pc-windows-msvc.dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
-
-[target.aarch64-apple-darwin.dependencies]
-openssl = { version = "0.10", features = ["vendored"] }

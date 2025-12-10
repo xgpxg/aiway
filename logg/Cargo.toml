@@ -13,3 +13,12 @@ clap = { version = "4.5", features = ["derive"] }
 tantivy = { version = "0.25.0" }
 tantivy-jieba = { version = "0.17.0" }
 chrono = { version = "0.4" }
+
+[target.x86_64-unknown-linux-musl.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
+[target.x86_64-pc-windows-msvc.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
+[target.aarch64-apple-darwin.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }

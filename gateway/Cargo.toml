@@ -33,3 +33,12 @@ matchit = "0.9.0"
 default = []
 standalone = ["cache/share-cache"]
 cluster = ["cache/redis-cache"]
+
+[target.x86_64-unknown-linux-musl.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
+[target.x86_64-pc-windows-msvc.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
+[target.aarch64-apple-darwin.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
