@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 use std::fs::read_dir;
 use std::io::ErrorKind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
 fn main() {
@@ -9,11 +9,14 @@ fn main() {
     let project_dir = get_project_root().unwrap();
 
     // 二进制文件目录，需要提前编译console和gateway
-    let release_dir = if let Ok(target) = env::var("TARGET") {
-        project_dir.join("target").join(&target).join("release")
-    } else {
-        project_dir.join("target").join("release")
-    };
+    let out_dir = env::var("OUT_DIR").unwrap_or_default();
+    let release_dir = Path::new(&out_dir)
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
 
     // 嵌入的二进制文件目录
     let bin_dir = project_dir.join("aiway/bin");

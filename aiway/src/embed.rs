@@ -8,13 +8,30 @@ pub(crate) struct EmbedApp {
     child: Option<Child>,
 }
 
+pub struct BinaryName<'a>(pub &'a str);
+impl std::fmt::Display for BinaryName<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if cfg!(windows) {
+            write!(f, "{}.exe", self.0)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+
+impl AsRef<str> for BinaryName<'_> {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
+
 impl EmbedApp {
     pub(crate) fn new(
-        name: &str,
+        name: BinaryName,
         binary_data: &[u8],
         args: &[&str],
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let path = temp_dir().join(name);
+        let path = temp_dir().join(name.as_ref());
         std::fs::write(&path, binary_data)?;
 
         #[cfg(unix)]
