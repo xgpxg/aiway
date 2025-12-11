@@ -29,7 +29,7 @@ use std::sync::OnceLock;
 
 #[derive(Debug)]
 pub struct Alert {
-    /// 控制台地址，格式：127.0.0.1:6000
+    /// 控制台地址，格式：127.0.0.1:7000
     console: String,
     /// HTTP客户端
     client: reqwest::Client,
@@ -40,7 +40,7 @@ impl Alert {
     const ALERT_API: &'static str = "/api/v1/gateway/alert";
 
     /// 创建一个Alert实例
-    /// - console: 控制台地址，格式：IP:PORT，例如：127.0.0.1:6000
+    /// - console: 控制台地址，格式：IP:PORT，例如：127.0.0.1:7000
     pub fn new(console: String) -> Self {
         Alert {
             console: format!("http://{}{}", console, Self::ALERT_API),
@@ -96,7 +96,7 @@ static ALERT: OnceLock<Alert> = OnceLock::new();
 
 /// 初始化
 ///
-/// - console: 控制台地址，格式：IP:PORT，例如：127.0.0.1:6000
+/// - console: 控制台地址，格式：IP:PORT，例如：127.0.0.1:7000
 pub fn init(console: String) {
     ALERT.set(Alert::new(console)).unwrap();
 }
@@ -106,7 +106,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_alert() {
-        init("127.0.0.1:6000".to_string());
+        init("127.0.0.1:7000".to_string());
         Alert::info("测试标题", "测试内容");
 
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;

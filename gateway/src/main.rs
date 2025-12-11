@@ -19,11 +19,11 @@ struct Args {
     address: String,
 
     /// Port
-    #[arg(short, long, default_value_t = 5000)]
+    #[arg(short, long, default_value_t = 7001)]
     port: u16,
 
     /// Console address
-    #[arg(short, long, default_value = "127.0.0.1:6000")]
+    #[arg(short, long, default_value = "127.0.0.1:7000")]
     console: String,
 
     /// 日志服务

@@ -2,6 +2,11 @@
 
 一个Rust实现的API网关，性能还算不错。
 
+支持的平台：
+
+- Linux
+- MacOS
+
 ### 快速启动
 
 单机模式：
@@ -22,6 +27,8 @@ cargo build --bin gateway -F cluster
 
 > 集群模式下需要单独部署[Redis](https://redis.io/)和[Quickwit](https://quickwit.io/)
 
+控制台：http://127.0.0.1:7000
+网关入口：http://127.0.0.1:7001
 
 UI：https://github.com/xgpxg/aiway-ui
 
@@ -54,5 +61,5 @@ UI：https://github.com/xgpxg/aiway-ui
 │   ├── logging             # 日志  
 │   ├── plugin              # 插件
 │   └── protocol            # 交互协议
-└── logg/                   # 日志服务(bin)
+└── logg                    # 日志服务(bin)
 ```

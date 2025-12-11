@@ -13,7 +13,7 @@ pub struct Args {
     pub address: String,
 
     /// Port
-    #[arg(short, long, default_value_t = 6000)]
+    #[arg(short, long, default_value_t = 7000)]
     pub port: u16,
 
     /// Database connection url
