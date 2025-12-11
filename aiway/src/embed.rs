@@ -13,7 +13,7 @@ impl EmbedApp {
         binary_data: &[u8],
         args: &[&str],
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let path = temp_dir().join(name.as_ref());
+        let path = temp_dir().join(name);
         std::fs::write(&path, binary_data)?;
 
         #[cfg(unix)]
