@@ -23,21 +23,9 @@ fn main() {
     fs::create_dir_all(&bin_dir).unwrap();
 
     // 复制二进制文件
-    #[cfg(not(windows))]
-    {
-        fs::copy(release_dir.join("gateway"), &bin_dir.join("gateway")).unwrap();
-        fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
-        fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
-    }
-    #[cfg(windows)]
-    {
-        #[rustfmt::skip]
-        fs::copy(release_dir.join("gateway.exe"), &bin_dir.join("gateway.exe")).unwrap();
-        #[rustfmt::skip]
-        fs::copy(release_dir.join("console.exe"), &bin_dir.join("console.exe")).unwrap();
-        #[rustfmt::skip]
-        fs::copy(release_dir.join("logg.exe"), &bin_dir.join("logg.exe")).unwrap();
-    }
+    fs::copy(release_dir.join("gateway"), &bin_dir.join("gateway")).unwrap();
+    fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
+    fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
 
     println!("cargo:rustc-env=PROJECT_DIR={}", project_dir.display());
     println!("cargo:rerun-if-changed=bin/");

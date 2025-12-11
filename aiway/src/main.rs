@@ -1,6 +1,5 @@
 mod embed;
 
-use crate::embed::BinaryName;
 use cache::start_share_cache_server;
 use logging::{init_log, log};
 use rust_embed::Embed;
@@ -25,15 +24,15 @@ struct AiwayApp {
 
 impl AiwayApp {
     fn new() -> Self {
-        let console = Asset::get(BinaryName("console").as_ref()).unwrap();
-        let gateway = Asset::get(BinaryName("gateway").as_ref()).unwrap();
-        let logg = Asset::get(BinaryName("logg").as_ref()).unwrap();
+        let console = Asset::get("console").unwrap();
+        let gateway = Asset::get("gateway").unwrap();
+        let logg = Asset::get("logg").unwrap();
 
-        let logg = embed::EmbedApp::new(BinaryName("logg"), &logg.data, &[]).unwrap();
+        let logg = embed::EmbedApp::new("logg", &logg.data, &[]).unwrap();
         log::info!("log server started");
 
         let console = embed::EmbedApp::new(
-            BinaryName("console"),
+            "console",
             &console.data,
             &["--log-server", "127.0.0.1:7281"],
         )
@@ -45,12 +44,13 @@ impl AiwayApp {
         sleep(Duration::from_secs(2));
 
         let gateway = embed::EmbedApp::new(
-            BinaryName("gateway"),
+            "gateway",
             &gateway.data,
             &["--log-server", "127.0.0.1:7281"],
         )
         .unwrap();
         log::info!("gateway started");
+
         AiwayApp {
             logg,
             console,
