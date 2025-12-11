@@ -26,8 +26,8 @@ fn main() {
         fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
         fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
     }
-    #[rustfmt::skip]
     #[cfg(windows)]
+    #[rustfmt::skip]
     {
         fs::copy(release_dir.join("gateway.exe"), &bin_dir.join("gateway.exe")).unwrap();
         fs::copy(release_dir.join("console.exe"), &bin_dir.join("console.exe")).unwrap();
