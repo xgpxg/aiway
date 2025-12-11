@@ -24,6 +24,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 拉取前端代码
+      - name: Checkout frontend code
+        uses: actions/checkout@v4
+        with:
+          repository: xgpxg/aiway-ui
+          path: frontend
+
+      # 设置 Node.js 环境
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # 安装前端依赖
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      # 构建前端
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      # 创建 ui 目录
+      - name: Create ui directory
+        run: mkdir -p console/ui
+
+      # 拷贝前端构建产物到 console/ui 目录
+      - name: Copy frontend dist to console/ui
+        run: cp -r frontend/dist/* console/ui/
+
+
       # 安装 musl 工具
       - name: Install musl tools
         if: matrix.os == 'ubuntu-latest'

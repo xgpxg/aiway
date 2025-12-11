@@ -51,8 +51,8 @@ UI：https://github.com/xgpxg/aiway-ui
 │   ├── cache               # 缓存
 │   ├── common              # 通用
 │   ├── loadbalance         # 负载均衡
-│   ├── logging/            # 日志  
-│   ├── plugin/             # 插件
+│   ├── logging             # 日志  
+│   ├── plugin              # 插件
 │   └── protocol            # 交互协议
 └── logg/                   # 日志服务(bin)
 ```

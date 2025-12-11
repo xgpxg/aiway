@@ -91,13 +91,15 @@ mod key;
 mod log;
 mod message;
 mod metrics;
+mod node;
 mod plugin;
 mod route;
 mod service;
 mod system;
 pub mod task;
 mod user;
-mod node;
+#[cfg(not(debug_assertions))]
+mod web;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     //let config = &AppConfig::server();
@@ -130,6 +132,11 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/file/", file::api::routes());
 
     builder = builder.manage(Args::parse());
+
+    #[cfg(not(debug_assertions))]
+    {
+        builder = builder.mount("/", rocket::routes![web::web]);
+    }
 
     builder.launch().await?;
 
