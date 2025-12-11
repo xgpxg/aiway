@@ -1,7 +1,10 @@
 ### 简介
+
 一个Rust实现的API网关，性能还算不错。
 
 ### 快速启动
+
+单机模式：
 
 ```shell
 cargo build --bin gateway -F standalone && \
@@ -10,9 +13,20 @@ cargo build --bin logg && \
 cargo run --bin aiway
 ```
 
+集群模式：
+
+```shell
+cargo run --bin console -F cluster && \
+cargo build --bin gateway -F cluster
+```
+
+> 集群模式下需要单独部署[Redis](https://redis.io/)和[Quickwit](https://quickwit.io/)
+
+
 UI：https://github.com/xgpxg/aiway-ui
 
 ## 功能
+
 - 动态路由
 - 服务管理
 - 插件系统
@@ -25,3 +39,20 @@ UI：https://github.com/xgpxg/aiway-ui
 ### 截图
 
 ![Dashboard](docs/images/1.png)
+
+### 项目结构
+
+```text
+├── aiway                   # 单机网关(bin)
+├── console                 # 控制台(bin)
+├── gateway                 # 网关核心(bin)
+├── lib                     # 子库
+│   ├── alert               # 告警
+│   ├── cache               # 缓存
+│   ├── common              # 通用
+│   ├── loadbalance         # 负载均衡
+│   ├── logging/            # 日志  
+│   ├── plugin/             # 插件
+│   └── protocol            # 交互协议
+└── logg/                   # 日志服务(bin)
+```
