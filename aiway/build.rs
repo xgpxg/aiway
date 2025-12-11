@@ -7,23 +7,32 @@ use std::{env, fs, io};
 fn main() {
     // 项目目录
     let project_dir = get_project_root().unwrap();
-    println!("project_dir: {}", project_dir.display());
+
     // 二进制文件目录，需要提前编译console和gateway
     let release_dir = if let Ok(target) = env::var("TARGET") {
         project_dir.join("target").join(&target).join("release")
     } else {
         project_dir.join("target").join("release")
     };
-    println!("release_dir: {}", release_dir.display());
 
     // 嵌入的二进制文件目录
     let bin_dir = project_dir.join("aiway/bin");
     fs::create_dir_all(&bin_dir).unwrap();
 
     // 复制二进制文件
-    fs::copy(release_dir.join("gateway"), &bin_dir.join("gateway")).unwrap();
-    fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
-    fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
+    #[cfg(not(windows))]
+    {
+        fs::copy(release_dir.join("gateway"), &bin_dir.join("gateway")).unwrap();
+        fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
+        fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
+    }
+    #[rustfmt::skip]
+    #[cfg(windows)]
+    {
+        fs::copy(release_dir.join("gateway.exe"), &bin_dir.join("gateway.exe")).unwrap();
+        fs::copy(release_dir.join("console.exe"), &bin_dir.join("console.exe")).unwrap();
+        fs::copy(release_dir.join("logg.exe"), &bin_dir.join("logg.exe")).unwrap();
+    }
 
     println!("cargo:rustc-env=PROJECT_DIR={}", project_dir.display());
     println!("cargo:rerun-if-changed=bin/");
