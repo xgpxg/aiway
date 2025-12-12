@@ -1,6 +1,7 @@
 mod embed;
 
 use cache::start_share_cache_server;
+use common::dir::AppDir;
 use logging::{init_log, log};
 use rust_embed::Embed;
 use std::thread::sleep;
@@ -63,7 +64,7 @@ impl AiwayApp {
 async fn main() -> anyhow::Result<()> {
     init_log();
     tokio::spawn(async {
-        start_share_cache_server("cache").await.unwrap();
+        start_share_cache_server(AppDir::cache_dir()).await.unwrap();
     });
 
     let _app = AiwayApp::new();

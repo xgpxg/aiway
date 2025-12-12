@@ -13,26 +13,28 @@ pub struct AppDir {
     temp_dir: PathBuf,
     // 日志目录
     log_dir: PathBuf,
+    // 缓存目录
+    cache_dir: PathBuf,
 }
 // 目录缓存
 static DIR: LazyLock<AppDir> = LazyLock::new(AppDir::new);
 impl AppDir {
     pub fn new() -> Self {
-        let app_root = std::env::current_exe()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .to_path_buf();
+        let app_root = std::env::home_dir()
+            .expect("Failed to get home path")
+            .join(".aiway");
         let resources_dir = app_root.join("resources");
         let data_dir = app_root.join("data");
         let temp_dir = data_dir.join("temp");
         let log_dir = app_root.join("logs");
+        let cache_dir = data_dir.join("cache");
         AppDir {
             app_root_dir: app_root,
             resources_dir,
             temp_dir,
             data_dir,
             log_dir,
+            cache_dir,
         }
     }
     /// 应用根目录
@@ -57,6 +59,10 @@ impl AppDir {
 
     pub fn log_dir() -> &'static PathBuf {
         &DIR.log_dir
+    }
+
+    pub fn cache_dir() -> &'static PathBuf {
+        &DIR.cache_dir
     }
 }
 

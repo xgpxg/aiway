@@ -28,6 +28,7 @@ cargo build --bin gateway -F cluster
 > 集群模式下需要单独部署[Redis](https://redis.io/)和[Quickwit](https://quickwit.io/)
 
 控制台：http://127.0.0.1:7000
+
 网关入口：http://127.0.0.1:7001
 
 UI：https://github.com/xgpxg/aiway-ui

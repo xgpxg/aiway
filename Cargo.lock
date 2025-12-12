@@ -33,6 +33,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cache",
+ "common",
  "logging",
  "openssl",
  "rust-embed",
@@ -2420,6 +2421,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "common",
  "openssl",
  "protocol",
  "rocket",

@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 logging = { path = "../lib/logging" }
 cache = { path = "../lib/cache", features = ["share-cache"] }
+common = { path = "../lib/common" }
 anyhow = "1"
 tokio = { version = "1", features = ["macros"] }
 rust-embed = "8"
