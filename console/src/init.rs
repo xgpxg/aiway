@@ -44,13 +44,12 @@ pub async fn init(args: &Args) {
 }
 
 fn init_dir() -> anyhow::Result<()> {
-    let data_dir = AppDir::data_dir();
-    fs::create_dir_all(data_dir).context("Failed to create data directory")?;
-    fs::create_dir_all(data_dir.join("sqlite")).context("Failed to create sqlite directory")?;
-    fs::create_dir_all(data_dir.join("cache")).context("Failed to create cache directory")?;
-    fs::create_dir_all(data_dir.join("temp")).context("Failed to create temp directory")?;
+    AppDir::init_all();
 
+    let data_dir = AppDir::data_dir();
     let resources_dir = AppDir::resources_dir();
+
+    fs::create_dir_all(data_dir.join("sqlite")).context("Failed to create sqlite directory")?;
     fs::create_dir_all(resources_dir.join("web")).context("Failed to create web directory")?;
 
     Ok(())

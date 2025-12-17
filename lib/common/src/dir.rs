@@ -7,7 +7,7 @@ pub struct AppDir {
     app_root_dir: PathBuf,
     // 资源目录
     resources_dir: PathBuf,
-    // 数据目录
+    // 应用数据目录，每个应用可能包含不同子目录
     data_dir: PathBuf,
     // 临时文件目录
     temp_dir: PathBuf,
@@ -24,9 +24,9 @@ impl AppDir {
             .expect("Failed to get home path")
             .join(".aiway");
         let resources_dir = app_root.join("resources");
+        let log_dir = app_root.join("logs");
         let data_dir = app_root.join("data");
         let temp_dir = data_dir.join("temp");
-        let log_dir = app_root.join("logs");
         let cache_dir = data_dir.join("cache");
         AppDir {
             app_root_dir: app_root,
@@ -36,6 +36,16 @@ impl AppDir {
             log_dir,
             cache_dir,
         }
+    }
+
+    /// 初始化所有目录
+    pub fn init_all() {
+        std::fs::create_dir_all(AppDir::app_root_dir()).unwrap();
+        std::fs::create_dir_all(AppDir::resources_dir()).unwrap();
+        std::fs::create_dir_all(AppDir::data_dir()).unwrap();
+        std::fs::create_dir_all(AppDir::temp_dir()).unwrap();
+        std::fs::create_dir_all(AppDir::cache_dir()).unwrap();
+        std::fs::create_dir_all(AppDir::log_dir()).unwrap();
     }
     /// 应用根目录
     pub fn app_root_dir() -> &'static PathBuf {
