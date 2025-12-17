@@ -1,15 +1,15 @@
-### 简介
+# Aiway - High Performance API Gateway
 
-一个Rust实现的API网关，性能还算不错。
+Aiway is a high-performance API gateway implemented in Rust.
 
-支持的平台：
+## Supported Platforms
 
 - Linux
-- MacOS
+- macOS
 
-### 快速启动
+## Quick Start
 
-单机模式：
+### Standalone Mode
 
 ```shell
 cargo build --bin gateway -F standalone && \
@@ -18,49 +18,53 @@ cargo build --bin logg && \
 cargo run --bin aiway
 ```
 
-集群模式：
+### Cluster Mode
 
 ```shell
 cargo run --bin console -F cluster && \
 cargo build --bin gateway -F cluster
 ```
 
-> 集群模式下需要单独部署[Redis](https://redis.io/)和[Quickwit](https://quickwit.io/)
+> Cluster mode requires separate deployment of [Redis](https://redis.io/) and [Quickwit](https://quickwit.io/)
 
-控制台：http://127.0.0.1:7000
+### Access Points
 
-网关入口：http://127.0.0.1:7001
+- Console: http://127.0.0.1:7000
+- Gateway Entry: http://127.0.0.1:7001
+- UI: https://github.com/xgpxg/aiway-ui
 
-UI：https://github.com/xgpxg/aiway-ui
+## Features
 
-## 功能
+- [x] Dynamic Routing
+- [x] Service Management
+- [x] Plugin System
+- [x] Security Authentication (Firewall)
+- [x] Unified API Key Management
+- [x] Log Storage and Monitoring
+- [x] Visualization Dashboard
+- [x] Standalone/Cluster Deployment
 
-- 动态路由
-- 服务管理
-- 插件系统
-- 安全验证（防火墙）
-- 统一API Key管理
-- 日志存储和监控
-- 可视化
-- 支持单机/集群部署
-
-### 截图
+## Screenshot
 
 ![Dashboard](docs/images/1.png)
 
-### 项目结构
+## Project Structure
 
 ```text
-├── aiway                   # 单机网关(bin)
-├── console                 # 控制台(bin)
-├── gateway                 # 网关核心(bin)
-├── lib                     # 子库
-│   ├── alert               # 告警
-│   ├── cache               # 缓存
-│   ├── common              # 通用
-│   ├── loadbalance         # 负载均衡
-│   ├── logging             # 日志  
-│   ├── plugin              # 插件
-│   └── protocol            # 交互协议
-└── logg                    # 日志服务(bin)
+├── aiway                   # Standalone gateway (binary)
+├── console                 # Console (binary)
+├── gateway                 # Gateway core (binary)
+├── lib                     # Libraries
+│   ├── alert               # Alert system
+│   ├── cache               # Cache module
+│   ├── common              # Common utilities
+│   ├── loadbalance         # Load balancing
+│   ├── logging             # Logging system
+│   ├── plugin              # Plugin system
+│   └── protocol            # Communication protocols
+└── logg                    # Log service (binary)
 ```
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
