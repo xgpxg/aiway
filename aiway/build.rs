@@ -10,7 +10,6 @@ fn main() {
 
     // 二进制文件目录，需要提前编译console、gateway和logg
     let out_dir = env::var("OUT_DIR").unwrap_or_default();
-    #[allow(unused)]
     let release_dir = Path::new(&out_dir)
         .parent()
         .unwrap()
@@ -23,13 +22,10 @@ fn main() {
     let bin_dir = project_dir.join("aiway/bin");
     fs::create_dir_all(&bin_dir).unwrap();
 
-    #[cfg(not(debug_assertions))]
-    {
-        // 复制二进制文件
-        fs::copy(release_dir.join("gateway"), &bin_dir.join("gateway")).unwrap();
-        fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
-        fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
-    }
+    // 复制二进制文件
+    fs::copy(release_dir.join("gateway"), &bin_dir.join("gateway")).unwrap();
+    fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
+    fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
 
     println!("cargo:rustc-env=PROJECT_DIR={}", project_dir.display());
     println!("cargo:rerun-if-changed=bin/");
