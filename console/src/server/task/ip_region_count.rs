@@ -36,7 +36,7 @@ const PROVINCES: [&str; 34] = ["北京", "广东省", "台湾省", "浙江省", 
 /// - 按小时级别统计，保留近1年的数据。
 /// - 由定时任务清理1年以前的数据，每天执行一次。
 async fn ip_region_count_(args: Arc<Args>) -> anyhow::Result<()> {
-    log::info!("[ip_region_count] 区域请求统计开始执行");
+    log::debug!("[ip_region_count] 区域请求统计开始执行");
     // 上次更新时间戳
     let last_timestamp = SystemConfig::get::<i64>(ConfigKey::IpRegionLastUpdate).await?;
     // 首次执行
@@ -47,11 +47,11 @@ async fn ip_region_count_(args: Arc<Args>) -> anyhow::Result<()> {
             &chrono::Local::now().timestamp(),
         )
         .await?;
-        log::info!("[ip_region_count] 首次执行，设置初始时间");
+        log::debug!("[ip_region_count] 首次执行，设置初始时间");
         return Ok(());
     }
 
-    log::info!(
+    log::debug!(
         "[request_status_count] 上次统计区间: [{}, {}]",
         chrono::DateTime::from_timestamp_secs(last_timestamp)
             .unwrap()
@@ -99,7 +99,7 @@ async fn ip_region_count_(args: Arc<Args>) -> anyhow::Result<()> {
         // end_timestamp + 1 是为了兼容日志服务的查询，日志服务是左闭右开区间，不包含结束时间。
         let counts = search(&api, start_timestamp, end_timestamp + 1).await?;
 
-        log::info!(
+        log::debug!(
             "[ip_region_count] 区间 [{}, {}) 统计结果: {:?}",
             chrono::DateTime::from_timestamp_secs(start_timestamp)
                 .unwrap()
@@ -199,7 +199,7 @@ async fn search(
 }
 
 async fn clean_() -> anyhow::Result<()> {
-    log::info!("[ip_region_count] 清理数据开始执行");
+    log::debug!("[ip_region_count] 清理数据开始执行");
 
     // 一年前
     let one_year_ago = chrono::Local::now()
@@ -217,7 +217,7 @@ async fn clean_() -> anyhow::Result<()> {
         )
         .await?;
 
-    log::info!(
+    log::debug!(
         "[ip_region_count] 清理数据完成，删除了{}条数据",
         result.rows_affected
     );

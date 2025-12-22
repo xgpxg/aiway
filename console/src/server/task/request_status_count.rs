@@ -26,7 +26,7 @@ pub(crate) async fn clean() {
 }
 
 async fn request_status_count_(args: Arc<Args>) -> anyhow::Result<()> {
-    log::info!("[request_status_count] 状态码请求数统计开始执行");
+    log::debug!("[request_status_count] 状态码请求数统计开始执行");
 
     // 获取当前时间的前几分钟，复用
     let sub_minutes = |sub| {
@@ -55,13 +55,13 @@ async fn request_status_count_(args: Arc<Args>) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    log::info!(
+    log::debug!(
         "[request_status_count] 上次统计区间: [{}, {}]",
-        chrono::DateTime::from_timestamp_secs(last_timestamp)
+        DateTime::from_timestamp_secs(last_timestamp)
             .unwrap()
             .with_timezone(&chrono_tz::Asia::Shanghai)
             .format("%Y-%m-%d %H:%M:%S"),
-        chrono::DateTime::from_timestamp_secs(last_timestamp)
+        DateTime::from_timestamp_secs(last_timestamp)
             .unwrap()
             .with_timezone(&chrono_tz::Asia::Shanghai)
             .with_second(59)
@@ -106,13 +106,13 @@ async fn request_status_count_(args: Arc<Args>) -> anyhow::Result<()> {
         // end_timestamp + 1 是为了兼容日志服务的查询，日志服务是左闭右开区间，不包含结束时间。
         let counts = search(&api, start_timestamp, end_timestamp + 1).await?;
 
-        log::info!(
+        log::debug!(
             "[request_status_count] 区间 [{}, {}]，统计结果: {:?}",
-            chrono::DateTime::from_timestamp_secs(start_timestamp)
+            DateTime::from_timestamp_secs(start_timestamp)
                 .unwrap()
                 .with_timezone(&chrono_tz::Asia::Shanghai)
                 .format("%Y-%m-%d %H:%M:%S"),
-            chrono::DateTime::from_timestamp_secs(end_timestamp)
+            DateTime::from_timestamp_secs(end_timestamp)
                 .unwrap()
                 .with_timezone(&chrono_tz::Asia::Shanghai)
                 .format("%Y-%m-%d %H:%M:%S"),
