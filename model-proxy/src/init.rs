@@ -1,6 +1,7 @@
-use crate::{Args, };
+use crate::Args;
+use crate::components::ModelFactory;
 use alert::Alert;
-use logging::{log, LogAppender};
+use logging::{LogAppender, log};
 
 pub async fn init(args: &Args) {
     // 初始化日志
@@ -24,9 +25,10 @@ pub async fn init(args: &Args) {
     // 初始化发布订阅
     //pubsub::init("127.0.0.1:4222").await.unwrap();
 
-
     // 初始化告警
     alert::init(args.console.clone());
+
+    ModelFactory::init().await;
 
     // 设置panic hook
     set_panic_hook();
