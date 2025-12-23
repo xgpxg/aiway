@@ -2589,6 +2589,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "model-proxy"
+version = "0.1.0"
+dependencies = [
+ "alert",
+ "anyhow",
+ "clap",
+ "logging",
+ "rocket",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "moka"
 version = "0.12.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
