@@ -13,17 +13,11 @@ pub async fn init(args: &Args) {
         },
     );
 
-    // 初始化conreg
-    //init_client(args).await;
-
     // 初始化缓存
     // #[cfg(feature = "cluster")]
     // cache::init_redis_cache(vec!["redis://127.0.0.1:6379"]).unwrap();
     // #[cfg(feature = "standalone")]
     // cache::init_share_cache().await.unwrap();
-
-    // 初始化发布订阅
-    //pubsub::init("127.0.0.1:4222").await.unwrap();
 
     // 初始化告警
     alert::init(args.console.clone());

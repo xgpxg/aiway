@@ -1,4 +1,4 @@
-use crate::Args;
+use crate::{Args, proxy};
 use logging::log;
 use rocket::data::{ByteUnit, Limits};
 use rocket::fairing::AdHoc;
@@ -19,7 +19,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
         ..Config::debug_default()
     });
 
-    //builder = builder.mount("/openapi/v1", routes![openapi::call]);
+    // OpenAI接口兼容
+    builder = builder.mount("/", routes![proxy::api::chat_completions]);
 
     builder = builder.attach(AdHoc::on_liftoff("Print Banner", |_| {
         Box::pin(async {

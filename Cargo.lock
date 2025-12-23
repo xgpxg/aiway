@@ -1342,6 +1342,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "eventsource-stream"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74fef4569247a5f429d9156b9d0a2599914385dd189c539334c625d8099d90ab"
+dependencies = [
+ "futures-core",
+ "nom",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "fast_pool"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1576,6 +1587,12 @@ name = "futures-task"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f90f7dce0722e95104fcb095585910c0977252f286e354b5e3bd38902cd99988"
+
+[[package]]
+name = "futures-timer"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f288b0a4f20f9a56b5d1da57e2227c661b7b16168e2f72365f57b63326e29b24"
 
 [[package]]
 name = "futures-util"
@@ -2607,6 +2624,7 @@ dependencies = [
  "chrono",
  "clap",
  "dashmap",
+ "fastrand",
  "logging",
  "md5",
  "openai_dive",
@@ -2615,6 +2633,7 @@ dependencies = [
  "rocket",
  "serde",
  "serde_json",
+ "thiserror 2.0.17",
  "tokio",
 ]
 
@@ -2891,11 +2910,14 @@ source = "git+ssh://git@github.com/xgpxg/openai-client.git#b03e3f89aed723f0ad8fe
 dependencies = [
  "bytes",
  "derive_builder",
+ "futures",
  "reqwest",
+ "reqwest-eventsource",
  "serde",
  "serde_html_form",
  "serde_json",
  "tokio",
+ "tokio-stream",
  "tokio-util",
 ]
 
@@ -3842,6 +3864,22 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
+]
+
+[[package]]
+name = "reqwest-eventsource"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "632c55746dbb44275691640e7b40c907c16a2dc1a5842aa98aaec90da6ec6bde"
+dependencies = [
+ "eventsource-stream",
+ "futures-core",
+ "futures-timer",
+ "mime",
+ "nom",
+ "pin-project-lite",
+ "reqwest",
+ "thiserror 1.0.69",
 ]
 
 [[package]]

@@ -9,7 +9,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 use std::sync::LazyLock;
-use protocol::model::model::Model;
+use protocol::model::Model;
 
 pub struct InnerHttpClient {
     client: Client,

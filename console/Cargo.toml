@@ -7,7 +7,7 @@ edition = "2024"
 logging = { path = "../lib/logging" }
 cache = { path = "../lib/cache", optional = true }
 common = { path = "../lib/common" }
-protocol = { path = "../lib/protocol", features = ["rbatis", "rocket", "logg", "api-key"] }
+protocol = { path = "../lib/protocol", features = ["rbatis", "rocket", "logg", "api-key", "model"] }
 alert = { path = "../lib/alert" }
 rocket = { version = "0.5", features = ["json"] }
 anyhow = "1.0"

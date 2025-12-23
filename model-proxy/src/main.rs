@@ -1,6 +1,7 @@
 mod server;
 mod init;
 mod components;
+mod proxy;
 
 use clap::Parser;
 

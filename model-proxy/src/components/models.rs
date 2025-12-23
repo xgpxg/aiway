@@ -1,7 +1,8 @@
 use crate::components::client::INNER_HTTP_CLIENT;
 use dashmap::DashMap;
 use logging::log;
-use protocol::model::model::Model;
+use protocol::model::Model;
+use protocol::model::Provider;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -84,5 +85,27 @@ impl ModelFactory {
                 }
             }
         });
+    }
+
+    /// 获取模型的提供商
+    pub fn get_provider(model_name: &str) -> Option<Provider> {
+        let factory = MODEL_FACTORY.get().unwrap();
+        let model = factory.models.get(model_name);
+        match model {
+            Some(model) => {
+                let providers = &model.providers;
+                let len = providers.len();
+                if len > 0 {
+                    let index = fastrand::usize(0..len);
+                    return Some(providers[index].clone());
+                }
+                log::warn!("model {} has no providers", model_name);
+                None
+            }
+            None => {
+                log::warn!("model {} not found", model_name);
+                None
+            }
+        }
     }
 }
