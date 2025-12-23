@@ -101,6 +101,7 @@ mod user;
 #[cfg(not(debug_assertions))]
 mod web;
 mod model_proxy;
+mod model;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     //let config = &AppConfig::server();
@@ -130,6 +131,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/system", system::routes());
     builder = builder.mount("/api/message", message::api::routes());
     builder = builder.mount("/api/node", node::api::routes());
+    builder = builder.mount("/api/model", model::api::routes());
 
     builder = builder.mount("/file/", file::api::routes());
 

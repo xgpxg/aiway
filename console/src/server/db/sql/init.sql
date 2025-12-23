@@ -198,6 +198,37 @@ create table if not exists statistics_request_status_code
     state_time  bigint not null            -- 分钟起始时间戳（秒，0分0秒），范围为[state_time, state_time+59]
 );
 
+-- 模型
+create table if not exists model
+(
+    id             bigint primary key,
+    name           varchar(500),                  -- 模型名称，全局唯一
+    status         varchar(20) not null,          -- 状态：Disable | Ok
+    lb_strategy    varchar(50) not null,          -- 负载均衡策略：RoundRobin | Random | WeightedRandom
+    create_user_id bigint,                        -- 创建人ID
+    update_user_id bigint,                        -- 修改人ID
+    create_time    datetime,                      -- 创建时间
+    update_time    datetime,                      -- 更新时间
+    remark         varchar(500),                  -- 备注
+    is_delete      tinyint(1)  not null default 0 -- 是否删除
+);
+
+-- 模型提供商
+create table if not exists model_provider
+(
+    id             bigint primary key,
+    model_id       bigint       not null,          -- 模型ID
+    name           varchar(500),                   -- 模型提供商名称
+    api_url        varchar(500) not null,          -- 接口地址
+    api_key        varchar(500),                   -- 密钥
+    status         varchar(20)  not null,          -- 状态：Disable | Ok
+    create_user_id bigint,                         -- 创建人ID
+    update_user_id bigint,                         -- 修改人ID
+    create_time    datetime,                       -- 创建时间
+    update_time    datetime,                       -- 更新时间
+    remark         varchar(500),                   -- 备注
+    is_delete      tinyint(1)   not null default 0 -- 是否删除
+);
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');
