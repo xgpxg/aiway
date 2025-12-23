@@ -191,7 +191,7 @@ async fn search(
 }
 
 async fn clean_() -> anyhow::Result<()> {
-    log::info!("[request_status_count] 清理数据开始执行");
+    log::debug!("[request_status_count] 清理数据开始执行");
 
     // 一年前
     let one_year_ago = chrono::Local::now()
@@ -209,7 +209,7 @@ async fn clean_() -> anyhow::Result<()> {
         )
         .await?;
 
-    log::info!(
+    log::debug!(
         "[request_status_count] 清理数据完成，删除了{}条数据",
         result.rows_affected
     );
