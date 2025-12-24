@@ -46,6 +46,7 @@ pub(crate) async fn models() -> anyhow::Result<Vec<protocol::model::Model>> {
                     api_url: provider.api_url.unwrap(),
                     api_key: provider.api_key,
                     weight: 1,
+                    target_model_name: provider.target_model_name,
                 })
                 .collect::<Vec<_>>();
             let total_weight = providers.iter().map(|p| p.weight).sum::<u32>();

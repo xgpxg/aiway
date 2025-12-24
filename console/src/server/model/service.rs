@@ -11,9 +11,9 @@ use crate::server::model::response::ModelListRes;
 use anyhow::bail;
 use common::id;
 use protocol::common::req::IdReq;
+use protocol::model::LbStrategy;
 use rbs::value;
 use std::collections::HashMap;
-use protocol::model::LbStrategy;
 
 pub(crate) async fn list(_req: ModelLisReq) -> anyhow::Result<Vec<ModelListRes>> {
     let tx = Pool::get()?;
@@ -46,7 +46,7 @@ pub(crate) async fn list(_req: ModelLisReq) -> anyhow::Result<Vec<ModelListRes>>
 }
 
 pub(crate) async fn add(req: ModelAddReq, user: UserPrincipal) -> anyhow::Result<()> {
-    if check_exists(&req.name, None).await? {
+    if check_model_exists(&req.name, None).await? {
         bail!(format!("模型 {} 已存在", req.name));
     }
     Model::insert(
@@ -64,7 +64,7 @@ pub(crate) async fn add(req: ModelAddReq, user: UserPrincipal) -> anyhow::Result
     Ok(())
 }
 
-async fn check_exists(model_name: &str, exclude_id: Option<i64>) -> anyhow::Result<bool> {
+async fn check_model_exists(model_name: &str, exclude_id: Option<i64>) -> anyhow::Result<bool> {
     let mut list = Model::select_by_map(
         Pool::get()?,
         value! {
@@ -80,7 +80,7 @@ async fn check_exists(model_name: &str, exclude_id: Option<i64>) -> anyhow::Resu
 
 pub(crate) async fn update(req: ModelUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
     if let Some(ref name) = req.name {
-        if check_exists(&name, Some(req.id)).await? {
+        if check_model_exists(&name, Some(req.id)).await? {
             bail!(format!("模型 {} 已存在", name));
         }
     }
@@ -113,6 +113,9 @@ pub(crate) async fn delete(req: IdReq) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn add_provider(req: ProviderAddReq, user: UserPrincipal) -> anyhow::Result<()> {
+    if check_provider_exists(req.model_id, &req.name, None).await? {
+        bail!(format!("提供商 {} 已存在", req.name));
+    }
     ModelProvider::insert(
         Pool::get()?,
         &ModelProviderBuilder::default()
@@ -123,6 +126,7 @@ pub(crate) async fn add_provider(req: ProviderAddReq, user: UserPrincipal) -> an
             .api_key(req.api_key)
             .status(Some(ModelProviderStatus::Disable))
             .weight(req.weight)
+            .target_model_name(req.target_model_name)
             .create_time(Some(tools::now()))
             .create_user_id(Some(user.id))
             .build()?,
@@ -130,11 +134,43 @@ pub(crate) async fn add_provider(req: ProviderAddReq, user: UserPrincipal) -> an
     .await?;
     Ok(())
 }
+async fn check_provider_exists(
+    model_id: i64,
+    provider_name: &str,
+    exclude_id: Option<i64>,
+) -> anyhow::Result<bool> {
+    let mut list = ModelProvider::select_by_map(
+        Pool::get()?,
+        value! {
+            "model_id": model_id,
+            "name": provider_name,
+        },
+    )
+    .await?;
+
+    list.retain(|item| item.id != exclude_id);
+
+    Ok(!list.is_empty())
+}
 
 pub(crate) async fn update_provider(
     req: ProviderUpdateReq,
     user: UserPrincipal,
 ) -> anyhow::Result<()> {
+    let old = ModelProvider::select_by_map(
+        Pool::get()?,
+        value! {
+            "id": req.id
+        },
+    )
+    .await?
+    .pop()
+    .ok_or(anyhow::anyhow!("提供商不存在"))?;
+    if let Some(ref name) = req.name {
+        if check_provider_exists(old.model_id.unwrap(), &name, Some(req.id)).await? {
+            bail!(format!("提供商 {} 已存在", name));
+        }
+    }
     ModelProvider::update_by_map(
         Pool::get()?,
         &ModelProviderBuilder::default()
@@ -143,6 +179,7 @@ pub(crate) async fn update_provider(
             .api_key(req.api_key)
             .status(req.status)
             .weight(req.weight)
+            .target_model_name(req.target_model_name)
             .update_time(Some(tools::now()))
             .update_user_id(Some(user.id))
             .build()?,

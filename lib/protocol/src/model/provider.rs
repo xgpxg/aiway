@@ -12,4 +12,10 @@ pub struct Provider {
     pub api_key: Option<String>,
     /// 权重，默认为 1
     pub weight: u32,
+    /// 目标模型名称
+    ///
+    /// 场景：对于同一个模型在不同提供商处的名字可能不一样，通过该模型名称映射提供商处的真实模型名称。
+    /// 同时能够让系统以同一个模型名称对外提供服务，后续的模型升级不需要修改对外名称，
+    /// 能够做到快速切换模型版本。
+    pub target_model_name: Option<String>,
 }
