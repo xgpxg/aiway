@@ -38,7 +38,6 @@ pub enum ModelError {
     Unknown(String),
 }
 
-
 enum SseEvent {
     Data(String),
     Error(String),
@@ -55,7 +54,6 @@ impl SseEvent {
         }
     }
 }
-
 
 impl<'r> Responder<'r, 'r> for ModelResponse {
     fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'r> {
@@ -120,7 +118,7 @@ impl<'r> Responder<'r, 'r> for ModelError {
             Self::NoAvailableProvider => {
                 (
                     rocket::http::Status::InternalServerError,
-                    json!({"error": {"code": "404","message": "No available provider"}}),
+                    json!({"error": {"code": "500","message": "No available provider"}}),
                 )
                     .respond_to(request)
             }

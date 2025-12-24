@@ -37,20 +37,24 @@ pub(crate) async fn models() -> anyhow::Result<Vec<protocol::model::Model>> {
         .into_iter()
         .map(|model| {
             let providers = providers_map.get(&model.id);
+            let providers = providers
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .map(|provider| protocol::model::Provider {
+                    name: provider.name.unwrap(),
+                    api_url: provider.api_url.unwrap(),
+                    api_key: provider.api_key,
+                    weight: 1,
+                })
+                .collect::<Vec<_>>();
+            let total_weight = providers.iter().map(|p| p.weight).sum::<u32>();
             protocol::model::Model {
                 name: model.name.unwrap(),
-                providers: providers
-                    .cloned()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|provider| protocol::model::Provider {
-                        name: provider.name.unwrap(),
-                        api_url: provider.api_url.unwrap(),
-                        api_key: provider.api_key,
-                        weight: 0,
-                    })
-                    .collect::<Vec<_>>(),
-                lb: Default::default(),
+                providers,
+                lb: model.lb_strategy.unwrap(),
+                round_robin_index: 0,
+                total_weight,
             }
         })
         .collect();

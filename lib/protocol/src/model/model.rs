@@ -1,7 +1,7 @@
 use crate::model::provider::Provider;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Model {
     /// 模型名称，全局唯一
     pub name: String,
@@ -9,9 +9,25 @@ pub struct Model {
     pub providers: Vec<Provider>,
     /// 负载策略
     pub lb: LbStrategy,
+    /// 总权重，由控制台返回
+    pub total_weight: u32,
+    /// 轮询索引，实时计算，不参与eq计算
+    #[serde(skip)]
+    pub round_robin_index: u64,
 }
 
-#[derive(Debug, Clone, Default,Eq, PartialEq, Serialize, Deserialize)]
+impl PartialEq for Model {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.providers == other.providers
+            && self.lb == other.lb
+            && self.total_weight == other.total_weight
+    }
+}
+
+impl Eq for Model {}
+
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub enum LbStrategy {
     /// 随机
     #[default]

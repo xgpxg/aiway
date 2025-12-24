@@ -18,6 +18,8 @@ pub struct ModelProvider {
     pub api_key: Option<String>,
     /// 状态：Disable | Ok
     pub status: Option<ModelProviderStatus>,
+    /// 权重
+    pub weight: Option<u32>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

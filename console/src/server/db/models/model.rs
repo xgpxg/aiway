@@ -1,7 +1,8 @@
 use derive_builder::Builder;
+use rbatis::crud;
 use rbatis::rbdc::DateTime;
-use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
+use protocol::model::LbStrategy;
 
 /// 模型配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -39,15 +40,5 @@ pub enum ModelStatus {
     Ok,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub enum LbStrategy {
-    /// 随机
-    #[default]
-    Random,
-    /// 轮询
-    RoundRobin,
-    /// 加权随机
-    WeightedRandom,
-}
 
 crud!(Model {});

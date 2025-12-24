@@ -1,5 +1,5 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::db::models::model::{LbStrategy, Model, ModelBuilder, ModelStatus};
+use crate::server::db::models::model::{Model, ModelBuilder, ModelStatus};
 use crate::server::db::models::model_provider::{
     ModelProvider, ModelProviderBuilder, ModelProviderStatus,
 };
@@ -8,10 +8,12 @@ use crate::server::model::request::{
     ModelAddReq, ModelLisReq, ModelUpdateReq, ProviderAddReq, ProviderUpdateReq,
 };
 use crate::server::model::response::ModelListRes;
+use anyhow::bail;
 use common::id;
 use protocol::common::req::IdReq;
 use rbs::value;
 use std::collections::HashMap;
+use protocol::model::LbStrategy;
 
 pub(crate) async fn list(_req: ModelLisReq) -> anyhow::Result<Vec<ModelListRes>> {
     let tx = Pool::get()?;
@@ -44,6 +46,9 @@ pub(crate) async fn list(_req: ModelLisReq) -> anyhow::Result<Vec<ModelListRes>>
 }
 
 pub(crate) async fn add(req: ModelAddReq, user: UserPrincipal) -> anyhow::Result<()> {
+    if check_exists(&req.name, None).await? {
+        bail!(format!("模型 {} 已存在", req.name));
+    }
     Model::insert(
         Pool::get()?,
         &ModelBuilder::default()
@@ -59,7 +64,26 @@ pub(crate) async fn add(req: ModelAddReq, user: UserPrincipal) -> anyhow::Result
     Ok(())
 }
 
+async fn check_exists(model_name: &str, exclude_id: Option<i64>) -> anyhow::Result<bool> {
+    let mut list = Model::select_by_map(
+        Pool::get()?,
+        value! {
+            "name": model_name,
+        },
+    )
+    .await?;
+
+    list.retain(|item| item.id != exclude_id);
+
+    Ok(!list.is_empty())
+}
+
 pub(crate) async fn update(req: ModelUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
+    if let Some(ref name) = req.name {
+        if check_exists(&name, Some(req.id)).await? {
+            bail!(format!("模型 {} 已存在", name));
+        }
+    }
     Model::update_by_map(
         Pool::get()?,
         &ModelBuilder::default()
@@ -98,6 +122,7 @@ pub(crate) async fn add_provider(req: ProviderAddReq, user: UserPrincipal) -> an
             .api_url(Some(req.api_url))
             .api_key(req.api_key)
             .status(Some(ModelProviderStatus::Disable))
+            .weight(req.weight)
             .create_time(Some(tools::now()))
             .create_user_id(Some(user.id))
             .build()?,
@@ -117,6 +142,7 @@ pub(crate) async fn update_provider(
             .api_url(req.api_url)
             .api_key(req.api_key)
             .status(req.status)
+            .weight(req.weight)
             .update_time(Some(tools::now()))
             .update_user_id(Some(user.id))
             .build()?,

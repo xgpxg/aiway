@@ -1,6 +1,7 @@
-use crate::server::db::models::model::{LbStrategy, ModelStatus};
+use crate::server::db::models::model::ModelStatus;
 use crate::server::db::models::model_provider::ModelProviderStatus;
 use serde::Deserialize;
+use protocol::model::LbStrategy;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ModelLisReq {}
@@ -22,6 +23,7 @@ pub struct ProviderAddReq {
     pub name: String,
     pub api_url: String,
     pub api_key: Option<String>,
+    pub weight: Option<u32>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -31,4 +33,5 @@ pub struct ProviderUpdateReq {
     pub api_url: Option<String>,
     pub api_key: Option<String>,
     pub status: Option<ModelProviderStatus>,
+    pub weight: Option<u32>,
 }

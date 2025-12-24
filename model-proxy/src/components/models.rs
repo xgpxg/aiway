@@ -1,12 +1,13 @@
 use crate::components::client::INNER_HTTP_CLIENT;
-use crate::proxy::Proxy;
+use crate::proxy::{ModelError, Proxy};
 use dashmap::DashMap;
 use logging::log;
-use protocol::model::Model;
 use protocol::model::Provider;
+use protocol::model::{LbStrategy, Model};
 use rocket::http::hyper::body::HttpBody;
 use std::collections::HashMap;
 use std::process::exit;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -75,7 +76,7 @@ impl ModelFactory {
                 old.models.retain(|_, item| {
                     if !new_models.contains_key(&item.name) {
                         log::info!("removed model: {}", item.name);
-                        Proxy::remove_clients_by_model(&item.name);
+                        Proxy::remove_clients(&item.name);
                         return false;
                     }
                     true
@@ -95,32 +96,60 @@ impl ModelFactory {
                             log::info!("new model enabled: {}", name);
                         }
                         old.models.insert(name.clone(), new_model);
-                        Proxy::remove_clients_by_model(&name);
+                        Proxy::remove_clients(&name);
                     }
                 });
             }
         });
     }
 
-    /// 获取模型的提供商
-    pub fn get_provider(model_name: &str) -> Option<Provider> {
+    /// 按负载策略获取模型的提供商
+    pub fn get_provider(model_name: &str) -> Result<Provider, ModelError> {
         let factory = MODEL_FACTORY.get().unwrap();
-        let model = factory.models.get(model_name);
+        let model = factory.models.get_mut(model_name);
         match model {
-            Some(model) => {
+            Some(mut model) => {
+                let model = model.value_mut();
+                log::debug!(
+                    "get provider for model: {}, model detail: {:?}",
+                    model_name,
+                    model
+                );
                 let providers = &model.providers;
                 let len = providers.len();
-                if len > 0 {
-                    let index = fastrand::usize(0..len);
-                    return Some(providers[index].clone());
+                if len == 0 {
+                    return Err(ModelError::NoAvailableProvider);
                 }
-                log::warn!("model {} has no providers", model_name);
-                None
+                if len == 1 {
+                    return Ok(providers[0].clone());
+                }
+                match &model.lb {
+                    // 随机
+                    LbStrategy::Random => {
+                        let index = fastrand::usize(0..len);
+                        Ok(providers[index].clone())
+                    }
+                    // 轮询
+                    LbStrategy::RoundRobin => {
+                        let index = model.round_robin_index % (len as u64);
+                        model.round_robin_index = index + 1;
+                        Ok(providers[index as usize].clone())
+                    }
+                    // 权重随机
+                    LbStrategy::WeightedRandom => {
+                        let mut random_weight = fastrand::u32(0..model.total_weight);
+                        for provider in providers {
+                            if random_weight < provider.weight {
+                                return Ok(provider.clone());
+                            }
+                            random_weight -= provider.weight;
+                        }
+                        // 理论上不会到达这里，但作为安全fallback
+                        Ok(providers[0].clone())
+                    }
+                }
             }
-            None => {
-                log::warn!("model {} not found", model_name);
-                None
-            }
+            None => Err(ModelError::UnsupportedModel(model_name.to_string())),
         }
     }
 }
