@@ -1,16 +1,21 @@
 use crate::components::client::INNER_HTTP_CLIENT;
+use crate::proxy::Proxy;
 use dashmap::DashMap;
 use logging::log;
 use protocol::model::Model;
 use protocol::model::Provider;
+use rocket::http::hyper::body::HttpBody;
+use std::collections::HashMap;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tokio::sync::RwLock;
 
 pub struct ModelFactory {
+    /// 模型列表
+    /// - key: 模型名称
+    /// - value: 模型对象
     models: DashMap<String, Model>,
-    hash: Arc<RwLock<String>>,
 }
 
 pub static MODEL_FACTORY: OnceLock<ModelFactory> = OnceLock::new();
@@ -25,18 +30,12 @@ impl ModelFactory {
 
     pub async fn load() -> anyhow::Result<()> {
         let models = Self::fetch_models().await?;
-
         log::info!("loaded {} models", models.len());
-
-        let hash = md5::compute(serde_json::to_string(&models)?);
-        let hash = format!("{:x}", hash);
-
         MODEL_FACTORY.get_or_init(|| Self {
             models: models
                 .into_iter()
                 .map(|model| (model.name.clone(), model))
                 .collect::<_>(),
-            hash: Arc::new(RwLock::new(hash)),
         });
 
         Self::watch();
@@ -65,24 +64,40 @@ impl ModelFactory {
                     }
                 };
 
-                let hash = md5::compute(serde_json::to_string(&list).unwrap());
-                let hash = format!("{:x}", hash);
-
                 let old = MODEL_FACTORY.get().unwrap();
 
-                if hash == *old.hash.read().await {
-                    log::debug!("models not changed, wait next interval");
-                    continue;
-                }
+                let mut new_models = list
+                    .into_iter()
+                    .map(|m| (m.name.clone(), m))
+                    .collect::<HashMap<String, Model>>();
 
-                log::info!("loaded {} models", list.len());
+                // 移除不存在的
+                old.models.retain(|_, item| {
+                    if !new_models.contains_key(&item.name) {
+                        log::info!("removed model: {}", item.name);
+                        Proxy::remove_clients_by_model(&item.name);
+                        return false;
+                    }
+                    true
+                });
 
-                {
-                    list.into_iter().for_each(|model| {
-                        old.models.insert(model.name.clone(), model);
-                    });
-                    *old.hash.write().await = hash;
-                }
+                // 处理新增和变更的
+                new_models.into_iter().for_each(|(name, new_model)| {
+                    let need_update = match old.models.get(&name) {
+                        Some(old_model) => old_model.ne(&new_model),
+                        None => true,
+                    };
+
+                    if need_update {
+                        if old.models.get(&name).is_some() {
+                            log::info!("changed model: {}", name);
+                        } else {
+                            log::info!("new model enabled: {}", name);
+                        }
+                        old.models.insert(name.clone(), new_model);
+                        Proxy::remove_clients_by_model(&name);
+                    }
+                });
             }
         });
     }

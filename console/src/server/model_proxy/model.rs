@@ -1,16 +1,60 @@
 use crate::server::db::Pool;
-use crate::server::db::models::service::{Service, ServiceStatus};
+use crate::server::db::models::model::{Model, ModelStatus};
+use crate::server::db::models::model_provider::{ModelProvider, ModelProviderStatus};
 use rbs::value;
+use std::collections::HashMap;
 
 pub(crate) async fn models() -> anyhow::Result<Vec<protocol::model::Model>> {
-    Ok(vec![protocol::model::Model {
-        name: "qwen-plus".to_string(),
-        providers: vec![protocol::model::Provider {
-            name: "qwen".to_string(),
-            api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1".to_string(),
-            api_key: "".to_string().into(),
-            weight: 0,
-        }],
-        lb: protocol::model::LbStrategy::Random,
-    }])
+    let tx = Pool::get()?;
+    let models = Model::select_by_map(
+        tx,
+        value! {
+            "status": ModelStatus::Ok
+        },
+    )
+    .await?;
+    if models.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let providers = ModelProvider::select_by_map(
+        tx,
+        value! {
+            "status": ModelProviderStatus::Ok
+        },
+    )
+    .await?;
+
+    let providers_map = providers
+        .into_iter()
+        .fold(HashMap::new(), |mut map, provider| {
+            map.entry(provider.model_id)
+                .or_insert(vec![])
+                .push(provider);
+            map
+        });
+    let models = models
+        .into_iter()
+        .map(|model| {
+            let providers = providers_map.get(&model.id);
+            protocol::model::Model {
+                name: model.name.unwrap(),
+                providers: providers
+                    .cloned()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|provider| protocol::model::Provider {
+                        name: provider.name.unwrap(),
+                        api_url: provider.api_url.unwrap(),
+                        api_key: provider.api_key,
+                        weight: 0,
+                    })
+                    .collect::<Vec<_>>(),
+                lb: Default::default(),
+            }
+        })
+        .collect();
+
+    println!("models: {:?}", models);
+    Ok(models)
 }

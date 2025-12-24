@@ -1,7 +1,7 @@
 use crate::model::provider::Provider;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Model {
     /// 模型名称，全局唯一
     pub name: String,
@@ -11,7 +11,7 @@ pub struct Model {
     pub lb: LbStrategy,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default,Eq, PartialEq, Serialize, Deserialize)]
 pub enum LbStrategy {
     /// 随机
     #[default]
