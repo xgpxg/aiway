@@ -76,7 +76,7 @@ impl Router {
             // 这里理论上不会发生路径冲突，因为在控制台保存的时候已经验证了
             // 但为了避免错误，这里这里还是输出一下日志
             // 如果这里输出错误日志了，应该检查控制台的验证逻辑是否正确
-            if let Err(e) = matcher.insert(route.path.clone(), route.clone()) {
+            if let Err(e) = matcher.insert(route.match_path.clone(), route.clone()) {
                 log::error!("build route matcher error: {}", e);
             }
         }
@@ -140,7 +140,7 @@ impl Router {
             && let Ok(result) = router.at(&context.request.get_path())
         {
             let route = result.value;
-            // 依次匹配 Host/Method/Header/Query
+            // 再依次匹配 Host/Method/Header/Query
             if Self::match_host(route, context.request.get_host())
                 && Self::match_method(route, context.request.get_method())
                 && Self::match_host(route, &context.request.host)

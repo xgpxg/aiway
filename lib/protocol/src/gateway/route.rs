@@ -14,6 +14,11 @@ pub struct Route {
     /// 同一域名下的路径不能存在冲突，如/api/*和/api/**就是冲突的路径，在控制台保存时需要校验。
     /// 所有为 * 的域名下的路径也不能冲突。
     pub path: String,
+    /// 转换后的匹配路径。
+    /// 由于路径匹配组件使用的是`matchit`，格式为`/xxx/{*any}`，
+    /// 它不符合常用的`/api/**`的格式，而`path`储存的是常用格式，
+    /// 所以这里需要做一次转换。
+    pub match_path: String,
     /// 需要路由到的服务ID
     pub service: String,
     /// 请求方法：get | post | put | delete | patch | options

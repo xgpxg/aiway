@@ -9,10 +9,45 @@ pub use request::RouteListReq;
 /// 路由路径匹配模式
 ///
 /// 用于将 * 和 ** 格式的路径转换为 matchit 支持的 {p} 和 {*p} 格式
-struct PathPatterns(Vec<String>);
+pub struct PathPattern(String);
+impl PathPattern {
+    pub fn new<P: Into<String>>(path: P) -> Self {
+        PathPattern(path.into())
+    }
+
+    pub fn to_pattern(&self) -> String {
+        let mut result = String::new();
+        let mut param_count = 1;
+        let mut chars = self.0.chars().peekable();
+
+        while let Some(ch) = chars.next() {
+            if ch == '*' {
+                // Check if it's a tailing "**" capturing all remaining path
+                if chars.peek() == Some(&'*') {
+                    chars.next(); // consume the second '*'
+                    result.push_str("{*p}");
+                } else {
+                    // Single '*' - named parameter
+                    result.push_str(&format!("{{p{}}}", param_count));
+                    param_count += 1;
+                }
+            } else {
+                result.push(ch);
+            }
+        }
+        result
+    }
+}
+
+struct PathPatterns(Vec<PathPattern>);
 impl PathPatterns {
     fn new<S: IntoIterator<Item = String>>(paths: S) -> Self {
-        PathPatterns(paths.into_iter().collect::<Vec<String>>())
+        PathPatterns(
+            paths
+                .into_iter()
+                .map(|s| PathPattern::new(s))
+                .collect::<Vec<PathPattern>>(),
+        )
     }
 }
 
@@ -22,29 +57,10 @@ impl TryFrom<PathPatterns> for matchit::Router<()> {
     fn try_from(patterns: PathPatterns) -> Result<Self, Self::Error> {
         let mut router = matchit::Router::new();
         for pattern in patterns.0 {
-            let mut result = String::new();
-            let mut param_count = 1;
-            let mut chars = pattern.chars().peekable();
-
-            while let Some(ch) = chars.next() {
-                if ch == '*' {
-                    // Check if it's a tailing "**" capturing all remaining path
-                    if chars.peek() == Some(&'*') {
-                        chars.next(); // consume the second '*'
-                        result.push_str("{*p}");
-                    } else {
-                        // Single '*' - named parameter
-                        result.push_str(&format!("{{p{}}}", param_count));
-                        param_count += 1;
-                    }
-                } else {
-                    result.push(ch);
-                }
-            }
-
+            let result = pattern.to_pattern();
             if let Err(e) = router.insert(result, ()) {
                 return match e {
-                    InsertError::Conflict { .. } => Err(format!("路由路径冲突：{}", pattern)),
+                    InsertError::Conflict { .. } => Err(format!("路由路径冲突：{}", pattern.0)),
                     InsertError::InvalidCatchAll => {
                         Err("通配符 ** 仅支持添加在路径尾部".to_string())
                     }

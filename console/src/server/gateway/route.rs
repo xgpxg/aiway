@@ -1,5 +1,6 @@
 use crate::server::db::Pool;
 use crate::server::db::models::route::{Route, RouteStatus};
+use crate::server::route::PathPattern;
 use rbs::value;
 
 pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
@@ -9,9 +10,10 @@ pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
         list.push(protocol::gateway::route::Route {
             name: route.name.unwrap(),
             host: route.host.unwrap(),
-            path: route.path.unwrap(),
+            path: route.path.clone().unwrap(),
             // 由路径重写插件实现
             //strip_prefix: route.strip_prefix.unwrap() == 1,
+            match_path: PathPattern::new(route.path.unwrap()).to_pattern(),
             service: route.service.unwrap(),
             methods: route.methods.unwrap_or_default(),
             header: route.header.unwrap_or_default(),
