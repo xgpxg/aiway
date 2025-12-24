@@ -9,6 +9,7 @@ use serde_json::json;
 use std::pin::Pin;
 
 pub enum ModelResponse {
+    #[allow(unused)]
     Empty,
     /// 对话补全（非流式）
     ChatCompletionResponse(ChatCompletionResponse),
@@ -17,6 +18,7 @@ pub enum ModelResponse {
         Pin<Box<dyn Stream<Item = Result<ChatCompletionChunkResponse, APIError>> + Send>>,
     ),
     /// 嵌入
+    #[allow(unused)]
     EmbeddingResponse(EmbeddingResponse),
 }
 

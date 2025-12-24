@@ -26,6 +26,7 @@ fn main() {
     fs::copy(release_dir.join("gateway"), &bin_dir.join("gateway")).unwrap();
     fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
     fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
+    fs::copy(release_dir.join("model-proxy"), &bin_dir.join("model-proxy")).unwrap();
 
     println!("cargo:rustc-env=PROJECT_DIR={}", project_dir.display());
     println!("cargo:rerun-if-changed=bin/");
