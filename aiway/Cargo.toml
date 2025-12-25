@@ -10,6 +10,7 @@ common = { path = "../lib/common" }
 anyhow = "1"
 tokio = { version = "1", features = ["macros"] }
 rust-embed = "8"
+clap = { version = "4.5", features = ["derive"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }

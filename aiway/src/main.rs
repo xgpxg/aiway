@@ -1,6 +1,7 @@
 mod embed;
 
 use cache::start_share_cache_server;
+use clap::Parser;
 use common::dir::AppDir;
 use logging::{init_log, log};
 use rust_embed::Embed;
@@ -27,7 +28,7 @@ struct AiwayApp {
 }
 
 impl AiwayApp {
-    fn new() -> Self {
+    fn new(args: &Args) -> Self {
         let console = Asset::get("console").unwrap();
         let gateway = Asset::get("gateway").unwrap();
         let logg = Asset::get("logg").unwrap();
@@ -39,7 +40,12 @@ impl AiwayApp {
         let console = embed::EmbedApp::new(
             "console",
             &console.data,
-            &["--log-server", "127.0.0.1:7281"],
+            &[
+                "--port",
+                &args.port.to_string(),
+                "--log-server",
+                "127.0.0.1:7281",
+            ],
         )
         .unwrap();
         log::info!("console started");
@@ -73,14 +79,28 @@ impl AiwayApp {
     }
 }
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// IP address, like 127.0.0.1
+    #[arg(short, long, default_value = "127.0.0.1")]
+    address: String,
+
+    /// Port
+    #[arg(short, long, default_value_t = 7000)]
+    port: u16,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
+
     init_log();
     tokio::spawn(async {
         start_share_cache_server(AppDir::cache_dir()).await.unwrap();
     });
 
-    let _app = AiwayApp::new();
+    let _app = AiwayApp::new(&args);
 
     tokio::signal::ctrl_c().await?;
 
