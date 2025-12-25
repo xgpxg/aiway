@@ -73,6 +73,7 @@ jobs:
           cargo build -r --bin gateway -F standalone --target ${{ matrix.target }}
           cargo build -r --bin console -F standalone --target ${{ matrix.target }}
           cargo build -r --bin logg --target ${{ matrix.target }}
+          cargo build -r --bin model-proxy --target ${{ matrix.target }}
           cargo build -r --bin aiway --target ${{ matrix.target }}
 
       # 构建集群版
