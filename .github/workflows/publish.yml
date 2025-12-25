@@ -81,6 +81,7 @@ jobs:
         run: |
           cargo build -r --bin gateway -F cluster --target ${{ matrix.target }}
           cargo build -r --bin console -F cluster --target ${{ matrix.target }}
+          cargo build -r --bin model-proxy --target ${{ matrix.target }}
 
       # 压缩单机版二进制文件
       - name: Compress standalone binary
