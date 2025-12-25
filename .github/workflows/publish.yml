@@ -93,7 +93,7 @@ jobs:
       - name: Compress cluster binary
         run: |
           cd target/${{ matrix.target }}/release
-          tar -czf ${{ matrix.asset_name_cluster }} gateway console
+          tar -czf ${{ matrix.asset_name_cluster }} gateway console model-proxy
         shell: bash
 
       # 创建 Release
