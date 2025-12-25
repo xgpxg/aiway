@@ -57,7 +57,7 @@ impl AiwayApp {
         log::info!("gateway started");
 
         let model_proxy = embed::EmbedApp::new(
-            "model_proxy",
+            "model-proxy",
             &model_proxy.data,
             &["--log-server", "127.0.0.1:7281"],
         )
