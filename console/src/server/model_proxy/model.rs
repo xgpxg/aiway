@@ -60,6 +60,5 @@ pub(crate) async fn models() -> anyhow::Result<Vec<protocol::model::Model>> {
         })
         .collect();
 
-    println!("models: {:?}", models);
     Ok(models)
 }

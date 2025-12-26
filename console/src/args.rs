@@ -7,8 +7,7 @@ pub struct Args {
     // /// 配置文件，YAML格式
     // #[arg(short, long, default_value = "config.yaml")]
     // pub config: String,
-
-    /// IP address, like 127.0.0.1
+    /// Listen address, like 127.0.0.1
     #[arg(short, long, default_value = "127.0.0.1")]
     pub address: String,
 
@@ -31,6 +30,18 @@ pub struct Args {
     /// Log server address
     #[arg(long, default_value = "127.0.0.1:7280")]
     pub log_server: String,
+
+    /// Cache connection url
+    #[arg(long, default_value = "redis://127.0.0.1:6379")]
+    pub cache_url: String,
+
+    /// Cache username
+    #[arg(long, default_value = "")]
+    pub cache_username: String,
+
+    /// Cache password
+    #[arg(long, default_value = "")]
+    pub cache_password: String,
 }
 
 impl Args {

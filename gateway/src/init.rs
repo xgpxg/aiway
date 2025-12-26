@@ -19,7 +19,7 @@ pub async fn init(args: &Args) {
 
     // 初始化缓存
     #[cfg(feature = "cluster")]
-    cache::init_redis_cache(vec!["redis://127.0.0.1:6379"]).unwrap();
+    cache::init_redis_cache(args.cache_url.split(",").collect::<Vec<_>>()).unwrap();
     #[cfg(feature = "standalone")]
     cache::init_share_cache().await.unwrap();
 

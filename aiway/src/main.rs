@@ -82,7 +82,7 @@ impl AiwayApp {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// IP address, like 127.0.0.1
+    /// Listen address, like 127.0.0.1
     #[arg(short, long, default_value = "127.0.0.1")]
     address: String,
 
