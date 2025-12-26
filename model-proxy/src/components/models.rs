@@ -4,13 +4,10 @@ use dashmap::DashMap;
 use logging::log;
 use protocol::model::Provider;
 use protocol::model::{LbStrategy, Model};
-use rocket::http::hyper::body::HttpBody;
 use std::collections::HashMap;
 use std::process::exit;
-use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 use std::time::Duration;
-use tokio::sync::RwLock;
 
 pub struct ModelFactory {
     /// 模型列表
@@ -67,7 +64,7 @@ impl ModelFactory {
 
                 let old = MODEL_FACTORY.get().unwrap();
 
-                let mut new_models = list
+                let new_models = list
                     .into_iter()
                     .map(|m| (m.name.clone(), m))
                     .collect::<HashMap<String, Model>>();

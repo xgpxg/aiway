@@ -46,7 +46,7 @@ enum SseEvent {
     Done,
 }
 impl SseEvent {
-    fn to_string(&self) -> String {
+    fn to_sse_string(&self) -> String {
         match self {
             SseEvent::Data(data) => format!("data: {}\n\n", data),
             SseEvent::Error(error) => {
@@ -67,12 +67,12 @@ impl<'r> Responder<'r, 'r> for ModelResponse {
                     .map(move |result| match result {
                         Ok(chunk) => {
                             SseEvent::Data(serde_json::to_string(&chunk).unwrap_or_default())
-                                .to_string()
+                                .to_sse_string()
                         }
-                        Err(e) => SseEvent::Error(e.to_string()).to_string(),
+                        Err(e) => SseEvent::Error(e.to_string()).to_sse_string(),
                     })
                     .chain(rocket::futures::stream::once(async {
-                        SseEvent::Done.to_string()
+                        SseEvent::Done.to_sse_string()
                     }));
 
                 let mut response = TextStream::from(sse_stream).respond_to(request)?;

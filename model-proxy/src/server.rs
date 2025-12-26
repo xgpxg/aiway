@@ -2,7 +2,7 @@ use crate::{Args, proxy};
 use logging::log;
 use rocket::data::{ByteUnit, Limits};
 use rocket::fairing::AdHoc;
-use rocket::{Config, catchers, routes};
+use rocket::{Config, routes};
 use std::net::IpAddr;
 use std::str::FromStr;
 

@@ -79,10 +79,10 @@ async fn check_model_exists(model_name: &str, exclude_id: Option<i64>) -> anyhow
 }
 
 pub(crate) async fn update(req: ModelUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
-    if let Some(ref name) = req.name {
-        if check_model_exists(&name, Some(req.id)).await? {
-            bail!(format!("模型 {} 已存在", name));
-        }
+    if let Some(ref name) = req.name
+        && check_model_exists(name, Some(req.id)).await?
+    {
+        bail!(format!("模型 {} 已存在", name));
     }
     Model::update_by_map(
         Pool::get()?,
@@ -166,10 +166,10 @@ pub(crate) async fn update_provider(
     .await?
     .pop()
     .ok_or(anyhow::anyhow!("提供商不存在"))?;
-    if let Some(ref name) = req.name {
-        if check_provider_exists(old.model_id.unwrap(), &name, Some(req.id)).await? {
-            bail!(format!("提供商 {} 已存在", name));
-        }
+    if let Some(ref name) = req.name
+        && check_provider_exists(old.model_id.unwrap(), name, Some(req.id)).await?
+    {
+        bail!(format!("提供商 {} 已存在", name));
     }
     ModelProvider::update_by_map(
         Pool::get()?,

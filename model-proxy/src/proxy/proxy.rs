@@ -60,7 +60,7 @@ impl Proxy {
         provider: &Provider,
     ) -> Result<ModelResponse, ModelError> {
         let client = get_or_create_client!(req.model, provider);
-        let req = Self::modify_model_name(req, &provider);
+        let req = Self::modify_model_name(req, provider);
         if req.stream.unwrap_or(false) {
             let response = client.chat().create_stream(req).await;
             match response {

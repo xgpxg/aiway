@@ -45,7 +45,7 @@ impl PathPatterns {
         PathPatterns(
             paths
                 .into_iter()
-                .map(|s| PathPattern::new(s))
+                .map(PathPattern::new)
                 .collect::<Vec<PathPattern>>(),
         )
     }

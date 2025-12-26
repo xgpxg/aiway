@@ -1,3 +1,4 @@
+#[allow(clippy::module_inception)]
 mod proxy;
 mod request;
 mod response;
