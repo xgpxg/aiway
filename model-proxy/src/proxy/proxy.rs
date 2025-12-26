@@ -65,13 +65,19 @@ impl Proxy {
             let response = client.chat().create_stream(req).await;
             match response {
                 Ok(response) => Ok(ModelResponse::ChatCompletionStreamResponse(response)),
-                Err(e) => Err(ModelError::ApiError(e)),
+                Err(e) => {
+                    log::error!("request model api error: {:?}", e);
+                    Err(ModelError::ApiError(e))
+                }
             }
         } else {
             let response = client.chat().create(req).await;
             match response {
                 Ok(response) => Ok(ModelResponse::ChatCompletionResponse(response)),
-                Err(e) => Err(ModelError::ApiError(e)),
+                Err(e) => {
+                    log::error!("request model api error: {:?}", e);
+                    Err(ModelError::ApiError(e))
+                }
             }
         }
     }

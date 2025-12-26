@@ -17,10 +17,12 @@ use std::collections::HashMap;
 
 pub(crate) async fn list(_req: ModelLisReq) -> anyhow::Result<Vec<ModelListRes>> {
     let tx = Pool::get()?;
-    let models = Model::select_all(tx).await?;
+    let mut models = Model::select_all(tx).await?;
     if models.is_empty() {
         return Ok(vec![]);
     }
+
+    models.sort_by(|a, b| b.id.cmp(&a.id));
 
     let providers = ModelProvider::select_all(tx).await?;
 
