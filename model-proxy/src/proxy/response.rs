@@ -1,4 +1,6 @@
+use std::io::Read;
 use openai_dive::v1::error::APIError;
+use openai_dive::v1::resources::audio::AudioSpeechResponse;
 use openai_dive::v1::resources::chat::{ChatCompletionChunkResponse, ChatCompletionResponse};
 use openai_dive::v1::resources::embedding::EmbeddingResponse;
 use rocket::Request;
@@ -20,6 +22,9 @@ pub enum ModelResponse {
     /// 嵌入
     #[allow(unused)]
     EmbeddingResponse(EmbeddingResponse),
+
+    /// 语音生成（非流式）
+    AudioSpeechResponse(AudioSpeechResponse),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -85,6 +90,9 @@ impl<'r> Responder<'r, 'r> for ModelResponse {
                 Ok(response)
             }
             ModelResponse::EmbeddingResponse(response) => json!(&response).respond_to(request),
+            ModelResponse::AudioSpeechResponse(response) => {
+                 response.bytes.to_vec().respond_to(request)
+            }
         }
     }
 }

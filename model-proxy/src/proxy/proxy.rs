@@ -1,10 +1,11 @@
-use crate::proxy::request::{ChatCompletionRequest, ModifyModelName};
+use crate::proxy::request::{AudioSpeechRequest, ChatCompletionRequest, ModifyModelName};
 use crate::proxy::response::{ModelError, ModelResponse};
 use dashmap::DashMap;
 use logging::log;
 use openai_dive::v1::api::Client;
 use protocol::model::Provider;
 use std::sync::LazyLock;
+use rocket::serde::json::Json;
 
 pub struct Proxy {
     /// (模型名称, 提供商名称) -> Client实例
@@ -78,6 +79,19 @@ impl Proxy {
                     log::error!("request model api error: {:?}", e);
                     Err(ModelError::ApiError(e))
                 }
+            }
+        }
+    }
+
+    pub async fn audio_speech(req: AudioSpeechRequest, provider: &Provider) -> Result<ModelResponse, ModelError> {
+        let client = get_or_create_client!(req.model, provider);
+        let req = Self::modify_model_name(req, provider);
+        let response = client.audio().create_speech(req).await;
+        match response {
+            Ok(response) => Ok(ModelResponse::AudioSpeechResponse(response)),
+            Err(e) => {
+                log::error!("request model api error: {:?}", e);
+                Err(ModelError::ApiError(e))
             }
         }
     }

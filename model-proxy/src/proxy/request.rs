@@ -1,3 +1,4 @@
+use openai_dive::v1::resources::audio::AudioSpeechParameters;
 use openai_dive::v1::resources::chat::ChatCompletionParameters;
 use openai_dive::v1::resources::embedding::EmbeddingParameters;
 
@@ -6,6 +7,8 @@ pub type ChatCompletionRequest = ChatCompletionParameters;
 /// 嵌入请求
 #[allow(unused)]
 pub type EmbeddingRequest = EmbeddingParameters;
+
+pub type AudioSpeechRequest = AudioSpeechParameters;
 
 /// 修改模型名称
 ///
@@ -18,13 +21,21 @@ pub trait ModifyModelName {
     fn modify_model_name(self, target_model_name: &str) -> Self;
 }
 
-impl ModifyModelName for ChatCompletionRequest {
-    fn get_source_model_name(&self) -> String {
-        self.model.clone()
-    }
+macro_rules! impl_modify_model_name {
+    ($type:ty) => {
+        impl ModifyModelName for $type {
+            fn get_source_model_name(&self) -> String {
+                self.model.clone()
+            }
 
-    fn modify_model_name(mut self, target_model_name: &str) -> Self {
-        self.model = target_model_name.to_string();
-        self
-    }
+            fn modify_model_name(mut self, target_model_name: &str) -> Self {
+                self.model = target_model_name.to_string();
+                self
+            }
+        }
+    };
 }
+
+impl_modify_model_name!(ChatCompletionRequest);
+impl_modify_model_name!(EmbeddingRequest);
+impl_modify_model_name!(AudioSpeechRequest);

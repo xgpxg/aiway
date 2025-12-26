@@ -2907,7 +2907,7 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 [[package]]
 name = "openai_dive"
 version = "1.4.0"
-source = "git+https://github.com/xgpxg/openai-client#f62b5c93dc1eb2c29bbbad458c7bc11ddd5bd39c"
+source = "git+https://github.com/xgpxg/openai-client#cf5f92d1dd1de892ba3731ceaeb139dbe43c761f"
 dependencies = [
  "bytes",
  "derive_builder",

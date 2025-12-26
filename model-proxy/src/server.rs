@@ -20,7 +20,15 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     });
 
     // OpenAI接口兼容
-    builder = builder.mount("/", routes![proxy::api::chat_completions]);
+    builder = builder.mount(
+        "/",
+        routes![
+            // 对话补全
+            proxy::api::chat_completions,
+            // 文本转语音
+            proxy::api::audio_speech
+        ],
+    );
 
     builder = builder.attach(AdHoc::on_liftoff("Print Banner", |_| {
         Box::pin(async {
