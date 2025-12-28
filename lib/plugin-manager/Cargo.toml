@@ -1,0 +1,16 @@
+[package]
+name = "plugin-manager"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+protocol = { path = "../protocol" }
+logging = { path = "../logging" }
+plugin = { path = "../plugin" }
+serde = "1.0"
+serde_json = "1.0"
+tokio = { version = "1", features = ["macros"] }
+dashmap = "6.1"
+anyhow = "1.0"
+reqwest = { version = "0.12", features = ["json"] }
+md5 = "0.8"
