@@ -1,3 +1,4 @@
+use plugin::serde_json::Value;
 use plugin::{Plugin, PluginError, async_trait, export, serde_json};
 use protocol::gateway::HttpContext;
 
@@ -17,14 +18,10 @@ impl Plugin for DemoPlugin {
     }
 
     // 实现插件逻辑
-    async fn execute(
-        &self,
-        context: &HttpContext,
-        config: &serde_json::Value,
-    ) -> Result<(), PluginError> {
+    async fn execute(&self, _context: &HttpContext, _config: &Value) -> Result<Value, PluginError> {
         //println!("run demo plugin, context: {:?}", context);
         //println!("config: {:?}", config);
-        Ok(())
+        Ok(Default::default())
     }
 }
 

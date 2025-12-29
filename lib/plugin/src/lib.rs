@@ -99,12 +99,15 @@ impl std::fmt::Display for PluginError {
 /// 注意：当多个插件修改HttpContext的同一个属性时，后执行的插件会覆盖前一个插件的修改。
 /// 插件实现方应该自行决定插件运行阶段（请求阶段或者响应阶段），从而获取或修改request或response的数据。
 ///
+/// - 返回值
+/// 返回[serde_json:Value]
+///
 #[async_trait]
 pub trait Plugin: Send + Sync {
     /// 插件名称
     fn name(&self) -> &str;
     /// 执行插件
-    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<(), PluginError>;
+    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<Value, PluginError>;
 }
 
 /// 从本地磁盘加载插件
@@ -149,7 +152,7 @@ impl Plugin for LibraryPluginWrapper {
         self.plugin.name()
     }
 
-    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<(), PluginError> {
+    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<Value, PluginError> {
         self.plugin.execute(context, config).await
     }
 }

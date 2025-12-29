@@ -46,7 +46,7 @@ impl Plugin for RewritePathPlugin {
         &self,
         context: &HttpContext,
         config: &serde_json::Value,
-    ) -> Result<(), PluginError> {
+    ) -> Result<serde_json::Value, PluginError> {
         let rule: RewriteRule = serde_json::from_value(config.clone()).map_err(|e| {
             PluginError::ExecuteError(format!("Failed to parse rewrite rules: {}", e))
         })?;
@@ -73,7 +73,7 @@ impl Plugin for RewritePathPlugin {
         };
 
         context.request.set_routing_path(rewritten_path);
-        Ok(())
+        Ok(Default::default())
     }
 }
 

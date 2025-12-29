@@ -1,5 +1,6 @@
 use crate::{Plugin, PluginError};
 use dashmap::DashMap;
+use serde_json::Value;
 use protocol::gateway::HttpContext;
 
 pub struct PluginManager {
@@ -20,8 +21,8 @@ impl PluginManager {
         &self,
         name: &str,
         context: &HttpContext,
-        config: &serde_json::Value,
-    ) -> Result<(), PluginError> {
+        config: &Value,
+    ) -> Result<Value, PluginError> {
         if let Some(plugin) = self.plugins.get(name) {
             plugin.execute(context, config).await
         } else {
