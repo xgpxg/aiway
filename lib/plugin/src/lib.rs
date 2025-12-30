@@ -60,6 +60,7 @@ pub use async_trait::async_trait;
 use libloading::Symbol;
 pub use manager::PluginManager;
 use protocol::gateway::HttpContext;
+pub use semver::Version;
 pub use serde_json;
 use serde_json::Value;
 use std::env::temp_dir;
@@ -106,17 +107,38 @@ impl std::fmt::Display for PluginError {
 pub trait Plugin: Send + Sync {
     /// 插件名称
     fn name(&self) -> &str;
+    /// 插件信息
+    fn info(&self) -> PluginInfo;
     /// 执行插件
     async fn execute(&self, context: &HttpContext, config: &Value) -> Result<Value, PluginError>;
 }
 
-/// 从本地磁盘加载插件
-impl TryInto<Box<dyn Plugin>> for PathBuf {
+/// 插件信息
+#[derive(Debug)]
+pub struct PluginInfo {
+    /// 插件类型
+    pub plugin_type: PluginType,
+    /// 插件版本
+    pub version: Version,
+    /// 默认配置
+    pub default_config: Value,
+}
+
+/// 插件类型
+#[derive(Debug)]
+pub enum PluginType {
+    /// 网关插件
+    Gateway,
+    /// AI插件
+    AI,
+}
+
+impl TryFrom<PathBuf> for Box<dyn Plugin> {
     type Error = PluginError;
 
-    fn try_into(self) -> Result<Box<dyn Plugin>, Self::Error> {
+    fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
         unsafe {
-            let lib = libloading::Library::new(&self)
+            let lib = libloading::Library::new(&value)
                 .map_err(|e| PluginError::LoadError(e.to_string()))?;
 
             let create_plugin: Symbol<unsafe extern "C" fn() -> *mut dyn Plugin> = lib
@@ -150,6 +172,10 @@ struct LibraryPluginWrapper {
 impl Plugin for LibraryPluginWrapper {
     fn name(&self) -> &str {
         self.plugin.name()
+    }
+
+    fn info(&self) -> PluginInfo {
+        self.plugin.info()
     }
 
     async fn execute(&self, context: &HttpContext, config: &Value) -> Result<Value, PluginError> {
@@ -219,10 +245,21 @@ impl AsyncTryInto<Box<dyn Plugin>> for NetworkPlugin {
     }
 }
 
+impl TryFrom<Vec<u8>> for Box<dyn Plugin> {
+    type Error = PluginError;
+
+    fn try_from(from: Vec<u8>) -> Result<Box<dyn Plugin>, Self::Error> {
+        let temp = temp_dir().join(format!("{}.so", uuid::Uuid::new_v4().to_string()));
+        fs::write(&temp, from).map_err(|e| PluginError::LoadError(e.to_string()))?;
+        temp.try_into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::manager::PluginManager;
+    use std::io::Read;
     #[tokio::test]
     async fn test_network_plugin() {
         let p = NetworkPlugin(
@@ -246,5 +283,15 @@ mod tests {
             .run("demo", &HttpContext::default(), &Value::Null)
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_plugin_from_bytes() {
+        let file =
+            File::open("../../target/release/libaha_model_request_wrapper_plugin.so").unwrap();
+        // 获取file的bytes
+        let bytes = file.bytes().collect::<Result<Vec<_>, _>>().unwrap();
+        let plugin: Box<dyn Plugin> = bytes.try_into().unwrap();
+        println!("{:?}", plugin.info());
     }
 }
