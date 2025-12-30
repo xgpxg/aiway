@@ -116,21 +116,10 @@ pub trait Plugin: Send + Sync {
 /// 插件信息
 #[derive(Debug)]
 pub struct PluginInfo {
-    /// 插件类型
-    pub plugin_type: PluginType,
     /// 插件版本
     pub version: Version,
     /// 默认配置
     pub default_config: Value,
-}
-
-/// 插件类型
-#[derive(Debug)]
-pub enum PluginType {
-    /// 网关插件
-    Gateway,
-    /// AI插件
-    AI,
 }
 
 impl TryFrom<PathBuf> for Box<dyn Plugin> {
