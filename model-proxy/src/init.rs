@@ -22,6 +22,10 @@ pub async fn init(args: &Args) {
     // 初始化告警
     alert::init(args.console.clone());
 
+    // 初始化插件管理器
+    plugin_manager::init(&args.console).await;
+
+    // 初始化模型
     ModelFactory::init().await;
 
     // 设置panic hook

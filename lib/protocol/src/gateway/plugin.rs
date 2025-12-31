@@ -4,14 +4,14 @@ use std::fmt::{Display, Formatter};
 /// 插件配置
 ///
 /// 注意：插件应无状态化
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Eq, PartialEq, Deserialize)]
 pub struct Plugin {
     /// 插件名称，全局唯一
     pub name: String,
     /// 插件执行阶段
     //pub phase: PluginPhase,
     /// 下载地址
-    /// - 相对地址：从网关下载，如`/file/download/xxx.so`
+    /// - 相对地址：从控制台下载，如`/file/download/xxx.so`
     /// - 绝对地址：从给定的地址下载，如`https://xxx.com/xxx.so`
     pub url: String,
     /// 插件版本，只增不减的语义化版本号。
@@ -24,7 +24,7 @@ pub struct Plugin {
 ///
 /// 该类型在具体的插件配置和运行时使用。
 ///
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ConfiguredPlugin {
     /// 插件名称
     pub name: String,

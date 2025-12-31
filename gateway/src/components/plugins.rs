@@ -21,6 +21,7 @@ use protocol::gateway::{HttpContext, Plugin as PluginConfig};
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
+use serde_json::Value;
 use tokio::sync::RwLock;
 
 pub struct PluginFactory {
@@ -141,7 +142,7 @@ impl PluginFactory {
         &self,
         configured_plugin: &ConfiguredPlugin,
         context: &HttpContext,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Value> {
         match self.plugins.get(&configured_plugin.name) {
             Some(plugin) => plugin
                 .1

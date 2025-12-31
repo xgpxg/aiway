@@ -1,6 +1,6 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::plugin::request::{PluginUpdateReq, PluginListReq, PluginAddReq};
-use crate::server::plugin::response::PluginListRes;
+use crate::server::plugin::request::{PluginAddReq, PluginInfoReq, PluginListReq, PluginUpdateReq};
+use crate::server::plugin::response::{PluginInfoRes, PluginListRes};
 use crate::server::plugin::service;
 use protocol::common::req::IdsReq;
 use protocol::common::res::{PageRes, Res};
@@ -9,7 +9,16 @@ use rocket::serde::json::Json;
 use rocket::{post, routes};
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![add, delete, list, update]
+    routes![info, add, delete, list, update]
+}
+
+/// 解析插件信息
+#[post("/info", data = "<req>")]
+async fn info(req: Form<PluginInfoReq<'_>>, user: UserPrincipal) -> Res<PluginInfoRes> {
+    match service::info(req.into_inner(), user).await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
 }
 
 /// 新增插件

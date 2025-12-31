@@ -44,3 +44,18 @@ pub async fn init(args: &Args) -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[macro_export]
+macro_rules! update_nullable_fields {
+    ($tx:expr, $table_name:expr, $id:expr, $($field:ident = $value:expr),* ) => {
+        $(
+            if $value.is_none() {
+                $tx.exec(
+                    &format!("update {} set {} = null where id = ?", $table_name, stringify!($field)),
+                    vec![value!($id)],
+                )
+                .await?;
+            }
+        )*
+    };
+}

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::gateway::ConfiguredPlugin;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Provider {
@@ -18,4 +19,8 @@ pub struct Provider {
     /// 同时能够让系统以同一个模型名称对外提供服务，后续的模型升级不需要修改对外名称，
     /// 能够做到快速切换模型版本。
     pub target_model_name: Option<String>,
+    /// 请求转换插件
+    pub request_converter: Option<ConfiguredPlugin>,
+    /// 响应转换插件
+    pub response_converter: Option<ConfiguredPlugin>,
 }

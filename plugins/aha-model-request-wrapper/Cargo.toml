@@ -1,0 +1,15 @@
+[package]
+name = "aha-model-request-wrapper"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+plugin = { path = "../../lib/plugin" }
+protocol = { path = "../../lib/protocol" }
+serde_json = "1.0"
+
+
+[lib]
+name = "aha_model_request_wrapper_plugin"
+crate-type = ["cdylib"]
+path = "src/lib.rs"

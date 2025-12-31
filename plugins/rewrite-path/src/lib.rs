@@ -1,4 +1,5 @@
-use plugin::{Plugin, PluginError, async_trait, export, serde_json};
+use plugin::serde_json::json;
+use plugin::{Plugin, PluginError, PluginInfo, Version, async_trait, export, serde_json};
 use protocol::gateway::HttpContext;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -40,6 +41,17 @@ static REGEX_CACHE: LazyLock<Mutex<HashMap<String, Regex>>> =
 impl Plugin for RewritePathPlugin {
     fn name(&self) -> &'static str {
         "RewritePath"
+    }
+
+    fn info(&self) -> PluginInfo {
+        PluginInfo {
+            version: Version::new(0, 1, 0),
+            default_config: json!({
+                "pattern": "/api/*",
+                "replacement": "/$1"
+            }),
+            description: "Rewrite path plugin".to_string(),
+        }
     }
 
     async fn execute(

@@ -3,9 +3,11 @@ use crate::proxy::response::{ModelError, ModelResponse};
 use dashmap::DashMap;
 use logging::log;
 use openai_dive::v1::api::Client;
+use plugin_manager::PluginFactory;
+use protocol::SV;
+use protocol::gateway::HttpContext;
 use protocol::model::Provider;
 use std::sync::LazyLock;
-use rocket::serde::json::Json;
 
 pub struct Proxy {
     /// (模型名称, 提供商名称) -> Client实例
@@ -83,10 +85,30 @@ impl Proxy {
         }
     }
 
-    pub async fn audio_speech(req: AudioSpeechRequest, provider: &Provider) -> Result<ModelResponse, ModelError> {
+    /// 文本转语音
+    pub async fn audio_speech(
+        req: AudioSpeechRequest,
+        provider: &Provider,
+    ) -> Result<ModelResponse, ModelError> {
         let client = get_or_create_client!(req.model, provider);
         let req = Self::modify_model_name(req, provider);
-        let response = client.audio().create_speech(req).await;
+
+        let mut audio = client.audio();
+
+        if let Some(converter) = &provider.request_converter {
+            let context = HttpContext::default();
+            context.request.set_body(
+                serde_json::to_vec(&req).map_err(|e| ModelError::Unknown(e.to_string()))?,
+            );
+            let plugin_result = PluginFactory::execute(converter, &context)
+                .await
+                .map_err(|e| ModelError::Unknown(e.to_string()))?;
+
+            audio.set_request_converter(Box::new(move |_| plugin_result.clone()));
+        }
+
+        let response = audio.create_speech(req).await;
+
         match response {
             Ok(response) => Ok(ModelResponse::AudioSpeechResponse(response)),
             Err(e) => {

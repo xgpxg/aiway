@@ -14,6 +14,7 @@ use protocol::common::req::IdReq;
 use protocol::model::LbStrategy;
 use rbs::value;
 use std::collections::HashMap;
+use crate::update_nullable_fields;
 
 pub(crate) async fn list(_req: ModelLisReq) -> anyhow::Result<Vec<ModelListRes>> {
     let tx = Pool::get()?;
@@ -129,6 +130,8 @@ pub(crate) async fn add_provider(req: ProviderAddReq, user: UserPrincipal) -> an
             .status(Some(ModelProviderStatus::Disable))
             .weight(req.weight)
             .target_model_name(req.target_model_name)
+            .request_converter(req.request_converter)
+            .response_converter(req.response_converter)
             .create_time(Some(tools::now()))
             .create_user_id(Some(user.id))
             .build()?,
@@ -159,8 +162,9 @@ pub(crate) async fn update_provider(
     req: ProviderUpdateReq,
     user: UserPrincipal,
 ) -> anyhow::Result<()> {
+    let tx = Pool::get()?;
     let old = ModelProvider::select_by_map(
-        Pool::get()?,
+        tx,
         value! {
             "id": req.id
         },
@@ -174,7 +178,7 @@ pub(crate) async fn update_provider(
         bail!(format!("提供商 {} 已存在", name));
     }
     ModelProvider::update_by_map(
-        Pool::get()?,
+        tx,
         &ModelProviderBuilder::default()
             .name(req.name)
             .api_url(req.api_url)
@@ -182,6 +186,8 @@ pub(crate) async fn update_provider(
             .status(req.status)
             .weight(req.weight)
             .target_model_name(req.target_model_name)
+            .request_converter(req.request_converter.clone())
+            .response_converter(req.response_converter.clone())
             .update_time(Some(tools::now()))
             .update_user_id(Some(user.id))
             .build()?,
@@ -190,6 +196,15 @@ pub(crate) async fn update_provider(
         },
     )
     .await?;
+
+    update_nullable_fields!(
+        tx,
+        "model_provider",
+        req.id,
+        request_converter = req.request_converter,
+        response_converter = req.response_converter
+    );
+
     Ok(())
 }
 

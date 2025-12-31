@@ -1,5 +1,6 @@
 use crate::server::db::models::model::ModelStatus;
 use crate::server::db::models::model_provider::ModelProviderStatus;
+use protocol::gateway::ConfiguredPlugin;
 use protocol::model::LbStrategy;
 use serde::Deserialize;
 
@@ -25,6 +26,8 @@ pub struct ProviderAddReq {
     pub api_key: Option<String>,
     pub weight: Option<u32>,
     pub target_model_name: Option<String>,
+    pub request_converter: Option<ConfiguredPlugin>,
+    pub response_converter: Option<ConfiguredPlugin>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -36,4 +39,6 @@ pub struct ProviderUpdateReq {
     pub status: Option<ModelProviderStatus>,
     pub weight: Option<u32>,
     pub target_model_name: Option<String>,
+    pub request_converter: Option<ConfiguredPlugin>,
+    pub response_converter: Option<ConfiguredPlugin>,
 }

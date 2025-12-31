@@ -2,6 +2,7 @@ use derive_builder::Builder;
 use rbatis::crud;
 use rbatis::rbdc::DateTime;
 use serde::{Deserialize, Serialize};
+use protocol::gateway::ConfiguredPlugin;
 
 /// 模型提供商配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -25,6 +26,10 @@ pub struct ModelProvider {
     /// 场景：对于同一个模型在不同提供商处的名字可能不一样，
     /// 通过该模型名称映射提供商处的真实模型名称
     pub target_model_name: Option<String>,
+    /// 请求转换插件
+    pub request_converter: Option<ConfiguredPlugin>,
+    /// 响应转换插件
+    pub response_converter: Option<ConfiguredPlugin>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

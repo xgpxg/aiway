@@ -3,14 +3,33 @@ use crate::server::db;
 use crate::server::db::models::plugin::{Plugin, PluginBuilder};
 use crate::server::db::{Pool, tools};
 use crate::server::file::file_util::{make_download_file, make_save_file};
-use crate::server::plugin::request::{PluginAddReq, PluginListReq, PluginUpdateReq};
-use crate::server::plugin::response::PluginListRes;
+use crate::server::plugin::request::{PluginAddReq, PluginInfoReq, PluginListReq, PluginUpdateReq};
+use crate::server::plugin::response::{PluginInfoRes, PluginListRes};
 use anyhow::bail;
 use common::id;
 use protocol::common::req::{IdsReq, Pagination};
 use protocol::common::res::{IntoPageRes, PageRes};
 use rbs::value;
 use rocket::fs::TempFile;
+use rocket::tokio::io;
+
+pub async fn info(req: PluginInfoReq<'_>, _user: UserPrincipal) -> anyhow::Result<PluginInfoRes> {
+    let mut stream = req.file.open().await?;
+    let mut buffer = Vec::new();
+    io::copy(&mut stream, &mut buffer).await?;
+    let plugin: Box<dyn plugin::Plugin> = buffer
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("Invalid plugin"))?;
+    let info = plugin.info().clone();
+    let res = PluginInfoRes {
+        name: plugin.name().to_string(),
+        version: info.version,
+        default_config: info.default_config,
+        description: info.description,
+    };
+    drop(plugin);
+    Ok(res)
+}
 
 pub async fn add(mut req: PluginAddReq<'_>, user: UserPrincipal) -> anyhow::Result<()> {
     let mut plugin = PluginBuilder::default()

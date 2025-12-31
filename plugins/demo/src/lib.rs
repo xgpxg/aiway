@@ -1,5 +1,5 @@
-use plugin::serde_json::Value;
-use plugin::{Plugin, PluginError, async_trait, export, serde_json};
+use  plugin::serde_json::Value;
+use plugin::{Plugin, PluginError, PluginInfo, Version, async_trait, export, serde_json};
 use protocol::gateway::HttpContext;
 
 // 示例插件
@@ -15,6 +15,14 @@ impl DemoPlugin {
 impl Plugin for DemoPlugin {
     fn name(&self) -> &'static str {
         "demo"
+    }
+
+    fn info(&self) -> PluginInfo {
+        PluginInfo {
+            version: Version::new(0, 1, 0),
+            default_config: Default::default(),
+            description: "Demo Plugin".to_string(),
+        }
     }
 
     // 实现插件逻辑

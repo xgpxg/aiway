@@ -39,6 +39,14 @@
 //!         "demo"
 //!     }
 //!
+//!     fn info(&self) -> PluginInfo {
+//!         PluginInfo {
+//!             version: Version::new(0, 1, 0),
+//!             default_config: Default::default(),
+//!             description: "Demo Plugin".to_string(),
+//!         }
+//!     }
+//!
 //!     // 实现插件逻辑
 //!     async fn execute(&self, context: &HttpContext, config: &Value) -> Result<(), PluginError> {
 //!         println!("run demo plugin, context: {:?}", context);
@@ -61,6 +69,7 @@ use libloading::Symbol;
 pub use manager::PluginManager;
 use protocol::gateway::HttpContext;
 pub use semver::Version;
+use serde::{Deserialize, Serialize};
 pub use serde_json;
 use serde_json::Value;
 use std::env::temp_dir;
@@ -68,6 +77,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+
 #[derive(Debug)]
 pub enum PluginError {
     /// 执行插件业务逻辑时的错误
@@ -114,12 +124,14 @@ pub trait Plugin: Send + Sync {
 }
 
 /// 插件信息
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginInfo {
     /// 插件版本
     pub version: Version,
     /// 默认配置
     pub default_config: Value,
+    /// 描述
+    pub description: String,
 }
 
 impl TryFrom<PathBuf> for Box<dyn Plugin> {

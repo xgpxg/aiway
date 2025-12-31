@@ -5,6 +5,12 @@ use rocket::fs::TempFile;
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, FromForm)]
+pub struct PluginInfoReq<'a> {
+    /// 插件文件，目前仅支持`.so`
+    pub file: TempFile<'a>,
+}
+
+#[derive(Debug, FromForm)]
 pub struct PluginAddReq<'a> {
     /// 插件名称，全局唯一
     pub name: String,
@@ -19,6 +25,7 @@ pub struct PluginAddReq<'a> {
     /// - 该配置仅可在插件管理处修改
     pub default_config: Option<String>,
     /// 插件的说明文档，Markdown格式
+    #[deprecated(note = "考虑到插件不需要太多的文档，在default_config中提供配置说明即可")]
     pub document: Option<String>,
 }
 

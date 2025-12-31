@@ -19,6 +19,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "aha-model-request-wrapper"
+version = "0.1.0"
+dependencies = [
+ "plugin",
+ "protocol",
+ "serde_json",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -767,6 +776,7 @@ dependencies = [
  "matchit",
  "nanoid",
  "openssl",
+ "plugin",
  "protocol",
  "rbatis",
  "rbdc-mysql",
@@ -2622,13 +2632,13 @@ version = "0.1.0"
 dependencies = [
  "alert",
  "anyhow",
- "chrono",
  "clap",
  "dashmap",
  "fastrand",
  "logging",
- "md5",
  "openai_dive",
+ "plugin",
+ "plugin-manager",
  "protocol",
  "reqwest",
  "rocket",
@@ -2907,7 +2917,6 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 [[package]]
 name = "openai_dive"
 version = "1.4.0"
-source = "git+https://github.com/xgpxg/openai-client#cf5f92d1dd1de892ba3731ceaeb139dbe43c761f"
 dependencies = [
  "bytes",
  "derive_builder",
@@ -3294,9 +3303,27 @@ dependencies = [
  "libloading",
  "protocol",
  "reqwest",
+ "semver",
+ "serde",
  "serde_json",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "plugin-manager"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dashmap",
+ "logging",
+ "md5",
+ "plugin",
+ "protocol",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -4231,6 +4258,10 @@ name = "semver"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
+dependencies = [
+ "serde",
+ "serde_core",
+]
 
 [[package]]
 name = "serde"

@@ -4,12 +4,12 @@ use crate::Args;
 use anyhow::bail;
 use clap::Parser;
 use protocol::common::res::Res;
+use protocol::model::Model;
 use reqwest::{Client, ClientBuilder};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 use std::sync::LazyLock;
-use protocol::model::Model;
 
 pub struct InnerHttpClient {
     client: Client,
