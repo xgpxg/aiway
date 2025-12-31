@@ -29,10 +29,26 @@ impl Plugin for AhaModelRequestWrapperPlugin {
         }
     }
 
-    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<Value, PluginError> {
+    async fn execute(&self, context: &HttpContext, _config: &Value) -> Result<Value, PluginError> {
+        let body = &serde_json::from_slice::<Value>(context.request.get_body().unwrap())
+            .map_err(|e| PluginError::ExecuteError(e.to_string()))?;
+        let model = body["model"].as_str().ok_or(PluginError::ExecuteError(
+            "model field is not found".to_string(),
+        ))?;
+        let input = body["input"].as_str().ok_or(PluginError::ExecuteError(
+            "input field is not found".to_string(),
+        ))?;
+        let voice = body["voice"].as_str().ok_or(PluginError::ExecuteError(
+            "voice field is not found".to_string(),
+        ))?;
+        let voice_text = body["voice_text"]
+            .as_str()
+            .ok_or(PluginError::ExecuteError(
+                "voice_text field is not found".to_string(),
+            ))?;
         Ok(serde_json::json!(
             {
-                "model": "voxcpm1.5",
+                "model": model,
                 "messages": [
                     {
                         "role": "user",
@@ -40,18 +56,18 @@ impl Plugin for AhaModelRequestWrapperPlugin {
                             {
                                 "type": "audio",
                                 "audio_url": {
-                                    "url": "https://sis-sample-audio.obs.cn-north-1.myhuaweicloud.com/16k16bit.wav"
+                                    "url": voice
                                 }
                             },
                             {
                                 "type": "text",
-                                "text": "VoxCPM is an innovative end-to-end TTS model from ModelBest, designed to generate highly realistic speech."
+                                "text": input
                             }
                         ]
                     }
                 ],
                 "metadata": {
-                    "prompt_text": "华为致力于把数字世界带给每个人，每个家庭，每个组织，构建万物互联的智能世界。"
+                    "prompt_text": voice_text
                 }
             }
         ))
