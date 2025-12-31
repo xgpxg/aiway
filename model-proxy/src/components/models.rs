@@ -2,6 +2,7 @@ use crate::components::client::INNER_HTTP_CLIENT;
 use crate::proxy::{ModelError, Proxy};
 use dashmap::DashMap;
 use logging::log;
+use protocol::gateway::HttpContext;
 use protocol::model::Provider;
 use protocol::model::{LbStrategy, Model};
 use std::collections::HashMap;

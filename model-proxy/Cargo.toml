@@ -17,7 +17,9 @@ anyhow = "1.0"
 thiserror = "2.0"
 clap = { version = "4.5", features = ["derive"] }
 reqwest = { version = "0.12", features = ["stream", "json"] }
-#openai_dive = { version = "1.4.0", features = ["stream"], git = "https://github.com/xgpxg/openai-client" }
-openai_dive = { version = "1.4.0", features = ["stream"], path = "/home/wxg/work/project/openai-client/openai_dive" }
+openai_dive = { version = "1.4.0", features = ["stream"], git = "https://github.com/xgpxg/openai-client" }
 dashmap = "6.1"
 fastrand = "2.3.0"
+chrono = "0.4"
+uuid = { version = "1.19", features = ["v4"] }
+

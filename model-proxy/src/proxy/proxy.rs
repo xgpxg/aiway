@@ -61,6 +61,7 @@ impl Proxy {
     pub async fn chat_completions(
         req: ChatCompletionRequest,
         provider: &Provider,
+        _context: &HttpContext,
     ) -> Result<ModelResponse, ModelError> {
         let client = get_or_create_client!(req.model, provider);
         let req = Self::modify_model_name(req, provider);
@@ -89,6 +90,7 @@ impl Proxy {
     pub async fn audio_speech(
         req: AudioSpeechRequest,
         provider: &Provider,
+        context: &HttpContext,
     ) -> Result<ModelResponse, ModelError> {
         let client = get_or_create_client!(req.model, provider);
         let req = Self::modify_model_name(req, provider);
@@ -96,10 +98,6 @@ impl Proxy {
         let mut audio = client.audio();
 
         if let Some(converter) = &provider.request_converter {
-            let context = HttpContext::default();
-            context.request.set_body(
-                serde_json::to_vec(&req).map_err(|e| ModelError::Unknown(e.to_string()))?,
-            );
             let plugin_result = PluginFactory::execute(converter, &context)
                 .await
                 .map_err(|e| ModelError::Unknown(e.to_string()))?;
