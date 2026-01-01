@@ -40,10 +40,13 @@ impl Fairing for RequestData {
         skip_if_error!(req);
 
         // 请求体
-        let body_data = data.peek(100.mebibytes().as_u64() as usize).await;
+        // let body_data = data.peek(100.mebibytes().as_u64() as usize).await;
+        // 注意：这里无法取到完整的body数据，因为peek的限制，只能呢取到512个字节。
+        // 而open函数有需要self获取所有权，目前rocket的API无法满足
+        // 只能放到具体的接口中使用Data来获取，然后设置到context中
 
         // 注意Key为小写
-        let  headers = req
+        let headers = req
             .headers()
             .iter()
             // 移除不需要透传到下游服务的Header
@@ -67,7 +70,7 @@ impl Fairing for RequestData {
                 .query_fields()
                 .map(|q| (q.name.to_string(), q.value.to_string()))
                 .collect::<DashMap<String, String>>(),
-            body: SV::new(body_data.to_vec()),
+            body: Default::default(),
             state: Default::default(),
             route: SV::empty(),
             routing_url: SV::empty(),

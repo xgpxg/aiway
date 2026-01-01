@@ -19,30 +19,63 @@ use crate::openapi::error::GatewayError;
 use crate::openapi::response::{GatewayResponse, ResponseExt};
 use crate::report::STATE;
 use reqwest::Url;
+use rocket::data::ToByteUnit;
 use rocket::futures::{StreamExt, stream};
-use rocket::{delete, get, head, options, patch, post, put};
+use rocket::{Data, delete, get, head, options, patch, post, put};
 use std::io;
 use std::path::PathBuf;
 use tokio_util::bytes;
 use tokio_util::io::StreamReader;
+
+async fn set_body(wrapper: &HttpContextWrapper, body: Data<'_>) -> Result<(), GatewayError> {
+    wrapper.0.request.set_body(
+        body.open(10.megabytes())
+            .into_bytes()
+            .await
+            .map_err(|e| GatewayError::IO(e.to_string()))?
+            .to_vec(),
+    );
+    Ok(())
+}
 
 #[get("/<path..>")]
 pub async fn call_get(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     handle(wrapper, path).await
 }
 
-#[post("/<path..>")]
-pub async fn call_post(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+#[post("/<path..>", data = "<body>")]
+pub async fn call_post(
+    wrapper: HttpContextWrapper,
+    path: PathBuf,
+    body: Data<'_>,
+) -> GatewayResponse {
+    if let Err(e) = set_body(&wrapper, body).await {
+        return GatewayResponse::Error(e);
+    }
     handle(wrapper, path).await
 }
 
-#[put("/<path..>")]
-pub async fn call_put(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+#[put("/<path..>", data = "<body>")]
+pub async fn call_put(
+    wrapper: HttpContextWrapper,
+    path: PathBuf,
+    body: Data<'_>,
+) -> GatewayResponse {
+    if let Err(e) = set_body(&wrapper, body).await {
+        return GatewayResponse::Error(e);
+    }
     handle(wrapper, path).await
 }
 
-#[patch("/<path..>")]
-pub async fn call_patch(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
+#[patch("/<path..>", data = "<body>")]
+pub async fn call_patch(
+    wrapper: HttpContextWrapper,
+    path: PathBuf,
+    body: Data<'_>,
+) -> GatewayResponse {
+    if let Err(e) = set_body(&wrapper, body).await {
+        return GatewayResponse::Error(e);
+    }
     handle(wrapper, path).await
 }
 

@@ -17,6 +17,8 @@ pub enum GatewayError {
     // /// 鉴权错误，对应状态码：403
     // #[deprecated]
     // Forbidden,
+    /// IO错误，对应状态码：500
+    IO(String),
 }
 
 impl<'r> Responder<'r, 'r> for GatewayError {
@@ -34,6 +36,10 @@ impl<'r> Responder<'r, 'r> for GatewayError {
             // GatewayError::Forbidden => rocket::response::Response::build()
             //     .status(rocket::http::Status::Forbidden)
             //     .ok(),
+            GatewayError::IO(e) => rocket::response::Response::build()
+                .status(rocket::http::Status::InternalServerError)
+                .sized_body(e.len(), std::io::Cursor::new(e))
+                .ok(),
         }
     }
 }
