@@ -26,6 +26,8 @@
 //! ## 使用方式
 //! ```rust
 //! // 示例插件
+//! use plugin::plugin_version;
+//!
 //! pub struct DemoPlugin;
 //!
 //! impl DemoPlugin {
@@ -41,7 +43,7 @@
 //!
 //!     fn info(&self) -> PluginInfo {
 //!         PluginInfo {
-//!             version: Version::new(0, 1, 0),
+//!             version: plugin_version!(),
 //!             default_config: Default::default(),
 //!             description: "Demo Plugin".to_string(),
 //!         }
