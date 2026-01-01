@@ -67,7 +67,6 @@ use crate::network::NETWORK;
 pub use async_trait::async_trait;
 use libloading::Symbol;
 pub use manager::PluginManager;
-pub use plugin_version;
 use protocol::gateway::HttpContext;
 pub use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -245,17 +244,6 @@ impl AsyncTryInto<Box<dyn Plugin>> for NetworkPlugin {
 
         plugin
     }
-}
-
-#[macro_export]
-macro_rules! plugin_version {
-    () => {
-        Version::new(
-            env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap(),
-            env!("CARGO_PKG_VERSION_MINOR").parse().unwrap(),
-            env!("CARGO_PKG_VERSION_PATCH").parse().unwrap(),
-        )
-    };
 }
 
 impl TryFrom<Vec<u8>> for Box<dyn Plugin> {

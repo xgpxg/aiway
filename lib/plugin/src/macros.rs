@@ -18,3 +18,14 @@ macro_rules! export {
         }
     };
 }
+
+#[macro_export]
+macro_rules! plugin_version {
+    () => {
+        Version::new(
+            env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap(),
+            env!("CARGO_PKG_VERSION_MINOR").parse().unwrap(),
+            env!("CARGO_PKG_VERSION_PATCH").parse().unwrap(),
+        )
+    };
+}
