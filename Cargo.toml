@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = ["console", "gateway", "message", "lib/logging", "lib/plugin", "lib/pubsub", "lib/security", "lib/protocol", "lib/sdk", "plugins/demo", "test-server", "lib/loadbalance", "lib/cache", "cli", "aiway", "plugins/rewrite-path", "logg", "lib/alert", "model-proxy","plugins/aha-model-request-wrapper", "lib/plugin-manager"]
+members = ["console", "gateway", "message", "lib/logging", "lib/plugin", "lib/pubsub", "lib/security", "lib/protocol", "lib/sdk", "test-server", "lib/loadbalance", "lib/cache", "cli", "aiway", "logg", "lib/alert", "model-proxy", "lib/plugin-manager"]

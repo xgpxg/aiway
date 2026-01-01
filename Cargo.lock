@@ -19,15 +19,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aha-model-request-wrapper"
-version = "0.1.0"
-dependencies = [
- "plugin",
- "protocol",
- "serde_json",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1119,14 +1110,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "092966b41edc516079bdf31ec78a2e0588d1d0c08f78b91d8307215928642b2b"
 dependencies = [
  "tokio",
-]
-
-[[package]]
-name = "demo"
-version = "0.1.0"
-dependencies = [
- "plugin",
- "protocol",
 ]
 
 [[package]]
@@ -3911,16 +3894,6 @@ dependencies = [
  "pin-project-lite",
  "reqwest",
  "thiserror 1.0.69",
-]
-
-[[package]]
-name = "rewrite-path"
-version = "0.1.0"
-dependencies = [
- "plugin",
- "protocol",
- "regex",
- "serde",
 ]
 
 [[package]]
