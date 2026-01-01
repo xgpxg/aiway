@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 protocol = { path = "../protocol" }
 libloading = "0.8"
-reqwest = "0.12"
+reqwest = "0.13"
 uuid = { version = "1.18", features = ["v4"] }
 dashmap = "6.1"
 async-trait = "0.1.89"

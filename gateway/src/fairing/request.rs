@@ -36,7 +36,7 @@ impl Fairing for RequestData {
         }
     }
 
-    async fn on_request(&self, req: &mut Request<'_>, data: &mut Data<'_>) {
+    async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         skip_if_error!(req);
 
         // 请求体

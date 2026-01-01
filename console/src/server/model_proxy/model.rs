@@ -1,7 +1,6 @@
 use crate::server::db::Pool;
 use crate::server::db::models::model::{Model, ModelStatus};
 use crate::server::db::models::model_provider::{ModelProvider, ModelProviderStatus};
-use protocol::gateway::ConfiguredPlugin;
 use rbs::value;
 use std::collections::HashMap;
 

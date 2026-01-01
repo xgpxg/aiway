@@ -43,7 +43,7 @@ cargo build --bin gateway -F cluster
 
 UI：https://github.com/xgpxg/aiway-ui
 
-## 功能
+### 功能
 
 - 动态路由
 - 服务管理
@@ -54,6 +54,9 @@ UI：https://github.com/xgpxg/aiway-ui
 - 可视化
 - AI模型转发和路由
 - 支持单机/集群部署
+
+### 插件
+https://github.com/xgpxg/aiway-plugins
 
 ### 截图
 
