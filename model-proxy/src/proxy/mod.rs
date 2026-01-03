@@ -6,5 +6,3 @@ mod response;
 
 pub use proxy::Proxy;
 pub use response::ModelError;
-use rocket::data::ToByteUnit;
-use rocket::request::FromRequest;

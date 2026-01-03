@@ -3,9 +3,8 @@ use crate::proxy::proxy::Proxy;
 use crate::proxy::request::{AudioSpeechRequest, ChatCompletionRequest};
 use crate::proxy::response::{ModelError, ModelResponse};
 use context::HttpContextOnce;
-use protocol::gateway::HttpContext;
+use rocket::post;
 use rocket::serde::json::Json;
-use rocket::{Request, State, post};
 
 /// 对话补全
 #[post("/chat/completions", data = "<req>")]

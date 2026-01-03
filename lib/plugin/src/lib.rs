@@ -253,7 +253,7 @@ impl TryFrom<Vec<u8>> for Box<dyn Plugin> {
     type Error = PluginError;
 
     fn try_from(from: Vec<u8>) -> Result<Box<dyn Plugin>, Self::Error> {
-        let temp = temp_dir().join(format!("{}.so", uuid::Uuid::new_v4().to_string()));
+        let temp = temp_dir().join(format!("{}.so", uuid::Uuid::new_v4()));
         fs::write(&temp, from).map_err(|e| PluginError::LoadError(e.to_string()))?;
         temp.try_into()
     }

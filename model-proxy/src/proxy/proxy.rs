@@ -4,7 +4,6 @@ use dashmap::DashMap;
 use logging::log;
 use openai_dive::v1::api::Client;
 use plugin_manager::PluginFactory;
-use protocol::SV;
 use protocol::gateway::HttpContext;
 use protocol::model::Provider;
 use std::sync::LazyLock;
@@ -98,7 +97,7 @@ impl Proxy {
         let mut audio = client.audio();
 
         if let Some(converter) = &provider.request_converter {
-            let plugin_result = PluginFactory::execute(converter, &context)
+            let plugin_result = PluginFactory::execute(converter, context)
                 .await
                 .map_err(|e| ModelError::Unknown(e.to_string()))?;
 

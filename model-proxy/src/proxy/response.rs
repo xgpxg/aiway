@@ -1,4 +1,3 @@
-use std::io::Read;
 use openai_dive::v1::error::APIError;
 use openai_dive::v1::resources::audio::AudioSpeechResponse;
 use openai_dive::v1::resources::chat::{ChatCompletionChunkResponse, ChatCompletionResponse};
