@@ -69,6 +69,7 @@ use crate::network::NETWORK;
 pub use async_trait::async_trait;
 use libloading::Symbol;
 pub use manager::PluginManager;
+pub use protocol;
 use protocol::gateway::HttpContext;
 pub use semver::Version;
 use serde::{Deserialize, Serialize};
