@@ -14,34 +14,38 @@
 
 支持的平台：
 
-- Linux
-- MacOS
+- Linux(x86_64)
+- MacOS(arm64)
+
+📑 [文档](https://aiway.coderbox.cn/doc.html)
 
 ### 快速启动
 
-单机模式：
+运行已发布的版本：
+
+```shell
+# 下载并解压
+curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd64-standalone.tar.gz | tar -zxvf - -C .
+
+# 启动
+./aiway
+```
+
+或者从源码构建：
 
 ```shell
 cargo build --bin gateway -F standalone && \
 cargo build --bin console -F standalone && \
 cargo build --bin logg && \
+cargo build --bin model-proxy && \
 cargo run --bin aiway
 ```
-
-集群模式：
-
-```shell
-cargo run --bin console -F cluster && \
-cargo build --bin gateway -F cluster
-```
-
-> 集群模式下需要单独部署[Redis](https://redis.io/)和[Quickwit](https://quickwit.io/)
 
 控制台：http://127.0.0.1:7000
 
 网关入口：http://127.0.0.1:7001
 
-UI：https://github.com/xgpxg/aiway-ui
+默认用户名/密码：admin/admin
 
 ### 功能
 
@@ -56,6 +60,7 @@ UI：https://github.com/xgpxg/aiway-ui
 - 支持单机/集群部署
 
 ### 插件
+
 https://github.com/xgpxg/aiway-plugins
 
 ### 截图
