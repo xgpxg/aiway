@@ -2,7 +2,7 @@ use clap::Parser;
 
 mod components;
 mod constants;
-mod context;
+//mod context;
 mod fairing;
 mod init;
 mod openapi;

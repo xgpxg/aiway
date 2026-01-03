@@ -6,13 +6,12 @@
 //! - 该fairing必须执行
 //! - 使用覆盖模式，即上下文中的响应数据优先覆盖原始响应中的数据。这是因为，上下文中的数据可能是由插件修改而来，应该优先被设置。
 //!
-use crate::context::{HCM, Headers};
 use crate::report::STATE;
-use crate::skip_if_error;
 use rocket::Request;
 use rocket::fairing::Fairing;
 use rocket::http::{Header, Status};
 use std::io::Cursor;
+use context::{skip_if_error, Headers, HCM};
 
 pub struct ResponseData {}
 impl ResponseData {

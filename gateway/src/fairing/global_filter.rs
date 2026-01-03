@@ -17,11 +17,10 @@
 //! 3. 按顺序执行
 //!
 
-use crate::context::HCM;
 use crate::components::{GLOBAL_FILTER, PLUGINS};
-use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
+use context::{set_error, skip_if_error, HCM};
 
 pub struct GlobalPreFilter {}
 impl GlobalPreFilter {

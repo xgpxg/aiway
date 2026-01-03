@@ -4,14 +4,13 @@
 //!
 //! 考虑是调用另外的服务验证，还是对API Key解密验证?
 //!
-use crate::context::{HCM, Headers};
-use crate::{set_error, skip_if_error};
 use cache::caches::CacheKey;
 use common::constants::ENCRYPT_KEY;
 use protocol::gateway::ApiKey;
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
 use serde_json::Value;
+use context::{set_error, skip_if_error, Headers, HCM};
 
 pub struct Authentication {}
 impl Authentication {

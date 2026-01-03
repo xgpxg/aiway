@@ -13,7 +13,6 @@ mod response;
 #[allow(unused)]
 mod sse;
 
-use crate::context::HttpContextWrapper;
 use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::{GatewayResponse, ResponseExt};
@@ -26,6 +25,7 @@ use std::io;
 use std::path::PathBuf;
 use tokio_util::bytes;
 use tokio_util::io::StreamReader;
+use context::HttpContextWrapper;
 
 async fn set_body(wrapper: &HttpContextWrapper, body: Data<'_>) -> Result<(), GatewayError> {
     wrapper.0.request.set_body(

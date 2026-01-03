@@ -1,11 +1,11 @@
 //! # 预处理
 //!
-use crate::context::Headers;
 use crate::report::STATE;
 use rocket::fairing::Fairing;
 use rocket::http::Header;
 use rocket::{Data, Request};
 use uuid::Uuid;
+use context::Headers;
 
 pub struct Pre {}
 impl Pre {

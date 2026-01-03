@@ -2,8 +2,8 @@
 //! - 在response fairing之前执行
 //! - 只会处理网关内部异常，下游服务的异常不会被处理，而是透传
 
-use crate::extract_error;
 use rocket::Request;
+use context::extract_error;
 
 #[rocket::catch(401)]
 pub fn catch_401(req: &Request) -> String {

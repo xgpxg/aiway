@@ -1,10 +1,9 @@
 //! # 负载均衡
 //!
-use crate::context::HCM;
 use crate::components::Servicer;
-use crate::{set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
+use context::{set_error, skip_if_error, HCM};
 
 pub struct LoadBalance {}
 impl LoadBalance {

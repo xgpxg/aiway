@@ -17,11 +17,11 @@
 //! ## 获取规则
 //! 从控制台定时拉取网Firewall配置
 //!
-use crate::report::STATE;
 use crate::components::Firewalld;
-use crate::set_error;
+use crate::report::STATE;
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
+use context::set_error;
 
 pub struct PreSecurity {}
 impl PreSecurity {
@@ -43,7 +43,7 @@ impl Fairing for PreSecurity {
         let ip = req.client_ip().unwrap();
         let referer = req
             .headers()
-            .get_one(crate::context::Headers::REFERER)
+            .get_one(context::Headers::REFERER)
             .unwrap_or_default();
         // 调用防火墙校验请求
         if let Err(e) = Firewalld::check(&ip.to_string(), referer).await {

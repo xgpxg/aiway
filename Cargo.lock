@@ -829,6 +829,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
+name = "context"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "dashmap",
+ "protocol",
+ "rocket",
+ "uuid",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1676,6 +1687,7 @@ dependencies = [
  "chrono",
  "clap",
  "common",
+ "context",
  "dashmap",
  "ip2region",
  "loadbalance",
@@ -2696,8 +2708,8 @@ version = "0.1.0"
 dependencies = [
  "alert",
  "anyhow",
- "chrono",
  "clap",
+ "context",
  "dashmap",
  "fastrand",
  "logging",
@@ -2711,7 +2723,6 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.17",
  "tokio",
- "uuid",
 ]
 
 [[package]]

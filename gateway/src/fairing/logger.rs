@@ -11,11 +11,11 @@
 
 use crate::Args;
 use crate::components::IpRegion;
-use crate::context::Headers;
 use clap::Parser;
 use protocol::gateway::request_log::RequestLog;
 use rocket::Request;
 use rocket::fairing::Fairing;
+use context::Headers;
 
 pub struct Logger {
     args: Args,

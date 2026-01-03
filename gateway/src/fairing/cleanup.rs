@@ -2,10 +2,10 @@
 //!
 //! 最后执行，清理RequestContext
 //!
-use crate::context::{HCM, Headers};
 use crate::report::STATE;
 use rocket::Request;
 use rocket::fairing::Fairing;
+use context::{Headers, HCM};
 
 pub struct Cleaner {}
 impl Cleaner {
