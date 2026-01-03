@@ -77,6 +77,13 @@ impl From<String> for SingleValue<String> {
     }
 }
 
+impl From<&str> for SingleValue<String> {
+    #[inline]
+    fn from(value: &str) -> Self {
+        SingleValue::new(value.to_string())
+    }
+}
+
 impl<T: Serialize> Serialize for SingleValue<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
