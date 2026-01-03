@@ -30,6 +30,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
         ],
     );
 
+    //builder = builder.attach(HttpContextFairing::new());
+
     builder = builder.attach(AdHoc::on_liftoff("Print Banner", |_| {
         Box::pin(async {
             print_banner();
