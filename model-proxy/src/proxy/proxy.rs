@@ -60,12 +60,23 @@ impl Proxy {
     pub async fn chat_completions(
         req: ChatCompletionRequest,
         provider: &Provider,
-        _context: &HttpContext,
+        context: &HttpContext,
     ) -> Result<ModelResponse, ModelError> {
         let client = get_or_create_client!(req.model, provider);
         let req = Self::modify_model_name(req, provider);
+
+        let mut chat = client.chat();
+
+        if let Some(converter) = &provider.request_converter {
+            let plugin_result = PluginFactory::execute(converter, context)
+                .await
+                .map_err(|e| ModelError::Unknown(e.to_string()))?;
+
+            chat.set_request_converter(Box::new(move |_| plugin_result.clone()));
+        }
+
         if req.stream.unwrap_or(false) {
-            let response = client.chat().create_stream(req).await;
+            let response = chat.create_stream(req).await;
             match response {
                 Ok(response) => Ok(ModelResponse::ChatCompletionStreamResponse(response)),
                 Err(e) => {
@@ -74,7 +85,7 @@ impl Proxy {
                 }
             }
         } else {
-            let response = client.chat().create(req).await;
+            let response = chat.create(req).await;
             match response {
                 Ok(response) => Ok(ModelResponse::ChatCompletionResponse(response)),
                 Err(e) => {
