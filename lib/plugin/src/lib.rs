@@ -80,7 +80,6 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-
 #[derive(Debug)]
 pub enum PluginError {
     /// 执行插件业务逻辑时的错误
