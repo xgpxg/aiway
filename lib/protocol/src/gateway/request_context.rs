@@ -1,8 +1,9 @@
 use crate::SV;
 use crate::gateway::route::Route;
 use dashmap::DashMap;
-use std::any::Any;
-use std::fmt::Display;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde_json::Value;
 use std::sync::Arc;
 
 /// 请求上下文
@@ -36,7 +37,7 @@ pub struct RequestContext {
     /// TODO 文件如何处理？
     pub body: SV<Vec<u8>>,
     /// 扩展数据
-    pub state: DashMap<String, Box<dyn Any + Send + Sync>>,
+    pub state: DashMap<String, Value>,
     /// 路由配置信息
     ///
     /// 路由由网关根据当前请求的path匹配得到，通常情况下，路由不应该手动修改。
@@ -120,6 +121,25 @@ impl RequestContext {
     }
     pub fn get_routing_path(&self) -> Option<&String> {
         self.routing_path.get()
+    }
+
+    pub fn insert_state<T: Serialize>(&self, key: &str, value: T) {
+        self.state.insert(
+            key.to_string(),
+            serde_json::to_value(value).expect("Failed to serialize state value"),
+        );
+    }
+    pub fn get_state<T: DeserializeOwned>(
+        &self,
+        key: &str,
+    ) -> Result<Option<T>, serde_json::Error> {
+        self.state
+            .get(key)
+            .map(|v| serde_json::from_value(v.clone()))
+            .transpose()
+    }
+    pub fn remove_state(&self, key: &str) {
+        self.state.remove(key);
     }
 }
 /*
