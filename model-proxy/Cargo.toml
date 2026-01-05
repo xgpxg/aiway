@@ -21,4 +21,7 @@ reqwest = { version = "0.13", features = ["stream", "json", "query"] }
 openai_dive = { version = "1.4.0", features = ["stream"], git = "https://github.com/xgpxg/openai-client" }
 dashmap = "6.1"
 fastrand = "2.3.0"
+bytes = { version = "1.11", features = ["serde"] }
+tokio-stream = { version = "0.1" }
+aha-reqwest-eventsource = { version = "0.1.0" }
 

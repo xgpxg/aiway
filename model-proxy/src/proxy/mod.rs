@@ -3,6 +3,7 @@ pub mod api;
 mod proxy;
 mod request;
 mod response;
+mod client;
 
 pub use proxy::Proxy;
 pub use response::ModelError;

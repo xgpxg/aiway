@@ -10,6 +10,8 @@ pub type EmbeddingRequest = EmbeddingParameters;
 
 pub type AudioSpeechRequest = AudioSpeechParameters;
 
+pub type CreateImageRequest = openai_dive::v1::resources::image::CreateImageParameters;
+
 /// 修改模型名称
 ///
 /// 用于将请求的模型名称映射为提供商的真实模型名称，解决同一模型在不同提供商下的命名不一致问题
@@ -39,3 +41,13 @@ macro_rules! impl_modify_model_name {
 impl_modify_model_name!(ChatCompletionRequest);
 impl_modify_model_name!(EmbeddingRequest);
 impl_modify_model_name!(AudioSpeechRequest);
+impl ModifyModelName for CreateImageRequest {
+    fn get_source_model_name(&self) -> String {
+        self.model.clone().expect("model is required")
+    }
+
+    fn modify_model_name(mut self, target_model_name: &str) -> Self {
+        self.model = Some(target_model_name.to_string());
+        self
+    }
+}

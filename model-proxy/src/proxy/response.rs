@@ -2,6 +2,7 @@ use openai_dive::v1::error::APIError;
 use openai_dive::v1::resources::audio::AudioSpeechResponse;
 use openai_dive::v1::resources::chat::{ChatCompletionChunkResponse, ChatCompletionResponse};
 use openai_dive::v1::resources::embedding::EmbeddingResponse;
+use openai_dive::v1::resources::image::ImageResponse;
 use rocket::Request;
 use rocket::futures::{Stream, StreamExt};
 use rocket::response::Responder;
@@ -24,6 +25,9 @@ pub enum ModelResponse {
 
     /// 语音生成（非流式）
     AudioSpeechResponse(AudioSpeechResponse),
+
+    /// 创建图像
+    CreateImageResponse(ImageResponse),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -90,8 +94,9 @@ impl<'r> Responder<'r, 'r> for ModelResponse {
             }
             ModelResponse::EmbeddingResponse(response) => json!(&response).respond_to(request),
             ModelResponse::AudioSpeechResponse(response) => {
-                 response.bytes.to_vec().respond_to(request)
+                response.bytes.to_vec().respond_to(request)
             }
+            ModelResponse::CreateImageResponse(response) => json!(&response).respond_to(request),
         }
     }
 }

@@ -26,7 +26,9 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
             // 对话补全
             proxy::api::chat_completions,
             // 文本转语音
-            proxy::api::audio_speech
+            proxy::api::audio_speech,
+            // 图像生成
+            proxy::api::images_generations,
         ],
     );
 
