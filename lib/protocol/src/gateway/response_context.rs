@@ -1,7 +1,10 @@
 use crate::SV;
 use dashmap::DashMap;
+use std::fmt::Debug;
+use std::pin::Pin;
+use tokio_stream::Stream;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct ResponseContext {
     pub response_ts: SV<i64>,
     /// 响应状态码
@@ -10,6 +13,20 @@ pub struct ResponseContext {
     pub headers: DashMap<String, String>,
     /// 响应体
     pub body: SV<Vec<u8>>,
+    /// 响应流
+    pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = Vec<u8>> + Send>>>>,
+}
+
+impl Debug for ResponseContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResponseContext")
+            .field("response_ts", &self.response_ts)
+            .field("status", &self.status)
+            .field("headers", &self.headers)
+            .field("body", &self.body)
+            .field("stream_body", &"Stream<Item = Vec<u8>>")
+            .finish()
+    }
 }
 
 impl ResponseContext {
@@ -46,5 +63,11 @@ impl ResponseContext {
 
     pub fn get_body(&self) -> Option<&Vec<u8>> {
         self.body.get()
+    }
+    pub fn set_stream_body(&self, body: Pin<Box<dyn Stream<Item = Vec<u8>> + Send>>) {
+        self.stream_body.set(Some(body));
+    }
+    pub fn take_stream_body(&self) -> Option<Pin<Box<dyn Stream<Item = Vec<u8>> + Send>>> {
+        self.stream_body.take().unwrap_or_default()
     }
 }
