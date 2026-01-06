@@ -12,13 +12,8 @@ pub async fn chat_completions(
     req: Json<ChatCompletionRequest>,
     context: HttpContextOnce,
 ) -> Result<ModelResponse, ModelError> {
-    let req = req.0;
-    context
-        .0
-        .request
-        .set_body(serde_json::to_vec(&req).unwrap());
     match ModelFactory::get_provider(&req.model.clone()) {
-        Ok(provider) => Proxy::chat_completions(req, &provider, &context.0).await,
+        Ok(provider) => Proxy::chat_completions(req.0, &provider, &context.0).await,
         Err(e) => Err(e),
     }
 }
@@ -29,13 +24,8 @@ pub async fn audio_speech(
     req: Json<AudioSpeechRequest>,
     context: HttpContextOnce,
 ) -> Result<ModelResponse, ModelError> {
-    let req = req.0;
-    context
-        .0
-        .request
-        .set_body(serde_json::to_vec(&req).unwrap());
     match ModelFactory::get_provider(&req.model.clone()) {
-        Ok(provider) => Proxy::audio_speech(req, &provider, &context.0).await,
+        Ok(provider) => Proxy::audio_speech(req.0, &provider, &context.0).await,
         Err(e) => Err(e),
     }
 }
@@ -45,13 +35,8 @@ pub async fn images_generations(
     req: Json<CreateImageRequest>,
     context: HttpContextOnce,
 ) -> Result<ModelResponse, ModelError> {
-    let req = req.0;
-    context
-        .0
-        .request
-        .set_body(serde_json::to_vec(&req).unwrap());
     match ModelFactory::get_provider(&req.model.clone().unwrap_or_default()) {
-        Ok(provider) => Proxy::create_image(req, &provider, &context.0).await,
+        Ok(provider) => Proxy::create_image(req.0, &provider, &context.0).await,
         Err(e) => Err(e),
     }
 }

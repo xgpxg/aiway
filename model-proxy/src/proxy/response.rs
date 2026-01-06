@@ -17,7 +17,7 @@ pub enum ModelResponse {
     ChatCompletionResponse(ChatCompletionResponse),
     /// 对话补全（流式）
     ChatCompletionStreamResponse(
-        Pin<Box<dyn Stream<Item = Result<ChatCompletionChunkResponse, APIError>> + Send>>,
+        Pin<Box<dyn Stream<Item = Result<ChatCompletionChunkResponse, ModelError>> + Send>>,
     ),
     /// 嵌入
     #[allow(unused)]
@@ -42,6 +42,9 @@ pub enum ModelError {
     /// 没有可用的提供商
     #[error("No available provider")]
     NoAvailableProvider,
+    /// 解析错误
+    #[error("Parse error")]
+    Parse(String),
     /// 未知错误
     #[allow(unused)]
     #[error("Unknown error: {0}")]
@@ -122,6 +125,13 @@ impl<'r> Responder<'r, 'r> for ModelError {
                 json!({"error": {"code": "400","message": format!("unsupported model: {}", model)}}),
             )
                 .respond_to(request),
+            Self::Parse(e) => {
+                 (
+                    rocket::http::Status::InternalServerError,
+                    json!({"error": {"code": "500","message": e}}),
+                )
+                    .respond_to(request)
+            }
             // 未知错误，按500返回
             Self::Unknown(message) => (
                 rocket::http::Status::InternalServerError,

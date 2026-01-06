@@ -4,13 +4,15 @@ use openai_dive::v1::error::{APIError, InvalidRequestError};
 use reqwest::{Method, RequestBuilder, Response, StatusCode};
 use rocket::futures::Stream;
 use rocket::serde::DeserializeOwned;
-use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::pin::Pin;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 
 const MIME_TYPE_APPLICATION_JSON: &str = "application/json";
+
+type ModelStream<O> = Pin<Box<dyn Stream<Item = Result<O, APIError>> + Send>>;
 
 /// 模型客户端，参考openai_dive实现。
 ///
@@ -101,16 +103,16 @@ impl Client {
             Err(error) => Err(APIError::ServerError(error.to_string())),
         }
     }
-    pub async fn post<T: Serialize, R: DeserializeOwned>(
-        &self,
-        url: &str,
-        body: &T,
-        query: impl Into<Option<&HashMap<String, String>>>,
-    ) -> Result<R, APIError> {
+    pub async fn post<I, O, Q>(&self, url: &str, body: I, query: Q) -> Result<O, APIError>
+    where
+        I: Into<reqwest::Body>,
+        O: DeserializeOwned,
+        Q: Into<Option<HashMap<String, String>>>,
+    {
         let response = self
             .build_request(Method::POST, url, Some(MIME_TYPE_APPLICATION_JSON))
             .query(&query.into())
-            .json(body)
+            .body(body.into())
             .send()
             .await;
 
@@ -121,20 +123,18 @@ impl Client {
             .await
             .map_err(|error| APIError::ParseError(error.to_string()))?;
 
-        println!("{}", response_text);
         Self::format_response(response_text)
     }
 
-    pub async fn post_raw<T: Serialize>(
-        &self,
-        url: &str,
-        body: &T,
-        query: impl Into<Option<&HashMap<String, String>>>,
-    ) -> Result<Bytes, APIError> {
+    pub async fn post_raw<I, Q>(&self, url: &str, body: I, query: Q) -> Result<Bytes, APIError>
+    where
+        I: Into<reqwest::Body>,
+        Q: Into<Option<HashMap<String, String>>>,
+    {
         let response = self
             .build_request(Method::POST, url, Some(MIME_TYPE_APPLICATION_JSON))
             .query(&query.into())
-            .json(body)
+            .body(body.into())
             .send()
             .await;
         let response = match Self::check_status_code(response).await {
@@ -148,29 +148,23 @@ impl Client {
         Ok(bytes)
     }
 
-    pub async fn post_stream<I, O>(
-        &self,
-        url: &str,
-        body: &I,
-        query: impl Into<Option<&HashMap<String, String>>>,
-    ) -> Pin<Box<dyn Stream<Item = Result<O, APIError>> + Send>>
+    pub async fn post_stream<I, O, Q>(&self, url: &str, body: I, query: Q) -> ModelStream<O>
     where
-        I: Serialize,
+        I: Into<reqwest::Body>,
         O: DeserializeOwned + Send + 'static,
+        Q: Into<Option<HashMap<String, String>>>,
     {
         let event_source = self
-            .build_request(Method::POST, url, None)
-            .json(body)
+            .build_request(Method::POST, url, Some(MIME_TYPE_APPLICATION_JSON))
             .query(&query.into())
+            .body(body.into())
             .eventsource()
             .unwrap();
 
         Self::process_stream::<O>(event_source).await
     }
 
-    pub(crate) async fn process_stream<O>(
-        mut event_source: EventSource,
-    ) -> Pin<Box<dyn Stream<Item = Result<O, APIError>> + Send>>
+    pub(crate) async fn process_stream<O>(mut event_source: EventSource) -> ModelStream<O>
     where
         O: DeserializeOwned + Send + 'static,
     {
@@ -219,6 +213,6 @@ impl Client {
             event_source.close();
         });
 
-        Box::pin(tokio_stream::wrappers::UnboundedReceiverStream::new(rx))
+        Box::pin(UnboundedReceiverStream::new(rx))
     }
 }

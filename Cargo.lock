@@ -3511,6 +3511,7 @@ dependencies = [
  "rocket",
  "serde",
  "serde_json",
+ "tokio-stream",
  "uuid",
 ]
 
