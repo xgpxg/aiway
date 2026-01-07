@@ -17,6 +17,7 @@ use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::{GatewayResponse, ResponseExt};
 use crate::report::STATE;
+use context::HttpContextWrapper;
 use reqwest::Url;
 use rocket::data::ToByteUnit;
 use rocket::futures::{StreamExt, stream};
@@ -25,7 +26,6 @@ use std::io;
 use std::path::PathBuf;
 use tokio_util::bytes;
 use tokio_util::io::StreamReader;
-use context::HttpContextWrapper;
 
 async fn set_body(wrapper: &HttpContextWrapper, body: Data<'_>) -> Result<(), GatewayError> {
     wrapper.0.request.set_body(
@@ -109,7 +109,11 @@ async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse 
 
     // 路由的实际地址，该地址已经有负载均衡处理过，可能是IP或域名
     let routing_url = context.get_routing_url().unwrap();
-    let mut url = match Url::parse(&format!("{}/{}", routing_url, path)) {
+    let mut url = match Url::parse(&format!(
+        "{}/{}",
+        routing_url.trim_end_matches('/'),
+        path.get().map(|p| p.trim_start_matches("/")).unwrap_or("")
+    )) {
         Ok(url) => url,
         // 理论上不会执行到这里
         Err(e) => {
