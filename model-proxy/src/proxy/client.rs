@@ -20,6 +20,8 @@ type ModelStream<O> = Pin<Box<dyn Stream<Item = Result<O, APIError>> + Send>>;
 /// - 依赖base_url，且端点地址写死了
 /// - 对于部分模型提供商的API是非标准OpenAI格式，接口路径可能对不上
 /// - 不方便扩展
+///
+/// 所以需要能够直接请求提供商的API地址，而不是OpenAI标准的地址。
 pub struct Client {
     /// HTTP客户端
     http_client: reqwest::Client,

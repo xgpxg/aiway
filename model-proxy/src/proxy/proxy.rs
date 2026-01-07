@@ -1,3 +1,9 @@
+//! # 模型代理
+//! 需要尽量兼容OpenAI格式，部分场景可适当扩展
+//!
+//! 整体执行流程：
+//! 网关 → model-proxy → 获取提供商 → 模型名称映射 → 请求参数转换 → 调用提供商 → 响应参数转换 → 返回结果
+//!
 use crate::proxy::client::Client;
 use crate::proxy::request::{
     AudioSpeechRequest, ChatCompletionRequest, CreateImageRequest, ModifyModelName,
@@ -39,10 +45,12 @@ macro_rules! get_or_create_client {
 /// 调用插件转换请求参数
 macro_rules! convert_request {
     ($req:expr, $provider:expr, $context:expr) => {
+        // 设置请求body，无论是否需要执行插件，因为后续的结果需要从context的body中获取
         $context
             .request
             .set_body(serde_json::to_vec(&$req).map_err(|e| ModelError::Parse(e.to_string()))?);
         if let Some(converter) = &$provider.request_converter {
+            // 调用插件执行转换，在插件内部更新context的body
             PluginFactory::execute(converter, $context)
                 .await
                 .map_err(|e| ModelError::Unknown(e.to_string()))?;
@@ -55,18 +63,20 @@ macro_rules! convert_request {
 /// 注意：仅适用于 非流式 响应
 macro_rules! convert_response {
     ($response:expr, $provider:expr, $context:expr) => {
+        // 设置响应body，无论是否需要执行插件，因为后续的结果需要从context的body中获取
         $context.response.set_body(
             serde_json::to_vec(&$response).map_err(|e| ModelError::Parse(e.to_string()))?,
         );
         if let Some(converter) = &$provider.response_converter {
+            // 调用插件执行转换，在插件内部更新context的body
             PluginFactory::execute(converter, $context)
                 .await
                 .map_err(|e| ModelError::Unknown(e.to_string()))?;
         } else {
-            let response =
-                serde_json::to_value($response).map_err(|e| ModelError::Unknown(e.to_string()))?;
+            /*let response =
+                serde_json::to_value($response).map_err(|e| ModelError::Unknown(e.to_string()))?;*/
             $context.response.set_body(
-                serde_json::to_vec(&response).map_err(|e| ModelError::Parse(e.to_string()))?,
+                serde_json::to_vec(&$response).map_err(|e| ModelError::Parse(e.to_string()))?,
             );
         }
     };
@@ -213,7 +223,6 @@ impl Proxy {
 
         let response = client.post_raw(&provider.api_url, body, None).await;
 
-        println!("response: {:?}", response);
         match response {
             Ok(response) => {
                 convert_response!(response, provider, context);
