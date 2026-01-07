@@ -47,7 +47,7 @@ pub struct RequestContext {
     pub routing_url: SV<String>,
     /// 实际路由路径
     ///
-    /// 默认为网关接收到的原始路基，可以通过插件改写。
+    /// 默认为网关接收到的原始路径，可以通过插件改写。
     pub routing_path: SV<String>,
 }
 

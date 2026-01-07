@@ -1,15 +1,12 @@
-//! # 设置响应数据
-//! ## 主要功能
-//! 在响应客户端前，将上下文中的响应数据附加到响应中。
+//! # 设置响应上下文
+//! 设置响应上下文，提供给插件执行。
 //!
-//! ## 基本准则
-//! - 该fairing必须执行
-//! - 使用覆盖模式，即上下文中的响应数据优先覆盖原始响应中的数据。这是因为，上下文中的数据可能是由插件修改而来，应该优先被设置。
+//! 如果路由插件和全局插件都没配置，则无需设置。
 //!
 use crate::components::GLOBAL_FILTER;
-use context::{skip_if_error, HCM};
-use rocket::fairing::Fairing;
+use context::{HCM, skip_if_error};
 use rocket::Request;
+use rocket::fairing::Fairing;
 
 pub struct SetResponseContext {}
 impl SetResponseContext {
@@ -43,12 +40,19 @@ impl Fairing for SetResponseContext {
         // 如果插件不为空 设置响应上下文
         let response_context = &context.response;
 
+        // 设置响应状态码
         response_context.set_status(res.status().code);
+
+        // 设置响应头
         response_context.set_headers(
             res.headers()
                 .iter()
                 .map(|h| (h.name.to_string(), h.value.to_string())),
         );
+
+        // 设置响应体
         response_context.set_body(res.body_mut().to_bytes().await.unwrap_or_default());
+
+        //TODO stream处理
     }
 }
