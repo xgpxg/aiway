@@ -58,6 +58,12 @@ impl ResponseContext {
         self.headers.get(key).map(|v| v.value().clone())
     }
 
+    pub fn set_headers<H: IntoIterator<Item = (String, String)>>(&self, headers: H) {
+        for (key, value) in headers {
+            self.headers.insert(key, value);
+        }
+    }
+
     pub fn remove_header(&self, key: &str) {
         self.headers.remove(key);
     }
