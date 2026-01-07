@@ -48,11 +48,21 @@ jobs:
         run: npm ci
         working-directory: frontend
 
+      # 设置前端版本号
+      - name: Set frontend version
+        if: matrix.os != 'macos-latest'
+        run: sed -i "s/^VITE_VERSION=.*/VITE_VERSION=${{ github.ref_name }}/" .env.production
+        working-directory: frontend
+
+      # 设置前端版本号
+      - name: Set frontend version
+        if: matrix.os == 'macos-latest'
+        run: sed -i '' "s/^VITE_VERSION=.*/VITE_VERSION=${{ github.ref_name }}/" .env.production
+        working-directory: frontend
+
       # 构建前端
       - name: Build frontend
-        run: |
-          sed -i "s/^VITE_VERSION=.*/VITE_VERSION=${{ github.ref_name }}/" .env.production
-          npm run build
+        run: npm run build
         working-directory: frontend
 
       # 创建 ui 目录
