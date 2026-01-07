@@ -78,7 +78,7 @@ pub async fn gateway_state() -> anyhow::Result<GatewayState> {
     let request_today_count = tx
         .query_decode::<Option<u64>>(
             r#"
-           select sum(interval_request_count) from gateway_node_state where ts >= ? group by node_id
+           select sum(interval_request_count) from gateway_node_state where ts >= ?
             "#,
             vec![value!(start_of_day)],
         )
