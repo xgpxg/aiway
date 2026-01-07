@@ -3,6 +3,7 @@ use dashmap::DashMap;
 use std::error::Error;
 use std::fmt::Debug;
 use std::pin::Pin;
+#[cfg(feature = "stream")]
 use tokio_stream::Stream;
 
 type StreamError = Box<dyn Error + Send + Sync>;
@@ -17,6 +18,7 @@ pub struct ResponseContext {
     /// 响应体
     pub body: SV<Vec<u8>>,
     /// 响应流
+    #[cfg(feature = "stream")]
     pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>>>,
 }
 
@@ -67,12 +69,16 @@ impl ResponseContext {
     pub fn get_body(&self) -> Option<&Vec<u8>> {
         self.body.get()
     }
+
+    #[cfg(feature = "stream")]
     pub fn set_stream_body(
         &self,
         body: Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>,
     ) {
         self.stream_body.set(Some(body));
     }
+
+    #[cfg(feature = "stream")]
     pub fn take_stream_body(
         &self,
     ) -> Option<Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>> {
