@@ -76,7 +76,7 @@ jobs:
 
       # 安装 musl 工具
       - name: Install musl tools
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       # 添加目标平台
