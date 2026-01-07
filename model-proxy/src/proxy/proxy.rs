@@ -41,7 +41,7 @@ macro_rules! convert_request {
     ($req:expr, $provider:expr, $context:expr) => {
         $context
             .request
-            .set_body(serde_json::to_vec(&$req).unwrap());
+            .set_body(serde_json::to_vec(&$req).map_err(|e| ModelError::Parse(e.to_string()))?);
         if let Some(converter) = &$provider.request_converter {
             PluginFactory::execute(converter, $context)
                 .await
@@ -65,9 +65,9 @@ macro_rules! convert_response {
         } else {
             let response =
                 serde_json::to_value($response).map_err(|e| ModelError::Unknown(e.to_string()))?;
-            $context
-                .response
-                .set_body(serde_json::to_vec(&response).unwrap());
+            $context.response.set_body(
+                serde_json::to_vec(&response).map_err(|e| ModelError::Parse(e.to_string()))?,
+            );
         }
     };
 }
@@ -112,27 +112,42 @@ impl Proxy {
         if req.stream.unwrap_or(false) {
             // 通常情况下，模型提供商的对话补全接口都兼容OpenAI格式，无需转换
             // 所以这里先判断下是否有响应转换器，没有的话，直接返回
-            if provider.response_converter.is_none() {
+            let response_converter = if let Some(response_converter) = &provider.response_converter
+            {
+                response_converter
+            } else {
                 // 请求提供商
                 let response = client.post_stream(&provider.api_url, body, None).await;
-                // 转换错误类型
+                // 转换错误类型：ApiError -> ModelError
                 let stream = response.map(|item| item.map_err(ModelError::ApiError));
 
                 return Ok(ModelResponse::ChatCompletionStreamResponse(Box::pin(
                     stream,
                 )));
-            }
+            };
             // 请求提供商，以Value格式返回
             let response = client
                 .post_stream::<_, Value, _>(&provider.api_url, body, None)
                 .await;
             // 转为context的stream_body支持的stream
-            let stream = response.map(|item| serde_json::to_vec(&item.unwrap()).unwrap());
+            let stream = response.map(|item| {
+                item.map_err(|e| {
+                    log::error!("Stream item error: {:?}", e);
+                    e.into()
+                })
+                .and_then(|val| {
+                    serde_json::to_vec(&val).map_err(|e| {
+                        log::error!("Serialization error: {}", e);
+                        e.into()
+                    })
+                })
+            });
+            // 设置流式的body
             context.response.set_stream_body(Box::pin(stream));
 
             // 调用插件转换响应结果
-            let converter = provider.response_converter.as_ref().unwrap();
-            PluginFactory::execute(converter, context)
+            // 该插件应该对stream_body进行处理
+            PluginFactory::execute(&response_converter, context)
                 .await
                 .map_err(|e| ModelError::Unknown(e.to_string()))?;
 
@@ -146,10 +161,16 @@ impl Proxy {
 
             // 转为ChatCompletionChunkResponse
             let stream = match stream {
-                Some(stream) => stream.map(|item| {
-                    Ok::<_, ModelError>(
-                        serde_json::from_slice::<ChatCompletionChunkResponse>(&item).unwrap(),
-                    )
+                Some(stream) => stream.map(|item| match item {
+                    Ok(item) => serde_json::from_slice::<ChatCompletionChunkResponse>(&item)
+                        .map_err(|e| {
+                            log::error!("Deserialization error: {}", e);
+                            ModelError::Parse(e.to_string())
+                        }),
+                    Err(e) => {
+                        log::error!("Stream item error: {:?}", e);
+                        return Err(ModelError::Parse(e.to_string()));
+                    }
                 }),
                 None => return Err(ModelError::Unknown("stream is none".to_string())),
             };
@@ -158,6 +179,7 @@ impl Proxy {
                 stream,
             )))
         } else {
+            // 非流式
             let response = client
                 .post::<_, Value, _>(&provider.api_url, body, None)
                 .await;
