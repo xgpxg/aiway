@@ -41,6 +41,8 @@ impl AiwayApp {
             "console",
             &console.data,
             &[
+                "--address",
+                &args.address,
                 "--port",
                 &args.port.to_string(),
                 "--log-server",
@@ -57,7 +59,7 @@ impl AiwayApp {
         let gateway = embed::EmbedApp::new(
             "gateway",
             &gateway.data,
-            &["--log-server", "127.0.0.1:7281"],
+            &["--address", &args.address, "--log-server", "127.0.0.1:7281"],
         )
         .unwrap();
         log::info!("gateway started");
