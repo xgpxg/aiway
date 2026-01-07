@@ -1,8 +1,11 @@
 use crate::SV;
 use dashmap::DashMap;
+use std::error::Error;
 use std::fmt::Debug;
 use std::pin::Pin;
 use tokio_stream::Stream;
+
+type StreamError = Box<dyn Error + Send + Sync>;
 
 #[derive(Default)]
 pub struct ResponseContext {
@@ -14,7 +17,7 @@ pub struct ResponseContext {
     /// 响应体
     pub body: SV<Vec<u8>>,
     /// 响应流
-    pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = Vec<u8>> + Send>>>>,
+    pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>>>,
 }
 
 impl Debug for ResponseContext {
@@ -64,10 +67,15 @@ impl ResponseContext {
     pub fn get_body(&self) -> Option<&Vec<u8>> {
         self.body.get()
     }
-    pub fn set_stream_body(&self, body: Pin<Box<dyn Stream<Item = Vec<u8>> + Send>>) {
+    pub fn set_stream_body(
+        &self,
+        body: Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>,
+    ) {
         self.stream_body.set(Some(body));
     }
-    pub fn take_stream_body(&self) -> Option<Pin<Box<dyn Stream<Item = Vec<u8>> + Send>>> {
+    pub fn take_stream_body(
+        &self,
+    ) -> Option<Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>> {
         self.stream_body.take().unwrap_or_default()
     }
 }
