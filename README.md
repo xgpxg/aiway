@@ -67,19 +67,4 @@ https://github.com/xgpxg/aiway-plugins
 
 ![Dashboard](docs/images/1.png)
 
-### 项目结构
 
-```text
-├── aiway                   # 单机网关(bin)
-├── console                 # 控制台(bin)
-├── gateway                 # 网关核心(bin)
-├── lib                     # 子库
-│   ├── alert               # 告警
-│   ├── cache               # 缓存
-│   ├── common              # 通用
-│   ├── loadbalance         # 负载均衡
-│   ├── logging             # 日志  
-│   ├── plugin              # 插件
-│   └── protocol            # 交互协议
-└── logg                    # 日志服务(bin)
-```

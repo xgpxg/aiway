@@ -57,24 +57,3 @@ cargo build --bin gateway -F cluster
 ## Screenshot
 
 ![Dashboard](docs/images/1.png)
-
-## Project Structure
-
-```text
-├── aiway                   # Standalone gateway (binary)
-├── console                 # Console (binary)
-├── gateway                 # Gateway core (binary)
-├── lib                     # Libraries
-│   ├── alert               # Alert system
-│   ├── cache               # Cache module
-│   ├── common              # Common utilities
-│   ├── loadbalance         # Load balancing
-│   ├── logging             # Logging system
-│   ├── plugin              # Plugin system
-│   └── protocol            # Communication protocols
-└── logg                    # Log service (binary)
-```
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
