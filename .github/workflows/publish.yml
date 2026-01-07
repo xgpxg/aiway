@@ -20,6 +20,10 @@ jobs:
             target: aarch64-apple-darwin
             asset_name_standalone: aiway-macos-arm64-standalone.tar.gz
             asset_name_cluster: aiway-macos-arm64-cluster.tar.gz
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            asset_name_standalone: aiway-linux-arm64-standalone.tar.gz
+            asset_name_cluster: aiway-linux-arm64-cluster.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +50,9 @@ jobs:
 
       # 构建前端
       - name: Build frontend
-        run: npm run build
+        run: |
+          sed -i "s/^VITE_VERSION=.*/VITE_VERSION=${{ github.ref_name }}/" .env.production
+          npm run build
         working-directory: frontend
 
       # 创建 ui 目录
