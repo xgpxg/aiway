@@ -3,6 +3,7 @@ use dashmap::DashMap;
 use std::error::Error;
 use std::fmt::Debug;
 use std::pin::Pin;
+use bytes::Bytes;
 #[cfg(feature = "stream")]
 use tokio_stream::Stream;
 
@@ -16,7 +17,7 @@ pub struct ResponseContext {
     /// 响应头
     pub headers: DashMap<String, String>,
     /// 响应体
-    pub body: SV<Vec<u8>>,
+    pub body: SV<Bytes>,
     /// 响应流
     #[cfg(feature = "stream")]
     pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = StreamItem> + Send>>>>,
@@ -68,11 +69,11 @@ impl ResponseContext {
         self.headers.remove(key);
     }
 
-    pub fn set_body(&self, body: Vec<u8>) {
+    pub fn set_body(&self, body: Bytes) {
         self.body.set(body)
     }
 
-    pub fn get_body(&self) -> Option<&Vec<u8>> {
+    pub fn get_body(&self) -> Option<&Bytes> {
         self.body.get()
     }
 
