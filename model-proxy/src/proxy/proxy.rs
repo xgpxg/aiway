@@ -157,7 +157,7 @@ impl Proxy {
 
             // 调用插件转换响应结果
             // 该插件应该对stream_body进行处理
-            PluginFactory::execute(&response_converter, context)
+            PluginFactory::execute(response_converter, context)
                 .await
                 .map_err(|e| ModelError::Unknown(e.to_string()))?;
 
@@ -179,7 +179,7 @@ impl Proxy {
                         }),
                     Err(e) => {
                         log::error!("Stream item error: {:?}", e);
-                        return Err(ModelError::Parse(e.to_string()));
+                        Err(ModelError::Parse(e.to_string()))
                     }
                 }),
                 None => return Err(ModelError::Unknown("stream is none".to_string())),

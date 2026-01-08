@@ -68,10 +68,11 @@ impl Client {
         let value: Value = serde_json::from_str(&response)
             .map_err(|error| APIError::ParseError(error.to_string()))?;
 
-        if let Some(object) = value.as_object() {
-            if object.len() == 1 && object.contains_key("error") {
-                return Err(APIError::InvalidRequestError(value["error"].to_string()));
-            }
+        if let Some(object) = value.as_object()
+            && object.len() == 1
+            && object.contains_key("error")
+        {
+            return Err(APIError::InvalidRequestError(value["error"].to_string()));
         }
 
         Ok(value)
