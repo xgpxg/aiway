@@ -1,25 +1,16 @@
 //! # 网关响应定义
 //! 执行顺序：respond_to -> response fairing
 use crate::openapi::error::GatewayError;
+use crate::report::STATE;
+use protocol::gateway::ResponseContext;
 use reqwest::header;
 use rocket::Request;
-use rocket::http::Status;
+use rocket::futures::stream;
 use rocket::response::Responder;
-use rocket::serde::json::serde_json;
-use std::io::Cursor;
-use tokio::io::AsyncRead;
 use tokio_util::bytes::Bytes;
 
 pub enum GatewayResponse {
-    Raw(u16, Bytes),
-    /// JSON响应
-    #[allow(unused)]
-    Json(serde_json::Value),
-    /// 流式响应，以纯文本返回
-    #[allow(unused)]
-    Stream(Box<dyn AsyncRead + Unpin + Send>),
-    /// SSE响应，以SSE格式返回
-    Sse(Box<dyn AsyncRead + Unpin + Send>),
+    Success,
     /// 错误响应
     Error(GatewayError),
 }
@@ -27,25 +18,7 @@ pub enum GatewayResponse {
 impl<'r> Responder<'r, 'r> for GatewayResponse {
     fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'r> {
         match self {
-            GatewayResponse::Raw(status, bytes) => rocket::response::Response::build()
-                .sized_body(bytes.len(), Cursor::new(bytes.to_vec()))
-                .status(Status::new(status))
-                .ok(),
-            GatewayResponse::Json(data) => {
-                let json = serde_json::to_string(&data).unwrap();
-                rocket::response::Response::build()
-                    .header(rocket::http::ContentType::JSON)
-                    .sized_body(json.len(), Cursor::new(json))
-                    .ok()
-            }
-            GatewayResponse::Stream(reader) => rocket::response::Response::build()
-                .header(rocket::http::ContentType::Plain)
-                .streamed_body(reader)
-                .ok(),
-            GatewayResponse::Sse(reader) => rocket::response::Response::build()
-                .header(rocket::http::ContentType::EventStream)
-                .streamed_body(reader)
-                .ok(),
+            GatewayResponse::Success => rocket::response::Response::build().ok(),
             GatewayResponse::Error(e) => e.respond_to(request),
         }
     }
@@ -53,6 +26,8 @@ impl<'r> Responder<'r, 'r> for GatewayResponse {
 
 pub trait ResponseExt {
     fn is_sse(&self) -> bool;
+
+    async fn into_context(self, context: &ResponseContext);
 }
 impl ResponseExt for reqwest::Response {
     #[inline]
@@ -61,5 +36,43 @@ impl ResponseExt for reqwest::Response {
             return content_type.as_bytes().starts_with(b"text/event-stream");
         }
         false
+    }
+
+    async fn into_context(self, context: &ResponseContext) {
+        use rocket::futures::StreamExt;
+        // 设置状态码
+        context.set_status(self.status().as_u16());
+
+        // 设置响应头
+        context.set_headers(self.headers().iter().map(|(k, v)| {
+            (
+                k.as_str().to_owned(),
+                v.to_str()
+                    .map(|s| s.to_owned())
+                    .unwrap_or_else(|_| String::from_utf8_lossy(v.as_bytes()).to_string()),
+            )
+        }));
+
+        // 处理SSE流
+        if self.is_sse() {
+            // 处理SSE流结束，将这个流合并在响应流的最后
+            let end_handler = stream::once(async {
+                // SSE连接数减1，这里不用处理HTTP连接数，会在cleanup中处理
+                STATE.inc_sse_connect_count(-1);
+                Ok(Bytes::new())
+            });
+
+            let stream = self
+                .bytes_stream()
+                .chain(end_handler)
+                .map(|item| match item {
+                    Ok(item) => Ok(item.to_vec()),
+                    Err(e) => Err(e.into()),
+                });
+            context.set_stream_body(Box::pin(stream));
+
+            return;
+        }
+        context.set_body(self.bytes().await.unwrap().to_vec());
     }
 }

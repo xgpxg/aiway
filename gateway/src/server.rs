@@ -36,7 +36,6 @@
 //!
 //!
 //!
-// use crate::openapi::eep;
 use crate::{Args, fairing, openapi};
 use rocket::data::{ByteUnit, Limits};
 use rocket::fairing::AdHoc;
@@ -77,8 +76,6 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.attach(fairing::lb::LoadBalance::new());
 
     ////////////////////////////////// 响应阶段 //////////////////////////////////
-    // 设置响应上下文
-    builder = builder.attach(fairing::set_response_context::SetResponseContext::new());
     // 路由后置过滤器，可自由配置，串联执行
     builder = builder.attach(fairing::filter::PostFilter::new());
     // 全局后置过滤器（API接口执行完成后，响应客户端前执行），可自由配置，串联执行

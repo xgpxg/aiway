@@ -7,11 +7,12 @@
 //! - 使用覆盖模式，即上下文中的响应数据优先覆盖原始响应中的数据。这是因为，上下文中的数据可能是由插件修改而来，应该优先被设置。
 //!
 use crate::report::STATE;
+use context::{HCM, Headers, skip_if_error};
 use rocket::Request;
 use rocket::fairing::Fairing;
+use rocket::http::hyper::body::Bytes;
 use rocket::http::{Header, Status};
 use std::io::Cursor;
-use context::{skip_if_error, Headers, HCM};
 
 pub struct ResponseData {}
 impl ResponseData {
@@ -49,6 +50,15 @@ impl Fairing for ResponseData {
             && !body.is_empty()
         {
             res.set_sized_body(body.len(), Cursor::new(body.clone()));
+        }
+
+        if let Some(body) = response_context.take_stream_body() {
+            use rocket::futures::StreamExt;
+            let async_read = tokio_util::io::StreamReader::new(body.map(|result| match result {
+                Ok(bytes) => Ok(Bytes::from(bytes)),
+                Err(e) => Err(std::io::Error::other(e)),
+            }));
+            res.set_streamed_body(async_read);
         }
 
         // 添加请求ID

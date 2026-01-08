@@ -6,7 +6,7 @@ use std::pin::Pin;
 #[cfg(feature = "stream")]
 use tokio_stream::Stream;
 
-type StreamError = Box<dyn Error + Send + Sync>;
+type StreamItem = Result<Vec<u8>, Box<dyn Error + Send + Sync>>;
 
 #[derive(Default)]
 pub struct ResponseContext {
@@ -19,7 +19,7 @@ pub struct ResponseContext {
     pub body: SV<Vec<u8>>,
     /// 响应流
     #[cfg(feature = "stream")]
-    pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>>>,
+    pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = StreamItem> + Send>>>>,
 }
 
 impl Debug for ResponseContext {
@@ -77,17 +77,12 @@ impl ResponseContext {
     }
 
     #[cfg(feature = "stream")]
-    pub fn set_stream_body(
-        &self,
-        body: Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>,
-    ) {
+    pub fn set_stream_body(&self, body: Pin<Box<dyn Stream<Item = StreamItem> + Send>>) {
         self.stream_body.set(Some(body));
     }
 
     #[cfg(feature = "stream")]
-    pub fn take_stream_body(
-        &self,
-    ) -> Option<Pin<Box<dyn Stream<Item = Result<Vec<u8>, StreamError>> + Send>>> {
+    pub fn take_stream_body(&self) -> Option<Pin<Box<dyn Stream<Item = StreamItem> + Send>>> {
         self.stream_body.take().unwrap_or_default()
     }
 }

@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 common = { path = "../lib/common" }
-protocol = { path = "../lib/protocol", features = ["rocket", "api-key", "alert"] }
+protocol = { path = "../lib/protocol", features = ["rocket", "api-key", "alert", "stream"] }
 context = { path = "../lib/context" }
 logging = { path = "../lib/logging", features = ["request-log"] }
 loadbalance = { path = "../lib/loadbalance" }

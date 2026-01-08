@@ -16,16 +16,12 @@ mod sse;
 use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;
 use crate::openapi::response::{GatewayResponse, ResponseExt};
-use crate::report::STATE;
+use alert::Alert;
 use context::HttpContextWrapper;
-use reqwest::Url;
+use reqwest::{StatusCode, Url};
 use rocket::data::ToByteUnit;
-use rocket::futures::{StreamExt, stream};
 use rocket::{Data, delete, get, head, options, patch, post, put};
-use std::io;
 use std::path::PathBuf;
-use tokio_util::bytes;
-use tokio_util::io::StreamReader;
 
 async fn set_body(wrapper: &HttpContextWrapper, body: Data<'_>) -> Result<(), GatewayError> {
     wrapper.0.request.set_body(
@@ -94,7 +90,7 @@ pub async fn call_options(wrapper: HttpContextWrapper, path: PathBuf) -> Gateway
 }
 
 async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse {
-    let context = &wrapper.0.request;
+    let request_context = &wrapper.0.request;
     // 获取匹配的路由
     // SAFE: 在routing fairing处理时已经验证，能走到这里来，一定会有值
     //let route = context.get_route().unwrap();
@@ -105,10 +101,10 @@ async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse 
     //log::info!("原始请求路径：{?}", path);
 
     //实际路由路径
-    let path = &context.routing_path;
+    let path = &request_context.routing_path;
 
     // 路由的实际地址，该地址已经有负载均衡处理过，可能是IP或域名
-    let routing_url = context.get_routing_url().unwrap();
+    let routing_url = request_context.get_routing_url().unwrap();
     let mut url = match Url::parse(&format!(
         "{}/{}",
         routing_url.trim_end_matches('/'),
@@ -126,78 +122,53 @@ async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse 
     {
         let mut query_pairs = url.query_pairs_mut();
         query_pairs.clear();
-        for q in context.query.iter() {
+        for q in request_context.query.iter() {
             query_pairs.append_pair(q.key(), q.value());
         }
     }
 
     // 请求头
-    let headers = context.headers.clone();
+    let headers = request_context.headers.clone();
 
     //log::info!("最终请求地址：{} {}", context.method, url);
 
     // 请求方法
-    let method = context.get_method().unwrap_or_default();
+    let method = request_context.get_method().unwrap_or_default();
 
     // 这里clone可能有性能问题
-    let body = context.get_body().cloned();
+    let body = request_context.get_body().cloned();
 
     // 转发请求
     let response = HTTP_CLIENT
         .request(method, url, headers, body.unwrap_or_default())
         .await;
+
+    let response_context = &wrapper.0.response;
     // 获取响应
     match response {
         Ok(response) => match response {
-            // 返回响应
+            // 返回响应（服务本身返回异常，如4xx、5xx时也会走这里）
             Ok(response) => {
-                // 透传状态码
-                let status = response.status();
-                // 处理SSE流
-                if response.is_sse() {
-                    // 处理SSE流结束，将这个流合并在响应流的最后
-                    let end_handler = stream::once(async {
-                        // SSE连接数减1，这里不用处理HTTP连接数，会在cleanup中处理
-                        STATE.inc_sse_connect_count(-1);
-                        Ok(bytes::Bytes::new())
-                    });
-
-                    let stream = response.bytes_stream().chain(end_handler);
-                    let stream_reader =
-                        StreamReader::new(stream.map(|result| result.map_err(io::Error::other)));
-                    return GatewayResponse::Sse(Box::new(Box::pin(stream_reader)));
-                }
-                GatewayResponse::Raw(status.as_u16(), response.bytes().await.unwrap())
+                response.into_context(response_context).await;
+                GatewayResponse::Success
             }
-            // 服务本身错误，如无响应等
+            // 请求服务时错误，如无响应等
             Err(e) => {
                 log::error!("call service error: {:?}", e);
+                response_context.set_status(
+                    e.status()
+                        .unwrap_or(StatusCode::SERVICE_UNAVAILABLE)
+                        .as_u16(),
+                );
                 GatewayResponse::Error(GatewayError::ServiceUnavailable)
             }
         },
         // 网关内部错误，如无可用实例、构建url失败、内部异常等
         Err(e) => {
-            log::error!("{}", e);
+            log::error!("gateway inner error: {}", e);
+            response_context.set_status(502);
+            Alert::error("Gateway Inner Error", &e.to_string());
             GatewayResponse::Error(GatewayError::BadGateway)
         }
     }
-
-    // 封装响应
-
-    // 返回
-
-    // let stream = stream! {
-    //     for i in 0..10 {
-    //         let data = SseEvent::Data(format!("hello world {}", i)).to_string().into_bytes();
-    //         yield Ok::<_, io::Error>(io::Cursor::new(data));
-    //         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-    //     }
-    // };
-    // let stream_reader = Box::new(StreamReader::new(Box::pin(stream)));
-
-    // Json响应
-    //GatewayResponse::Json(context.get_path().into())
-
-    // SSE响应
-    //GatewayResponse::SSE(stream_reader)
 }
