@@ -1,11 +1,11 @@
 use crate::SV;
 use crate::gateway::route::Route;
+use bytes::Bytes;
 use dashmap::DashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::sync::Arc;
-use bytes::Bytes;
 
 /// 请求上下文
 ///
@@ -82,15 +82,13 @@ impl RequestContext {
         self.headers.remove(key);
     }
 
-    /*  pub fn set_query(&self, query: &str) {
-        self.query.set(Some(query.to_string()));
-    }*/
+    pub fn insert_query(&self, name: &str, value: &str) {
+        self.query.insert(name.to_string(), value.to_string());
+    }
 
-    /*  pub fn get_query(&self) -> Option<&str> {
-        self.query
-            .get()
-            .and_then(|opt| opt.as_ref().map(|s| s.as_str()))
-    }*/
+    pub fn get_query(&self, name: &str) -> Option<String> {
+        self.query.get(name).map(|v| v.value().clone())
+    }
 
     pub fn set_body(&self, body: Bytes) {
         self.body.set(body)
@@ -142,44 +140,3 @@ impl RequestContext {
         self.state.remove(key);
     }
 }
-/*
-#[derive(Debug, Default)]
-pub enum Method {
-    #[default]
-    Get,
-    Post,
-    Put,
-    Delete,
-    Head,
-    Options,
-    Patch,
-}
-impl Display for Method {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Method::Get => write!(f, "GET"),
-            Method::Post => write!(f, "POST"),
-            Method::Put => write!(f, "PUT"),
-            Method::Delete => write!(f, "DELETE"),
-            Method::Head => write!(f, "HEAD"),
-            Method::Options => write!(f, "OPTIONS"),
-            Method::Patch => write!(f, "PATCH"),
-        }
-    }
-}
-
-impl From<&str> for Method {
-    fn from(s: &str) -> Self {
-        match s {
-            "GET" | "get" => Method::Get,
-            "POST" | "post" => Method::Post,
-            "PUT" | "put" => Method::Put,
-            "DELETE" | "delete" => Method::Delete,
-            "HEAD" | "head" => Method::Head,
-            "OPTIONS" | "options" => Method::Options,
-            "PATCH" | "patch" => Method::Patch,
-            _ => panic!("Invalid method"),
-        }
-    }
-}
-*/

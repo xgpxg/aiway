@@ -54,45 +54,6 @@ impl Client {
         request
     }
 
-    pub(crate) async fn check_status_code(
-        result: reqwest::Result<Response>,
-    ) -> Result<Response, APIError> {
-        match result {
-            Ok(response) => {
-                if response.status().is_client_error() {
-                    let status = response.status();
-
-                    let text = response
-                        .text()
-                        .await
-                        .map_err(|error| APIError::ParseError(error.to_string()))?;
-
-                    return match status {
-                        StatusCode::BAD_REQUEST => Err(APIError::BadRequestError(text)),
-                        StatusCode::UNAUTHORIZED => Err(APIError::AuthenticationError(text)),
-                        StatusCode::FORBIDDEN => Err(APIError::PermissionError(text)),
-                        StatusCode::NOT_FOUND => Err(APIError::NotFoundError(text)),
-                        StatusCode::GONE => Err(APIError::GoneError(text)),
-                        StatusCode::TOO_MANY_REQUESTS => Err(APIError::RateLimitError(text)),
-                        _ => Err(APIError::UnknownError(status.as_u16(), text)),
-                    };
-                }
-
-                if response.status().is_server_error() {
-                    let text = response
-                        .text()
-                        .await
-                        .map_err(|error| APIError::ParseError(error.to_string()))?;
-
-                    return Err(APIError::ServerError(text));
-                }
-
-                Ok(response)
-            }
-            Err(error) => Err(APIError::ServerError(error.to_string())),
-        }
-    }
-
     pub(crate) async fn post<I, Q>(
         &self,
         url: &str,

@@ -9,7 +9,6 @@ use crate::proxy::request::{
     AudioSpeechRequest, ChatCompletionRequest, CreateImageRequest, ModifyModelName,
 };
 use crate::proxy::response::{ModelError, ModelResponse};
-use bytes::Bytes;
 use dashmap::DashMap;
 use logging::log;
 use openai_dive::v1::resources::audio::AudioSpeechResponse;

@@ -53,23 +53,6 @@ pub enum ModelError {
     Unknown(String),
 }
 
-enum SseEvent {
-    Data(String),
-    Error(String),
-    Done,
-}
-impl SseEvent {
-    fn to_sse_string(&self) -> String {
-        match self {
-            SseEvent::Data(data) => format!("data: {}\n\n", data),
-            SseEvent::Error(error) => {
-                format!("event: error\ndata: {}\n\n", error)
-            }
-            SseEvent::Done => "data: [DONE]\n\n".to_string(),
-        }
-    }
-}
-
 impl<'r> Responder<'r, 'r> for ModelResponse {
     fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'r> {
         match self {
