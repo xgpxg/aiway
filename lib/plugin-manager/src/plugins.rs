@@ -146,7 +146,10 @@ impl PluginFactory {
                 .1
                 .execute(context, &configured_plugin.config)
                 .await
-                .map_err(|e| anyhow::anyhow!(e)),
+                .map_err(|e| {
+                    log::error!("plugin {} execute error: {}", &configured_plugin.name, e);
+                    anyhow::anyhow!(e)
+                }),
             None => bail!(
                 "plugin {} not found in plugin factory",
                 &configured_plugin.name

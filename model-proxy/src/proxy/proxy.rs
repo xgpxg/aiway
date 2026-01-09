@@ -16,7 +16,7 @@ use openai_dive::v1::resources::chat::ChatCompletionChunkResponse;
 use plugin_manager::PluginFactory;
 use protocol::gateway::HttpContext;
 use protocol::model::Provider;
-use reqwest::header::{HeaderMap, HeaderName};
+use reqwest::header::HeaderName;
 use reqwest::{Response, header};
 use rocket::serde::Serialize;
 use serde_json::Value;
@@ -100,10 +100,15 @@ impl Proxy {
             response
                 .headers()
                 .iter()
-                .filter(|(h, _)| h.ne(&header::CONTENT_LENGTH))
+                .filter(|(h, _)| {
+                    h.ne(&header::CONTENT_LENGTH)
+                        && h.ne(&header::X_FRAME_OPTIONS)
+                        && h.ne(&header::X_CONTENT_TYPE_OPTIONS)
+                        && h.ne(&header::X_XSS_PROTECTION)
+                        && h.ne(&HeaderName::from_static("permissions-policy"))
+                })
                 .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string())),
         );
-        // 设置响应body，无论是否需要执行插件，因为后续的结果需要从context的body中获取
         context
             .response
             .set_body(response.bytes().await.unwrap_or_default());

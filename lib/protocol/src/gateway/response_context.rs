@@ -114,4 +114,25 @@ impl ResponseContext {
             .map(|v| serde_json::from_value(v.clone()))
             .transpose()
     }
+
+    pub fn is_success(&self) -> bool {
+        self.status
+            .get()
+            .map(|s| s.unwrap_or(0) >= 200 && s.unwrap_or(0) < 300)
+            .unwrap_or(false)
+    }
+
+    pub fn is_client_error(&self) -> bool {
+        self.status
+            .get()
+            .map(|s| s.unwrap_or(0) >= 400 && s.unwrap_or(0) < 500)
+            .unwrap_or(false)
+    }
+
+    pub fn is_server_error(&self) -> bool {
+        self.status
+            .get()
+            .map(|s| s.unwrap_or(0) >= 500)
+            .unwrap_or(false)
+    }
 }

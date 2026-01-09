@@ -8,26 +8,26 @@ use rocket::Request;
 use rocket::futures::{Stream, StreamExt};
 use rocket::http::{Header, Status};
 use rocket::response::Responder;
-use rocket::response::stream::{Event, EventStream, TextStream};
+use rocket::response::stream::{Event, EventStream};
 use serde_json::json;
 use std::pin::Pin;
 
 pub enum ModelResponse {
     /// 对话补全（非流式）
-    ChatCompletionResponse(u16, DashMap<String, String>,ChatCompletionResponse),
+    ChatCompletionResponse(u16, DashMap<String, String>, ChatCompletionResponse),
     /// 对话补全（流式）
     ChatCompletionStreamResponse(
         Pin<Box<dyn Stream<Item = Result<ChatCompletionChunkResponse, ModelError>> + Send>>,
     ),
     /// 嵌入
     #[allow(unused)]
-    EmbeddingResponse(u16, DashMap<String, String>,EmbeddingResponse),
+    EmbeddingResponse(u16, DashMap<String, String>, EmbeddingResponse),
 
     /// 语音生成（非流式）
     AudioSpeechResponse(u16, DashMap<String, String>, AudioSpeechResponse),
 
     /// 创建图像
-    CreateImageResponse(u16, DashMap<String, String>,ImageResponse),
+    CreateImageResponse(u16, DashMap<String, String>, ImageResponse),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -56,31 +56,34 @@ pub enum ModelError {
 impl<'r> Responder<'r, 'r> for ModelResponse {
     fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'r> {
         match self {
-            ModelResponse::ChatCompletionResponse(status, headers, response) => json!(&response).respond_to(request),
+            ModelResponse::ChatCompletionResponse(status, headers, response) => {
+                let mut response = json!(&response).respond_to(request)?;
+                response.set_status(Status::new(status));
+
+                for (key, value) in headers {
+                    response.set_header(Header::new(key, value));
+                }
+                Ok(response)
+            }
             ModelResponse::ChatCompletionStreamResponse(stream) => {
                 let sse_stream = stream.map(move |result| match result {
-                    Ok(chunk) => {
-                        Event::json(&chunk)
-                        /*SseEvent::Data(serde_json::to_string(&chunk).unwrap_or_default())
-                        .to_sse_string()*/
-                    }
+                    Ok(chunk) => Event::json(&chunk),
                     Err(e) => Event::data(e.to_string()).event("error"),
                 });
-                // .chain(rocket::futures::stream::once(async {
-                //     //SseEvent::Done.to_sse_string()
-                //     Event
-                // }));
 
                 let response = EventStream::from(sse_stream).respond_to(request)?;
 
-                // response.set_header(rocket::http::ContentType::new("text", "event-stream"));
-                // response.set_header(Header::new("Cache-Control", "no-cache"));
-                // response.set_header(Header::new("Connection", "keep-alive"));
-                // response.set_header(Header::new("X-Accel-Buffering", "no"));
-
                 Ok(response)
             }
-            ModelResponse::EmbeddingResponse(status, headers, response) => json!(&response).respond_to(request),
+            ModelResponse::EmbeddingResponse(status, headers, response) => {
+                let mut response = json!(&response).respond_to(request)?;
+                response.set_status(Status::new(status));
+
+                for (key, value) in headers {
+                    response.set_header(Header::new(key, value));
+                }
+                Ok(response)
+            }
             ModelResponse::AudioSpeechResponse(status, headers, response) => {
                 let mut response = response.bytes.to_vec().respond_to(request)?;
                 response.set_status(Status::new(status));
@@ -91,7 +94,15 @@ impl<'r> Responder<'r, 'r> for ModelResponse {
 
                 Ok(response)
             }
-            ModelResponse::CreateImageResponse(status, headers, response) => json!(&response).respond_to(request),
+            ModelResponse::CreateImageResponse(status, headers, response) => {
+                let mut response = json!(&response).respond_to(request)?;
+                response.set_status(Status::new(status));
+
+                for (key, value) in headers {
+                    response.set_header(Header::new(key, value));
+                }
+                Ok(response)
+            }
         }
     }
 }

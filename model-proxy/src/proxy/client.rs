@@ -1,7 +1,6 @@
 use aha_reqwest_eventsource::{Event, EventSource, RequestBuilderExt};
-use bytes::Bytes;
 use openai_dive::v1::error::{APIError, InvalidRequestError};
-use reqwest::{Method, RequestBuilder, Response, StatusCode};
+use reqwest::{Method, RequestBuilder, Response};
 use rocket::futures::Stream;
 use rocket::serde::DeserializeOwned;
 use std::collections::HashMap;
