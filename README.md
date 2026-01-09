@@ -15,6 +15,7 @@
 支持的平台：
 
 - Linux(x86_64)
+- Linux(arm64)
 - MacOS(arm64)
 
 📑 [文档](https://aiway.coderbox.cn/doc.html)

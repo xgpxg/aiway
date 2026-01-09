@@ -14,8 +14,9 @@ Aiway is a high-performance API gateway implemented in Rust.
 
 ## Supported Platforms
 
-- Linux
-- macOS
+- Linux(x86_64)
+- Linux(arm64)
+- macOS(x86_64)
 
 ## Quick Start
 
