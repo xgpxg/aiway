@@ -19,4 +19,3 @@ tokio = { version = "1", features = ["macros"] }
 
 [features]
 model = ["protocol/model"]
-stream = ["protocol/stream"]

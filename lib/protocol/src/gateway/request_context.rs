@@ -5,6 +5,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::sync::Arc;
+use bytes::Bytes;
 
 /// 请求上下文
 ///
@@ -34,8 +35,7 @@ pub struct RequestContext {
     /// 请求体
     ///
     /// 理论上，大部分请求体都是Json，可以使用serde_json序列化
-    /// TODO 文件如何处理？
-    pub body: SV<Vec<u8>>,
+    pub body: SV<Bytes>,
     /// 扩展数据
     pub state: DashMap<String, Value>,
     /// 路由配置信息
@@ -70,7 +70,7 @@ impl RequestContext {
         self.path.get().cloned().unwrap_or_default()
     }
 
-    pub fn set_header(&self, key: &str, value: &str) {
+    pub fn insert_header(&self, key: &str, value: &str) {
         self.headers.insert(key.to_string(), value.to_string());
     }
 
@@ -92,11 +92,11 @@ impl RequestContext {
             .and_then(|opt| opt.as_ref().map(|s| s.as_str()))
     }*/
 
-    pub fn set_body(&self, body: Vec<u8>) {
+    pub fn set_body(&self, body: Bytes) {
         self.body.set(body)
     }
 
-    pub fn get_body(&self) -> Option<&Vec<u8>> {
+    pub fn get_body(&self) -> Option<&Bytes> {
         self.body.get()
     }
 

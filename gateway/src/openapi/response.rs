@@ -73,6 +73,6 @@ impl ResponseExt for reqwest::Response {
 
             return;
         }
-        context.set_body(self.bytes().await.unwrap().to_vec());
+        context.set_body(self.bytes().await.unwrap());
     }
 }

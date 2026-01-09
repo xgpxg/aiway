@@ -9,6 +9,7 @@ use crate::proxy::request::{
     AudioSpeechRequest, ChatCompletionRequest, CreateImageRequest, ModifyModelName,
 };
 use crate::proxy::response::{ModelError, ModelResponse};
+use bytes::Bytes;
 use dashmap::DashMap;
 use logging::log;
 use openai_dive::v1::resources::audio::AudioSpeechResponse;
@@ -16,6 +17,9 @@ use openai_dive::v1::resources::chat::ChatCompletionChunkResponse;
 use plugin_manager::PluginFactory;
 use protocol::gateway::HttpContext;
 use protocol::model::Provider;
+use reqwest::header::{HeaderMap, HeaderName};
+use reqwest::{Response, header};
+use rocket::serde::Serialize;
 use serde_json::Value;
 use std::sync::LazyLock;
 use tokio_stream::StreamExt;
@@ -40,46 +44,6 @@ macro_rules! get_or_create_client {
                 client
             })
     }};
-}
-
-/// 调用插件转换请求参数
-macro_rules! convert_request {
-    ($req:expr, $provider:expr, $context:expr) => {
-        // 设置请求body，无论是否需要执行插件，因为后续的结果需要从context的body中获取
-        $context
-            .request
-            .set_body(serde_json::to_vec(&$req).map_err(|e| ModelError::Parse(e.to_string()))?);
-        if let Some(converter) = &$provider.request_converter {
-            // 调用插件执行转换，在插件内部更新context的body
-            PluginFactory::execute(converter, $context)
-                .await
-                .map_err(|e| ModelError::Unknown(e.to_string()))?;
-        }
-    };
-}
-
-/// 调用插件转换响应结果
-///
-/// 注意：仅适用于 非流式 响应
-macro_rules! convert_response {
-    ($response:expr, $provider:expr, $context:expr) => {
-        // 设置响应body，无论是否需要执行插件，因为后续的结果需要从context的body中获取
-        $context.response.set_body(
-            serde_json::to_vec(&$response).map_err(|e| ModelError::Parse(e.to_string()))?,
-        );
-        if let Some(converter) = &$provider.response_converter {
-            // 调用插件执行转换，在插件内部更新context的body
-            PluginFactory::execute(converter, $context)
-                .await
-                .map_err(|e| ModelError::Unknown(e.to_string()))?;
-        } else {
-            /*let response =
-                serde_json::to_value($response).map_err(|e| ModelError::Unknown(e.to_string()))?;*/
-            $context.response.set_body(
-                serde_json::to_vec(&$response).map_err(|e| ModelError::Parse(e.to_string()))?,
-            );
-        }
-    };
 }
 
 impl Proxy {
@@ -107,6 +71,53 @@ impl Proxy {
         }
     }
 
+    async fn convert_request<R: Serialize>(
+        request_body: R,
+        provider: &Provider,
+        context: &HttpContext,
+    ) -> Result<(), ModelError> {
+        context.request.set_body(
+            serde_json::to_vec(&request_body)
+                .map_err(|e| ModelError::Parse(e.to_string()))?
+                .into(),
+        );
+        context.request.insert_state("provider", provider.clone());
+        if let Some(converter) = &provider.request_converter {
+            // 调用插件执行转换，在插件内部更新context的body
+            PluginFactory::execute(converter, context)
+                .await
+                .map_err(|e| ModelError::PluginError(e.to_string()))?;
+        }
+        Ok(())
+    }
+
+    async fn convert_response(
+        response: Response,
+        provider: &Provider,
+        context: &HttpContext,
+    ) -> Result<(), ModelError> {
+        context.response.set_status(response.status().as_u16());
+        context.response.set_headers(
+            response
+                .headers()
+                .iter()
+                .filter(|(h, _)| h.ne(&header::CONTENT_LENGTH))
+                .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string())),
+        );
+        // 设置响应body，无论是否需要执行插件，因为后续的结果需要从context的body中获取
+        context
+            .response
+            .set_body(response.bytes().await.unwrap_or_default());
+        if let Some(converter) = &provider.response_converter {
+            // 调用插件执行转换，在插件内部更新context的body
+            PluginFactory::execute(converter, context)
+                .await
+                .map_err(|e| ModelError::PluginError(e.to_string()))?;
+        }
+
+        Ok(())
+    }
+
     /// 对话补全
     pub async fn chat_completions(
         req: ChatCompletionRequest,
@@ -115,9 +126,9 @@ impl Proxy {
     ) -> Result<ModelResponse, ModelError> {
         let client = get_or_create_client!(req.model, provider);
         let req = Self::modify_model_name(req, provider);
-        convert_request!(&req, provider, context);
+        Self::convert_request(&req, provider, context).await?;
 
-        let body = context.request.get_body().cloned().unwrap_or_default();
+        let request_body = context.request.get_body().cloned().unwrap_or_default();
 
         if req.stream.unwrap_or(false) {
             // 通常情况下，模型提供商的对话补全接口都兼容OpenAI格式，无需转换
@@ -127,7 +138,9 @@ impl Proxy {
                 response_converter
             } else {
                 // 请求提供商
-                let response = client.post_stream(&provider.api_url, body, None).await;
+                let response = client
+                    .post_stream(&provider.api_url, request_body, None)
+                    .await;
                 // 转换错误类型：ApiError -> ModelError
                 let stream = response.map(|item| item.map_err(ModelError::ApiError));
 
@@ -137,7 +150,7 @@ impl Proxy {
             };
             // 请求提供商，以Value格式返回
             let response = client
-                .post_stream::<_, Value, _>(&provider.api_url, body, None)
+                .post_stream::<_, Value, _>(&provider.api_url, request_body, None)
                 .await;
             // 转为context的stream_body支持的stream
             let stream = response.map(|item| {
@@ -156,10 +169,10 @@ impl Proxy {
             context.response.set_stream_body(Box::pin(stream));
 
             // 调用插件转换响应结果
-            // 该插件应该对stream_body进行处理
+            // 该插件应该对stream_body进行处理而不是body
             PluginFactory::execute(response_converter, context)
                 .await
-                .map_err(|e| ModelError::Unknown(e.to_string()))?;
+                .map_err(|e| ModelError::PluginError(e.to_string()))?;
 
             // 获取转换后的stream
             let stream = context.response.take_stream_body();
@@ -190,22 +203,16 @@ impl Proxy {
             )))
         } else {
             // 非流式
-            let response = client
-                .post::<_, Value, _>(&provider.api_url, body, None)
-                .await;
-            match response {
-                Ok(response) => {
-                    convert_response!(response, provider, context);
-                    let response = context.response.get_body().cloned().unwrap_or_default();
-                    let response = serde_json::from_slice(&response)
-                        .map_err(|e| ModelError::Parse(e.to_string()))?;
-                    Ok(ModelResponse::ChatCompletionResponse(response))
-                }
-                Err(e) => {
-                    log::error!("request model api error: {:?}", e);
-                    Err(ModelError::ApiError(e))
-                }
-            }
+            let response = client.post(&provider.api_url, request_body, None).await?;
+            Self::convert_response(response, provider, context).await?;
+            let body = context.response.get_body().cloned().unwrap_or_default();
+            let body =
+                serde_json::from_slice(&body).map_err(|e| ModelError::Parse(e.to_string()))?;
+            Ok(ModelResponse::ChatCompletionResponse(
+                context.response.get_status().unwrap_or_default(),
+                context.response.headers.clone(),
+                body,
+            ))
         }
     }
 
@@ -217,27 +224,20 @@ impl Proxy {
     ) -> Result<ModelResponse, ModelError> {
         let client = get_or_create_client!(req.model, provider);
         let req = Self::modify_model_name(req, provider);
-        convert_request!(req, provider, context);
+        Self::convert_request(&req, provider, context).await?;
 
-        let body = context.request.get_body().cloned().unwrap_or_default();
+        let request_body = context.request.get_body().cloned().unwrap_or_default();
+        let response = client.post(&provider.api_url, request_body, None).await?;
 
-        let response = client.post_raw(&provider.api_url, body, None).await;
+        Self::convert_response(response, provider, context).await?;
 
-        match response {
-            Ok(response) => {
-                convert_response!(response, provider, context);
-                let response = context.response.get_body().cloned().unwrap_or_default();
-                let bytes = serde_json::from_slice(&response)
-                    .map_err(|e| ModelError::Parse(e.to_string()))?;
-                Ok(ModelResponse::AudioSpeechResponse(AudioSpeechResponse {
-                    bytes,
-                }))
-            }
-            Err(e) => {
-                log::error!("request model api error: {:?}", e);
-                Err(ModelError::ApiError(e))
-            }
-        }
+        Ok(ModelResponse::AudioSpeechResponse(
+            context.response.get_status().unwrap_or_default(),
+            context.response.headers.clone(),
+            AudioSpeechResponse {
+                bytes: context.response.body.take().unwrap(),
+            },
+        ))
     }
 
     /// 创建图像(文生图)
@@ -246,29 +246,22 @@ impl Proxy {
         provider: &Provider,
         context: &HttpContext,
     ) -> Result<ModelResponse, ModelError> {
-        context.request.insert_state("provider", provider.clone());
         let client = get_or_create_client!(req.model.clone().unwrap_or_default(), provider);
         let req = Self::modify_model_name(req, provider);
-        convert_request!(req, provider, context);
+        Self::convert_request(&req, provider, context).await?;
 
-        let body = context.request.get_body().cloned().unwrap_or_default();
+        let request_body = context.request.get_body().cloned().unwrap_or_default();
 
-        let response = client
-            .post::<_, Value, _>(&provider.api_url, body, None)
-            .await;
+        let response = client.post(&provider.api_url, request_body, None).await?;
 
-        match response {
-            Ok(response) => {
-                convert_response!(response, provider, context);
-                let response = context.response.get_body().cloned().unwrap_or_default();
-                let response = serde_json::from_slice(&response)
-                    .map_err(|e| ModelError::Parse(e.to_string()))?;
-                Ok(ModelResponse::CreateImageResponse(response))
-            }
-            Err(e) => {
-                log::error!("request model api error: {:?}", e);
-                Err(ModelError::ApiError(e))
-            }
-        }
+        Self::convert_response(response, provider, context).await?;
+
+        let body = context.response.body.take().unwrap_or_default();
+        let body = serde_json::from_slice(&body).map_err(|e| ModelError::Parse(e.to_string()))?;
+        Ok(ModelResponse::CreateImageResponse(
+            context.response.get_status().unwrap_or_default(),
+            context.response.headers.clone(),
+            body,
+        ))
     }
 }

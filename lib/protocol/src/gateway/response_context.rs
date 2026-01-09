@@ -1,14 +1,17 @@
 use crate::SV;
+use bytes::Bytes;
 use dashmap::DashMap;
+use serde_json::Value;
 use std::error::Error;
 use std::fmt::Debug;
 use std::pin::Pin;
-use bytes::Bytes;
-#[cfg(feature = "stream")]
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use tokio_stream::Stream;
 
 type StreamItem = Result<Vec<u8>, Box<dyn Error + Send + Sync>>;
 
+/// 响应上下文
 #[derive(Default)]
 pub struct ResponseContext {
     pub response_ts: SV<i64>,
@@ -19,8 +22,9 @@ pub struct ResponseContext {
     /// 响应体
     pub body: SV<Bytes>,
     /// 响应流
-    #[cfg(feature = "stream")]
     pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = StreamItem> + Send>>>>,
+    /// 扩展数据
+    pub state: DashMap<String, Value>,
 }
 
 impl Debug for ResponseContext {
@@ -30,7 +34,7 @@ impl Debug for ResponseContext {
             .field("status", &self.status)
             .field("headers", &self.headers)
             .field("body", &self.body)
-            .field("stream_body", &"Stream<Item = Vec<u8>>")
+            //.field("stream_body", &"Stream<Item = Vec<u8>>")
             .finish()
     }
 }
@@ -43,6 +47,7 @@ impl ResponseContext {
     pub fn get_response_ts(&self) -> i64 {
         *self.response_ts.get().unwrap_or(&0)
     }
+
     pub fn set_status(&self, status: u16) {
         self.status.set(Some(status));
     }
@@ -51,7 +56,7 @@ impl ResponseContext {
         self.status.get().and_then(|opt| *opt)
     }
 
-    pub fn set_header(&self, key: &str, value: &str) {
+    pub fn insert_header(&self, key: &str, value: &str) {
         self.headers.insert(key.to_string(), value.to_string());
     }
 
@@ -69,6 +74,10 @@ impl ResponseContext {
         self.headers.remove(key);
     }
 
+    pub fn clear_headers(&self) {
+        self.headers.clear();
+    }
+
     pub fn set_body(&self, body: Bytes) {
         self.body.set(body)
     }
@@ -77,13 +86,32 @@ impl ResponseContext {
         self.body.get()
     }
 
-    #[cfg(feature = "stream")]
+    pub fn clear_body(&self) {
+        self.body.set(Bytes::new());
+    }
+
     pub fn set_stream_body(&self, body: Pin<Box<dyn Stream<Item = StreamItem> + Send>>) {
         self.stream_body.set(Some(body));
     }
 
-    #[cfg(feature = "stream")]
     pub fn take_stream_body(&self) -> Option<Pin<Box<dyn Stream<Item = StreamItem> + Send>>> {
         self.stream_body.take().unwrap_or_default()
+    }
+
+    pub fn insert_state<T: Serialize>(&self, key: &str, value: T) {
+        self.state.insert(
+            key.to_string(),
+            serde_json::to_value(value).expect("Failed to serialize state value"),
+        );
+    }
+
+    pub fn get_state<T: DeserializeOwned>(
+        &self,
+        key: &str,
+    ) -> Result<Option<T>, serde_json::Error> {
+        self.state
+            .get(key)
+            .map(|v| serde_json::from_value(v.clone()))
+            .transpose()
     }
 }

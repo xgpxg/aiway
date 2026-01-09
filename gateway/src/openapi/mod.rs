@@ -29,7 +29,8 @@ async fn set_body(wrapper: &HttpContextWrapper, body: Data<'_>) -> Result<(), Ga
             .into_bytes()
             .await
             .map_err(|e| GatewayError::IO(e.to_string()))?
-            .to_vec(),
+            .to_vec()
+            .into(),
     );
     Ok(())
 }

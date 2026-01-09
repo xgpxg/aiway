@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 logging = { path = "../lib/logging" }
 alert = { path = "../lib/alert" }
-protocol = { path = "../lib/protocol", features = ["model", "stream"] }
+protocol = { path = "../lib/protocol", features = ["model"] }
 context = { path = "../lib/context" }
 plugin = { path = "../lib/plugin" }
 plugin-manager = { path = "../lib/plugin-manager" }

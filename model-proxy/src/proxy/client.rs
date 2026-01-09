@@ -4,7 +4,6 @@ use openai_dive::v1::error::{APIError, InvalidRequestError};
 use reqwest::{Method, RequestBuilder, Response, StatusCode};
 use rocket::futures::Stream;
 use rocket::serde::DeserializeOwned;
-use serde_json::Value;
 use std::collections::HashMap;
 use std::pin::Pin;
 use tokio_stream::StreamExt;
@@ -55,28 +54,6 @@ impl Client {
         request
     }
 
-    pub(crate) fn format_response<R: DeserializeOwned>(response: String) -> Result<R, APIError> {
-        let value = Self::validate_response(response)?;
-
-        let value: R = serde_json::from_value(value)
-            .map_err(|error| APIError::ParseError(error.to_string()))?;
-
-        Ok(value)
-    }
-
-    pub(crate) fn validate_response(response: String) -> Result<Value, APIError> {
-        let value: Value = serde_json::from_str(&response)
-            .map_err(|error| APIError::ParseError(error.to_string()))?;
-
-        if let Some(object) = value.as_object()
-            && object.len() == 1
-            && object.contains_key("error")
-        {
-            return Err(APIError::InvalidRequestError(value["error"].to_string()));
-        }
-
-        Ok(value)
-    }
     pub(crate) async fn check_status_code(
         result: reqwest::Result<Response>,
     ) -> Result<Response, APIError> {
@@ -101,35 +78,27 @@ impl Client {
                     };
                 }
 
+                if response.status().is_server_error() {
+                    let text = response
+                        .text()
+                        .await
+                        .map_err(|error| APIError::ParseError(error.to_string()))?;
+
+                    return Err(APIError::ServerError(text));
+                }
+
                 Ok(response)
             }
             Err(error) => Err(APIError::ServerError(error.to_string())),
         }
     }
-    pub async fn post<I, O, Q>(&self, url: &str, body: I, query: Q) -> Result<O, APIError>
-    where
-        I: Into<reqwest::Body>,
-        O: DeserializeOwned,
-        Q: Into<Option<HashMap<String, String>>>,
-    {
-        let response = self
-            .build_request(Method::POST, url, Some(MIME_TYPE_APPLICATION_JSON))
-            .query(&query.into())
-            .body(body.into())
-            .send()
-            .await;
 
-        let response = Self::check_status_code(response).await?;
-
-        let response_text = response
-            .text()
-            .await
-            .map_err(|error| APIError::ParseError(error.to_string()))?;
-
-        Self::format_response(response_text)
-    }
-
-    pub async fn post_raw<I, Q>(&self, url: &str, body: I, query: Q) -> Result<Bytes, APIError>
+    pub(crate) async fn post<I, Q>(
+        &self,
+        url: &str,
+        body: I,
+        query: Q,
+    ) -> Result<Response, APIError>
     where
         I: Into<reqwest::Body>,
         Q: Into<Option<HashMap<String, String>>>,
@@ -140,18 +109,24 @@ impl Client {
             .body(body.into())
             .send()
             .await;
-        let response = match Self::check_status_code(response).await {
-            Ok(response) => response,
-            Err(error) => return Err(error),
-        };
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|error| APIError::ParseError(error.to_string()))?;
-        Ok(bytes)
+
+        // 校验响应状态码，对于400-599的映射到APIError
+        // let mut response = match Self::check_status_code(response).await {
+        //     Ok(response) => response,
+        //     Err(error) => return Err(error),
+        // };
+        //
+        // response.headers_mut().remove("Content-Length");
+
+        // let bytes = response
+        //     .bytes()
+        //     .await
+        //     .map_err(|error| APIError::ParseError(error.to_string()))?;
+
+        response.map_err(|error| APIError::ServerError(error.to_string()))
     }
 
-    pub async fn post_stream<I, O, Q>(&self, url: &str, body: I, query: Q) -> ModelStream<O>
+    pub(crate) async fn post_stream<I, O, Q>(&self, url: &str, body: I, query: Q) -> ModelStream<O>
     where
         I: Into<reqwest::Body>,
         O: DeserializeOwned + Send + 'static,
