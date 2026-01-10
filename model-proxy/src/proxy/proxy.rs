@@ -95,7 +95,6 @@ impl Proxy {
         provider: &Provider,
         context: &HttpContext,
     ) -> Result<(), ModelError> {
-        println!("response: {:?}", response);
         context.response.set_status(response.status().as_u16());
         context.response.set_headers(
             response
