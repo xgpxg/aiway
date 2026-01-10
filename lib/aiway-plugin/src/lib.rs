@@ -25,9 +25,11 @@
 //!
 //! ## 使用方式
 //! ```rust
-//! // 示例插件
-//! use plugin::plugin_version;
+//! use aiway_plugin::protocol::gateway::HttpContext;
+//! use aiway_plugin::serde_json::Value;
+//! use aiway_plugin::{Plugin, PluginError, PluginInfo, Version, async_trait, export, plugin_version};
 //!
+//! // 示例插件
 //! pub struct DemoPlugin;
 //!
 //! impl DemoPlugin {
@@ -35,6 +37,7 @@
 //!         Self {}
 //!     }
 //! }
+//!
 //! #[async_trait]
 //! impl Plugin for DemoPlugin {
 //!     fn name(&self) -> &'static str {
@@ -50,9 +53,10 @@
 //!     }
 //!
 //!     // 实现插件逻辑
-//!     async fn execute(&self, context: &HttpContext, config: &Value) -> Result<(), PluginError> {
-//!         println!("run demo plugin, context: {:?}", context);
-//!         Ok(())
+//!     async fn execute(&self, _context: &HttpContext, _config: &Value) -> Result<Value, PluginError> {
+//!         //println!("run demo plugin, context: {:?}", context);
+//!         //println!("config: {:?}", config);
+//!         Ok(Default::default())
 //!     }
 //! }
 //!
@@ -60,16 +64,19 @@
 //! export!(DemoPlugin);
 //! ```
 //!
+//! ## 插件仓库
+//! https://github.com/xgpxg/aiway-plugins
+//!
 
 mod macros;
 mod manager;
 mod network;
 
 use crate::network::NETWORK;
+pub use aiway_protocol as protocol;
 pub use async_trait::async_trait;
 use libloading::Symbol;
 pub use manager::PluginManager;
-pub use aiway_protocol as protocol;
 use protocol::gateway::HttpContext;
 pub use semver::Version;
 use serde::{Deserialize, Serialize};
