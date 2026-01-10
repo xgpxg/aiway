@@ -34,7 +34,7 @@ pub struct RequestContext {
     pub query: DashMap<String, String>,
     /// 请求体
     pub body: SV<Bytes>,
-    /// 扩展数据
+    /// 自定义的扩展数据
     pub state: DashMap<String, Value>,
     /// 路由配置信息
     ///

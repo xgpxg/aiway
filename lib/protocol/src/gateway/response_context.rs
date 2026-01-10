@@ -23,7 +23,7 @@ pub struct ResponseContext {
     pub body: SV<Bytes>,
     /// 响应流
     pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = StreamItem> + Send>>>>,
-    /// 扩展数据
+    /// 自定义的扩展数据
     pub state: DashMap<String, Value>,
 }
 
