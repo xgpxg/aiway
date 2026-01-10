@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-protocol = {path = "../protocol"}
+aiway-protocol = {path = "../aiway-protocol"}
 rocket = { version = "0.5"}
 dashmap = "6.1"
 uuid = { version = "1.18", features = ["v4"] }

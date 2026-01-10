@@ -1,3 +1,23 @@
 [workspace]
 resolver = "3"
-members = ["console", "gateway", "message", "lib/logging", "lib/plugin", "lib/pubsub", "lib/security", "lib/protocol", "lib/sdk", "test-server", "lib/loadbalance", "lib/cache", "cli", "aiway", "logg", "lib/alert", "model-proxy", "lib/plugin-manager", "lib/context"]
+members = [
+    "console",
+    "gateway",
+    "message",
+    "lib/logging",
+    "lib/aiway-plugin",
+    "lib/pubsub",
+    "lib/security",
+    "lib/aiway-protocol",
+    "lib/sdk",
+    "test-server",
+    "lib/loadbalance",
+    "lib/cache",
+    "cli",
+    "aiway",
+    "logg",
+    "lib/alert",
+    "model-proxy",
+    "lib/plugin-manager",
+    "lib/context"
+]

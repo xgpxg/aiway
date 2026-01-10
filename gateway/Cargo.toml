@@ -5,11 +5,11 @@ edition = "2024"
 
 [dependencies]
 common = { path = "../lib/common" }
-protocol = { path = "../lib/protocol", features = ["rocket", "api-key", "alert"] }
+aiway-protocol = { path = "../lib/aiway-protocol", features = ["rocket", "api-key", "alert"] }
 context = { path = "../lib/context" }
 logging = { path = "../lib/logging", features = ["request-log"] }
 loadbalance = { path = "../lib/loadbalance" }
-plugin = { path = "../lib/plugin" }
+aiway-plugin = { path = "../lib/aiway-plugin" }
 cache = { path = "../lib/cache", optional = true }
 alert = { path = "../lib/alert" }
 #pubsub = { path = "../lib/pubsub" }

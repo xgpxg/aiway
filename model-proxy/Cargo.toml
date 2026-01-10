@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 logging = { path = "../lib/logging" }
 alert = { path = "../lib/alert" }
-protocol = { path = "../lib/protocol", features = ["model"] }
+aiway-protocol = { path = "../lib/aiway-protocol", features = ["model"] }
 context = { path = "../lib/context" }
-plugin = { path = "../lib/plugin" }
+aiway-plugin = { path = "../lib/aiway-plugin" }
 plugin-manager = { path = "../lib/plugin-manager" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }

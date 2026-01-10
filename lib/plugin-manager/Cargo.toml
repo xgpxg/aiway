@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-protocol = { path = "../protocol" }
+aiway-protocol = { path = "../aiway-protocol" }
 logging = { path = "../logging" }
-plugin = { path = "../plugin" }
+aiway-plugin = { path = "../aiway-plugin" }
 serde = "1.0"
 serde_json = "1.0"
 tokio = { version = "1", features = ["macros"] }
