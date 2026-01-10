@@ -19,7 +19,7 @@ pub struct RequestContext {
     pub request_id: String,
     /// 收到请求的时间戳，毫秒
     pub request_ts: i64,
-    /// 请求方法
+    /// 请求方法：`GET` | `POST` | `PUT` | `DELETE` | `PATCH` | `OPTIONS` | `HEAD`
     pub method: SV<String>,
     /// Host
     ///
@@ -33,22 +33,20 @@ pub struct RequestContext {
     /// 请求参数
     pub query: DashMap<String, String>,
     /// 请求体
-    ///
-    /// 理论上，大部分请求体都是Json，可以使用serde_json序列化
     pub body: SV<Bytes>,
     /// 扩展数据
     pub state: DashMap<String, Value>,
     /// 路由配置信息
     ///
     /// 路由由网关根据当前请求的path匹配得到，通常情况下，路由不应该手动修改。
-    /// 由于Route是网关级别的配置，对全局有效，所以使用Arc来共享。
+    /// 由于Route是网关级别的配置，对全局有效，所以使用Arc来保持共享状态。
     pub route: SV<Arc<Route>>,
     /// 路由目标地址，可以是域名或IP，由负载均衡Fairing设置
     pub routing_url: SV<String>,
-    /// 实际路由路径
-    ///
-    /// 默认为网关接收到的原始路径，可以通过插件改写。
-    pub routing_path: SV<String>,
+    // /// 实际路由路径
+    // ///
+    // /// 默认为网关接收到的原始路径，可以通过插件改写。
+    // pub routing_path: SV<String>,
 }
 
 impl RequestContext {
@@ -114,12 +112,12 @@ impl RequestContext {
         self.routing_url.get()
     }
 
-    pub fn set_routing_path(&self, path: String) {
-        self.routing_path.set(path);
-    }
-    pub fn get_routing_path(&self) -> Option<&String> {
-        self.routing_path.get()
-    }
+    // pub fn set_routing_path(&self, path: String) {
+    //     self.routing_path.set(path);
+    // }
+    // pub fn get_routing_path(&self) -> Option<&String> {
+    //     self.routing_path.get()
+    // }
 
     pub fn insert_state<T: Serialize>(&self, key: &str, value: T) {
         self.state.insert(

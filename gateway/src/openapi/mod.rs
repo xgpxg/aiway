@@ -92,24 +92,16 @@ pub async fn call_options(wrapper: HttpContextWrapper, path: PathBuf) -> Gateway
 
 async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse {
     let request_context = &wrapper.0.request;
-    // 获取匹配的路由
-    // SAFE: 在routing fairing处理时已经验证，能走到这里来，一定会有值
-    //let route = context.get_route().unwrap();
-    //log::info!("匹配到路由：{:?}", route);
 
-    // 原始请求路径
-    //let path = path.to_string_lossy();
-    //log::info!("原始请求路径：{?}", path);
+    // 实际路由路径
+    let path = &request_context.get_path();
 
-    //实际路由路径
-    let path = &request_context.routing_path;
-
-    // 路由的实际地址，该地址已经有负载均衡处理过，可能是IP或域名
+    // 路由的实际地址，该地址已经由负载均衡处理过，可能是IP或域名
     let routing_url = request_context.get_routing_url().unwrap();
     let mut url = match Url::parse(&format!(
         "{}/{}",
         routing_url.trim_end_matches('/'),
-        path.get().map(|p| p.trim_start_matches("/")).unwrap_or("")
+        path.trim_start_matches("/")
     )) {
         Ok(url) => url,
         // 理论上不会执行到这里

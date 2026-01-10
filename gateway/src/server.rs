@@ -63,10 +63,10 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.attach(fairing::security::PreSecurity::new());
     // 提取请求上下文
     builder = builder.attach(fairing::request::RequestData::new());
-    // 全局前置过滤器，可自由配置，串联执行，对整个网关生效
-    builder = builder.attach(fairing::global_filter::GlobalPreFilter::new());
     // 路由匹配
     builder = builder.attach(fairing::routing::Routing::new());
+    // 全局前置过滤器，可自由配置，串联执行，对整个网关生效，可做全局安全验证、监控、日志记录等。
+    builder = builder.attach(fairing::global_filter::GlobalPreFilter::new());
     // 鉴权，即验证API Key
     builder = builder.attach(fairing::auth::Authentication::new());
     // 路由前置过滤器，可自由配置，串联执行，对单个路由生效，由于插件本身要求设计为无状态，所以，理论上各个路由的相同插件互不影响

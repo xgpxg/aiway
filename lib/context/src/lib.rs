@@ -123,7 +123,7 @@ impl HttpContextOnce {
             state: Default::default(),
             route: SV::empty(),
             routing_url: SV::empty(),
-            routing_path: SV::new(req.uri().path().to_string()),
+            //routing_path: SV::new(req.uri().path().to_string()),
             host: req.host().unwrap().to_string(),
         };
 
