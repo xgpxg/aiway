@@ -12,7 +12,7 @@
 use crate::Args;
 use crate::components::IpRegion;
 use clap::Parser;
-use protocol::gateway::request_log::RequestLog;
+use aiway_protocol::gateway::request_log::RequestLog;
 use rocket::Request;
 use rocket::fairing::Fairing;
 use context::Headers;

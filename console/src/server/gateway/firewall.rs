@@ -1,6 +1,6 @@
 use crate::server::db::Pool;
 use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
-use protocol::gateway::{AllowDenyPolicy, Firewall};
+use aiway_protocol::gateway::{AllowDenyPolicy, Firewall};
 use rbs::value;
 pub(crate) async fn configuration() -> anyhow::Result<Firewall> {
     let config = SystemConfig::select_by_map(

@@ -1,7 +1,7 @@
 use crate::context::Headers;
 use anyhow::Context;
 use dashmap::DashMap;
-use protocol::gateway::HttpContext;
+use aiway_protocol::gateway::HttpContext;
 use rocket::Request;
 use std::sync::{Arc, LazyLock};
 

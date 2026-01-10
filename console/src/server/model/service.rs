@@ -10,8 +10,8 @@ use crate::server::model::request::{
 use crate::server::model::response::ModelListRes;
 use anyhow::bail;
 use common::id;
-use protocol::common::req::IdReq;
-use protocol::model::LbStrategy;
+use aiway_protocol::common::req::IdReq;
+use aiway_protocol::model::LbStrategy;
 use rbs::value;
 use std::collections::HashMap;
 use crate::update_nullable_fields;

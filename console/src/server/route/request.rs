@@ -1,8 +1,8 @@
 use crate::server::db::models::route::{Route, RouteStatus};
-use protocol::common::req::PageReq;
-use protocol::gateway::GlobalFilter;
-use protocol::gateway::plugin::ConfiguredPlugin;
-use protocol::impl_pagination;
+use aiway_protocol::common::req::PageReq;
+use aiway_protocol::gateway::GlobalFilter;
+use aiway_protocol::gateway::plugin::ConfiguredPlugin;
+use aiway_protocol::impl_pagination;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 

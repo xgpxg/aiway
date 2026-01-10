@@ -1,6 +1,6 @@
-use protocol::common::req::PageReq;
-use protocol::gateway::alert::AlertLevel;
-use protocol::impl_pagination;
+use aiway_protocol::common::req::PageReq;
+use aiway_protocol::gateway::alert::AlertLevel;
+use aiway_protocol::impl_pagination;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

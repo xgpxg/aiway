@@ -13,7 +13,7 @@
 
 use crate::components::client::INNER_HTTP_CLIENT;
 use dashmap::DashMap;
-use protocol::gateway::{HttpContext, Route};
+use aiway_protocol::gateway::{HttpContext, Route};
 use std::process::exit;
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;

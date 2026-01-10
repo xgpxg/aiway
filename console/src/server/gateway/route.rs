@@ -3,11 +3,11 @@ use crate::server::db::models::route::{Route, RouteStatus};
 use crate::server::route::PathPattern;
 use rbs::value;
 
-pub(crate) async fn routes() -> anyhow::Result<Vec<protocol::gateway::Route>> {
+pub(crate) async fn routes() -> anyhow::Result<Vec<aiway_protocol::gateway::Route>> {
     let routes = Route::select_by_map(Pool::get()?, value! {"status": RouteStatus::Ok}).await?;
     let mut list = Vec::with_capacity(routes.len());
     for route in routes {
-        list.push(protocol::gateway::route::Route {
+        list.push(aiway_protocol::gateway::route::Route {
             name: route.name.unwrap(),
             host: route.host.unwrap(),
             path: route.path.clone().unwrap(),

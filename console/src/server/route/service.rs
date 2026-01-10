@@ -10,9 +10,9 @@ use crate::server::route::request::{
 use crate::server::route::response::RouteListRes;
 use anyhow::{Context, bail};
 use common::id;
-use protocol::common::req::{IdsReq, Pagination};
-use protocol::common::res::{IntoPageRes, PageRes};
-use protocol::gateway::GlobalFilter;
+use aiway_protocol::common::req::{IdsReq, Pagination};
+use aiway_protocol::common::res::{IntoPageRes, PageRes};
+use aiway_protocol::gateway::GlobalFilter;
 use rbs::value;
 
 pub async fn add(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {

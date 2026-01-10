@@ -6,8 +6,8 @@ use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use alert::Alert;
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use logging::log;
-use protocol::gateway::request_log::RequestLog;
-use protocol::logg::LogSearchRes;
+use aiway_protocol::gateway::request_log::RequestLog;
+use aiway_protocol::logg::LogSearchRes;
 use serde_json::json;
 use std::sync::Arc;
 

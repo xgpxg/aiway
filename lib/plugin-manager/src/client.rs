@@ -2,8 +2,8 @@
 //!
 use crate::CONSOLE;
 use anyhow::bail;
-use protocol::common::res::Res;
-use protocol::gateway::Plugin;
+use aiway_protocol::common::res::Res;
+use aiway_protocol::gateway::Plugin;
 use reqwest::{Client, ClientBuilder};
 use serde::Serialize;
 use serde::de::DeserializeOwned;

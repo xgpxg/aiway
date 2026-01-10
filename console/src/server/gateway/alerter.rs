@@ -4,7 +4,7 @@ use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use alert::pusher::Pusher;
 use common::id;
 use logging::log;
-use protocol::gateway::alert::{AlertConfig, AlertMessage};
+use aiway_protocol::gateway::alert::{AlertConfig, AlertMessage};
 use rbatis::rbdc::DateTime;
 use rocket::tokio;
 use std::str::FromStr;

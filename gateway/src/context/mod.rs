@@ -4,7 +4,7 @@ mod manager;
 use crate::extract_error;
 pub use header::Headers;
 pub use manager::HCM;
-use protocol::gateway::HttpContext;
+use aiway_protocol::gateway::HttpContext;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 use std::sync::Arc;

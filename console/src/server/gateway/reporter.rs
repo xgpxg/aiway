@@ -4,7 +4,7 @@ use crate::server::db::{Pool, tools};
 use alert::Alert;
 use common::id;
 use logging::log;
-use protocol::gateway::state::State;
+use aiway_protocol::gateway::state::State;
 use rbs::value;
 
 /// 接收gateway上报数据

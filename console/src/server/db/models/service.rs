@@ -1,6 +1,6 @@
 use crate::server::service::ServiceListReq;
 use derive_builder::Builder;
-use protocol::gateway::service::LbStrategy;
+use aiway_protocol::gateway::service::LbStrategy;
 use rbatis::rbdc::DateTime;
 use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};

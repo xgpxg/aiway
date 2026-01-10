@@ -1,8 +1,8 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::firewall::request::FirewallUpdateReq;
 use crate::server::firewall::service;
-use protocol::common::res::Res;
-use protocol::gateway::Firewall;
+use aiway_protocol::common::res::Res;
+use aiway_protocol::gateway::Firewall;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 

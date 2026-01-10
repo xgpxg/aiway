@@ -2,7 +2,7 @@
 //! 执行顺序：respond_to -> response fairing
 use crate::openapi::error::GatewayError;
 use crate::report::STATE;
-use protocol::gateway::ResponseContext;
+use aiway_protocol::gateway::ResponseContext;
 use reqwest::header;
 use rocket::Request;
 use rocket::futures::stream;

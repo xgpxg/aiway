@@ -6,7 +6,7 @@
 //!
 use cache::caches::CacheKey;
 use common::constants::ENCRYPT_KEY;
-use protocol::gateway::ApiKey;
+use aiway_protocol::gateway::ApiKey;
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
 use serde_json::Value;

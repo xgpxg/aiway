@@ -2,10 +2,10 @@ use crate::args::Args;
 use crate::server::common::pool::HTTP_CLIENT;
 use crate::server::log::request::LogListReq;
 use chrono::TimeZone;
-use protocol::common::req::Pagination;
-use protocol::common::res::PageRes;
-use protocol::gateway::request_log::RequestLog;
-use protocol::logg::{LogEntry, LogSearchReq, LogSearchRes};
+use aiway_protocol::common::req::Pagination;
+use aiway_protocol::common::res::PageRes;
+use aiway_protocol::gateway::request_log::RequestLog;
+use aiway_protocol::logg::{LogEntry, LogSearchReq, LogSearchRes};
 use rocket::State;
 
 const AIWAY_LOG_INDEX: &str = "aiway-logs";

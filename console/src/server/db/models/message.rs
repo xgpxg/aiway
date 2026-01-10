@@ -1,6 +1,6 @@
 use crate::server::message::{MessageCountRes, MessageListReq};
 use derive_builder::Builder;
-use protocol::gateway::alert::AlertLevel;
+use aiway_protocol::gateway::alert::AlertLevel;
 use rbatis::executor::Executor;
 use rbatis::rbdc::DateTime;
 use rbatis::{crud, htmlsql, htmlsql_select_page};

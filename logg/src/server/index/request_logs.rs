@@ -1,5 +1,5 @@
-use protocol::gateway::request_log::RequestLog;
-use protocol::logg::{LogSearchReq, LogSearchRes};
+use aiway_protocol::gateway::request_log::RequestLog;
+use aiway_protocol::logg::{LogSearchReq, LogSearchRes};
 use rocket::data::{ByteUnit, FromData, Outcome};
 use rocket::serde::json::Json;
 use rocket::{Data, Request, State, async_trait, post, routes};

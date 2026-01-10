@@ -4,7 +4,7 @@ use crate::server::db::models::model_provider::{ModelProvider, ModelProviderStat
 use rbs::value;
 use std::collections::HashMap;
 
-pub(crate) async fn models() -> anyhow::Result<Vec<protocol::model::Model>> {
+pub(crate) async fn models() -> anyhow::Result<Vec<aiway_protocol::model::Model>> {
     let tx = Pool::get()?;
     let models = Model::select_by_map(
         tx,
@@ -41,7 +41,7 @@ pub(crate) async fn models() -> anyhow::Result<Vec<protocol::model::Model>> {
                 .cloned()
                 .unwrap_or_default()
                 .into_iter()
-                .map(|provider| protocol::model::Provider {
+                .map(|provider| aiway_protocol::model::Provider {
                     name: provider.name.unwrap(),
                     api_url: provider.api_url.unwrap(),
                     api_key: provider.api_key,
@@ -52,7 +52,7 @@ pub(crate) async fn models() -> anyhow::Result<Vec<protocol::model::Model>> {
                 })
                 .collect::<Vec<_>>();
             let total_weight = providers.iter().map(|p| p.weight).sum::<u32>();
-            protocol::model::Model {
+            aiway_protocol::model::Model {
                 name: model.name.unwrap(),
                 providers,
                 lb: model.lb_strategy.unwrap(),

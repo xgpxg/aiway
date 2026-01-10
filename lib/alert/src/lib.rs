@@ -24,7 +24,7 @@
 
 pub mod pusher;
 
-use protocol::gateway::alert::AlertMessage;
+use aiway_protocol::gateway::alert::AlertMessage;
 use std::sync::OnceLock;
 
 #[derive(Debug)]

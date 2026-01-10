@@ -9,7 +9,7 @@
 mod state;
 
 use crate::Args;
-use protocol::gateway::state::{NodeInfo, State};
+use aiway_protocol::gateway::state::{NodeInfo, State};
 pub use state::STATE;
 use std::time::Duration;
 pub struct Reporter {

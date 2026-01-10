@@ -1,7 +1,7 @@
 use crate::server::file::file_util::make_save_file;
 use common::data_dir;
 use logging::log;
-use protocol::common::res::Res;
+use aiway_protocol::common::res::Res;
 use rocket::form::Form;
 use rocket::fs::{NamedFile, TempFile};
 use rocket::{FromForm, get, post, routes};

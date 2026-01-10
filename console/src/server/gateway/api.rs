@@ -7,8 +7,8 @@
 
 use crate::server;
 use crate::server::gateway::{alerter, ip_region, plugin, reporter, route, service};
-use protocol::common::res::Res;
-use protocol::gateway::alert::AlertMessage;
+use aiway_protocol::common::res::Res;
+use aiway_protocol::gateway::alert::AlertMessage;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 
@@ -27,7 +27,7 @@ pub fn routes() -> Vec<rocket::Route> {
 
 /// 查询路由表
 #[get("/gateway/routes")]
-async fn all_routes() -> Res<Vec<protocol::gateway::Route>> {
+async fn all_routes() -> Res<Vec<aiway_protocol::gateway::Route>> {
     match route::routes().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
@@ -36,7 +36,7 @@ async fn all_routes() -> Res<Vec<protocol::gateway::Route>> {
 
 /// 查询服务表
 #[get("/gateway/services")]
-async fn all_services() -> Res<Vec<protocol::gateway::Service>> {
+async fn all_services() -> Res<Vec<aiway_protocol::gateway::Service>> {
     match service::services().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
@@ -45,7 +45,7 @@ async fn all_services() -> Res<Vec<protocol::gateway::Service>> {
 
 /// 查询插件
 #[get("/gateway/plugins")]
-async fn all_plugins() -> Res<Vec<protocol::gateway::Plugin>> {
+async fn all_plugins() -> Res<Vec<aiway_protocol::gateway::Plugin>> {
     match plugin::plugins().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
@@ -54,7 +54,7 @@ async fn all_plugins() -> Res<Vec<protocol::gateway::Plugin>> {
 
 /// 查询全局路由插件
 #[get("/gateway/global/filter")]
-async fn configuration() -> Res<protocol::gateway::GlobalFilter> {
+async fn configuration() -> Res<aiway_protocol::gateway::GlobalFilter> {
     match server::gateway::global_filter::config().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
@@ -63,7 +63,7 @@ async fn configuration() -> Res<protocol::gateway::GlobalFilter> {
 
 /// 查询防火墙配置
 #[get("/gateway/firewall")]
-async fn firewall() -> Res<protocol::gateway::Firewall> {
+async fn firewall() -> Res<aiway_protocol::gateway::Firewall> {
     match server::gateway::firewall::configuration().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
@@ -72,7 +72,7 @@ async fn firewall() -> Res<protocol::gateway::Firewall> {
 
 /// 接收状态上报
 #[post("/gateway/report", data = "<req>")]
-async fn report(req: Json<protocol::gateway::state::State>) -> Res<()> {
+async fn report(req: Json<aiway_protocol::gateway::state::State>) -> Res<()> {
     match reporter::report(req.0).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),

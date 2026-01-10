@@ -2,9 +2,9 @@ use crate::args::Args;
 use crate::server::auth::UserPrincipal;
 use crate::server::log::request::LogListReq;
 use crate::server::log::service;
-use protocol::common::res::{PageRes, Res};
-use protocol::gateway::request_log::RequestLog;
-use protocol::logg::LogEntry;
+use aiway_protocol::common::res::{PageRes, Res};
+use aiway_protocol::gateway::request_log::RequestLog;
+use aiway_protocol::logg::LogEntry;
 use rocket::serde::json::Json;
 use rocket::{State, post, routes};
 

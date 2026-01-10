@@ -1,6 +1,6 @@
 use crate::server::db::Pool;
 use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
-use protocol::gateway;
+use aiway_protocol::gateway;
 use rbs::value;
 pub(crate) async fn config() -> anyhow::Result<gateway::GlobalFilter> {
     let config = SystemConfig::select_by_map(

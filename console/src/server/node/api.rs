@@ -2,7 +2,7 @@ use crate::server::auth::UserPrincipal;
 use crate::server::node::request::GatewayNodeListReq;
 use crate::server::node::response::GatewayNodeListRes;
 use crate::server::node::service;
-use protocol::common::res::{PageRes, Res};
+use aiway_protocol::common::res::{PageRes, Res};
 use rocket::serde::json::Json;
 use rocket::{ post, routes};
 

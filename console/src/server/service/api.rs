@@ -4,8 +4,8 @@ use crate::server::service::request::{
 };
 use crate::server::service::response::ServiceListRes;
 use crate::server::service::service;
-use protocol::common::req::IdsReq;
-use protocol::common::res::{PageRes, Res};
+use aiway_protocol::common::req::IdsReq;
+use aiway_protocol::common::res::{PageRes, Res};
 use rocket::serde::json::Json;
 use rocket::{post, routes};
 

@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use protocol::common::req::PageReq;
+use aiway_protocol::common::req::PageReq;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]

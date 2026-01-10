@@ -14,8 +14,8 @@
 use crate::components::client::INNER_HTTP_CLIENT;
 use dashmap::DashMap;
 use loadbalance::LoadBalance;
-use protocol::gateway;
-use protocol::gateway::service::LbStrategy;
+use aiway_protocol::gateway;
+use aiway_protocol::gateway::service::LbStrategy;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;

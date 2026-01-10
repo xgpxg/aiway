@@ -1,6 +1,6 @@
 use crate::components::client::INNER_HTTP_CLIENT;
 use anyhow::Context;
-use protocol::gateway::{AllowDenyPolicy, Firewall};
+use aiway_protocol::gateway::{AllowDenyPolicy, Firewall};
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;

@@ -3,8 +3,8 @@
 use crate::Args;
 use anyhow::bail;
 use clap::Parser;
-use protocol::common::res::Res;
-use protocol::gateway::{Firewall, GlobalFilter, Plugin, Route, Service};
+use aiway_protocol::common::res::Res;
+use aiway_protocol::gateway::{Firewall, GlobalFilter, Plugin, Route, Service};
 use reqwest::{Client, ClientBuilder};
 use serde::Serialize;
 use serde::de::DeserializeOwned;

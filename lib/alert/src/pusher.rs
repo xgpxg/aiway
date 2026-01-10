@@ -3,7 +3,7 @@
 //!
 //! 或者，要不要考虑放到控制台？
 //!
-use protocol::gateway::alert::{
+use aiway_protocol::gateway::alert::{
     AlertConfig, AlertMessage, CustomConfig, DingdingConfig, FeishuConfig, WecomConfig,
 };
 use serde::{Deserialize, Serialize};

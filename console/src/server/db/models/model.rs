@@ -2,7 +2,7 @@ use derive_builder::Builder;
 use rbatis::crud;
 use rbatis::rbdc::DateTime;
 use rocket::serde::{Deserialize, Serialize};
-use protocol::model::LbStrategy;
+use aiway_protocol::model::LbStrategy;
 
 /// 模型配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]

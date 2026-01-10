@@ -2,8 +2,8 @@ use crate::server::db::Pool;
 use crate::server::db::models::{gateway_node, gateway_node_state};
 use crate::server::node::request::GatewayNodeListReq;
 use crate::server::node::response::GatewayNodeListRes;
-use protocol::common::req::Pagination;
-use protocol::common::res::{IntoPageRes, PageRes};
+use aiway_protocol::common::req::Pagination;
+use aiway_protocol::common::res::{IntoPageRes, PageRes};
 
 pub(crate) async fn list(req: GatewayNodeListReq) -> anyhow::Result<PageRes<GatewayNodeListRes>> {
     let tx = Pool::get()?;

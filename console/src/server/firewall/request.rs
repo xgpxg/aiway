@@ -1,4 +1,4 @@
-use protocol::gateway::Firewall;
+use aiway_protocol::gateway::Firewall;
 use rocket::serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]

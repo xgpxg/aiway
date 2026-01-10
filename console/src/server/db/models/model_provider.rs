@@ -2,7 +2,7 @@ use derive_builder::Builder;
 use rbatis::crud;
 use rbatis::rbdc::DateTime;
 use serde::{Deserialize, Serialize};
-use protocol::gateway::ConfiguredPlugin;
+use aiway_protocol::gateway::ConfiguredPlugin;
 
 /// 模型提供商配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]

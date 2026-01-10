@@ -7,9 +7,9 @@ use crate::server::key::response::ApiKeyListRes;
 use cache::caches::CacheKey;
 use common::constants::ENCRYPT_KEY;
 use common::id;
-use protocol::common::req::{IdsReq, Pagination};
-use protocol::common::res::{IntoPageRes, PageRes};
-use protocol::gateway::ApiKey;
+use aiway_protocol::common::req::{IdsReq, Pagination};
+use aiway_protocol::common::res::{IntoPageRes, PageRes};
+use aiway_protocol::gateway::ApiKey;
 use rbs::value;
 use serde_json::Value;
 

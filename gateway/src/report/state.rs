@@ -1,4 +1,4 @@
-use protocol::gateway::state::{DiskState, MemState, NetState, NodeInfo, State, SystemState};
+use aiway_protocol::gateway::state::{DiskState, MemState, NetState, NodeInfo, State, SystemState};
 use std::fs;
 use std::sync::{Arc, LazyLock, Mutex};
 use sysinfo::{Disks, Networks, System};

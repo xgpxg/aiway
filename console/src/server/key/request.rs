@@ -1,5 +1,5 @@
-use protocol::common::req::PageReq;
-use protocol::impl_pagination;
+use aiway_protocol::common::req::PageReq;
+use aiway_protocol::impl_pagination;
 use rbatis::rbdc::DateTime;
 use rocket::serde::{Deserialize, Serialize};
 

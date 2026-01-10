@@ -1,4 +1,4 @@
-use protocol::gateway::alert::AlertConfig;
+use aiway_protocol::gateway::alert::AlertConfig;
 use rocket::serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]

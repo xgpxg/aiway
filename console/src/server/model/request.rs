@@ -1,7 +1,7 @@
 use crate::server::db::models::model::ModelStatus;
 use crate::server::db::models::model_provider::ModelProviderStatus;
-use protocol::gateway::ConfiguredPlugin;
-use protocol::model::LbStrategy;
+use aiway_protocol::gateway::ConfiguredPlugin;
+use aiway_protocol::model::LbStrategy;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]

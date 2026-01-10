@@ -1,7 +1,7 @@
 use crate::server::db::Pool;
 use crate::server::db::models::system_config::{ConfigKey, SystemConfig, SystemConfigBuilder};
 use crate::server::firewall::request::FirewallUpdateReq;
-use protocol::gateway::Firewall;
+use aiway_protocol::gateway::Firewall;
 use rbs::value;
 
 pub async fn update(req: FirewallUpdateReq) -> anyhow::Result<()> {
