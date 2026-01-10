@@ -14,10 +14,10 @@ use logging::log;
 use openai_dive::v1::resources::audio::AudioSpeechResponse;
 use openai_dive::v1::resources::chat::ChatCompletionChunkResponse;
 use plugin_manager::PluginFactory;
+use protocol::common::constants::BAN_HEADERS;
 use protocol::gateway::HttpContext;
 use protocol::model::Provider;
-use reqwest::header::HeaderName;
-use reqwest::{Response, header};
+use reqwest::Response;
 use rocket::serde::Serialize;
 use serde_json::Value;
 use std::sync::LazyLock;
@@ -95,28 +95,34 @@ impl Proxy {
         provider: &Provider,
         context: &HttpContext,
     ) -> Result<(), ModelError> {
+        println!("response: {:?}", response);
         context.response.set_status(response.status().as_u16());
         context.response.set_headers(
             response
                 .headers()
                 .iter()
-                .filter(|(h, _)| {
-                    h.ne(&header::CONTENT_LENGTH)
-                        && h.ne(&header::X_FRAME_OPTIONS)
-                        && h.ne(&header::X_CONTENT_TYPE_OPTIONS)
-                        && h.ne(&header::X_XSS_PROTECTION)
-                        && h.ne(&HeaderName::from_static("permissions-policy"))
-                })
+                .filter(|(h, _)| !BAN_HEADERS.contains(h.as_str()))
                 .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string())),
         );
         context
             .response
             .set_body(response.bytes().await.unwrap_or_default());
+
+        // 调用插件执行转换，在插件内部更新context的body
+        // 插件内部需要处理成功和失败的情况
         if let Some(converter) = &provider.response_converter {
-            // 调用插件执行转换，在插件内部更新context的body
             PluginFactory::execute(converter, context)
                 .await
                 .map_err(|e| ModelError::PluginError(e.to_string()))?;
+        }
+
+        // 插件执行完成后（或者没有插件执行）响应状态码非200-299，则直接返回错误
+        if !context.response.is_success() {
+            return Err(ModelError::ApiError(
+                context.response.get_status().unwrap_or_default(),
+                String::from_utf8_lossy(&context.response.body.take().unwrap_or_default())
+                    .to_string(),
+            ));
         }
 
         Ok(())
@@ -146,10 +152,10 @@ impl Proxy {
                     .post_stream(&provider.api_url, request_body, None)
                     .await;
                 // 转换错误类型：ApiError -> ModelError
-                let stream = response.map(|item| item.map_err(ModelError::ApiError));
+                //let stream = response.map(|item| item.map_err(ModelError::ApiError));
 
                 return Ok(ModelResponse::ChatCompletionStreamResponse(Box::pin(
-                    stream,
+                    response,
                 )));
             };
             // 请求提供商，以Value格式返回
@@ -209,7 +215,7 @@ impl Proxy {
             // 非流式
             let response = client.post(&provider.api_url, request_body, None).await?;
             Self::convert_response(response, provider, context).await?;
-            let body = context.response.get_body().cloned().unwrap_or_default();
+            let body = context.response.body.take().unwrap_or_default();
             let body =
                 serde_json::from_slice(&body).map_err(|e| ModelError::Parse(e.to_string()))?;
             Ok(ModelResponse::ChatCompletionResponse(

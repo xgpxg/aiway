@@ -1,5 +1,7 @@
+use crate::proxy::ModelError;
 use aha_reqwest_eventsource::{Event, EventSource, RequestBuilderExt};
-use openai_dive::v1::error::{APIError, InvalidRequestError};
+use logging::log;
+use openai_dive::v1::error::InvalidRequestError;
 use reqwest::{Method, RequestBuilder, Response};
 use rocket::futures::Stream;
 use rocket::serde::DeserializeOwned;
@@ -10,7 +12,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 
 const MIME_TYPE_APPLICATION_JSON: &str = "application/json";
 
-type ModelStream<O> = Pin<Box<dyn Stream<Item = Result<O, APIError>> + Send>>;
+type ModelStream<O> = Pin<Box<dyn Stream<Item = Result<O, ModelError>> + Send>>;
 
 /// 模型客户端，参考openai_dive实现。
 ///
@@ -58,7 +60,7 @@ impl Client {
         url: &str,
         body: I,
         query: Q,
-    ) -> Result<Response, APIError>
+    ) -> Result<Response, ModelError>
     where
         I: Into<reqwest::Body>,
         Q: Into<Option<HashMap<String, String>>>,
@@ -83,7 +85,7 @@ impl Client {
         //     .await
         //     .map_err(|error| APIError::ParseError(error.to_string()))?;
 
-        response.map_err(|error| APIError::ServerError(error.to_string()))
+        response.map_err(|error| ModelError::RequestProviderError(error.to_string()))
     }
 
     pub(crate) async fn post_stream<I, O, Q>(&self, url: &str, body: I, query: Q) -> ModelStream<O>
@@ -123,10 +125,10 @@ impl Client {
                                 Err(error) => {
                                     match serde_json::from_str::<InvalidRequestError>(&message.data)
                                     {
-                                        Ok(invalid_request_error) => Err(APIError::StreamError(
+                                        Ok(invalid_request_error) => Err(ModelError::StreamError(
                                             invalid_request_error.to_string(),
                                         )),
-                                        Err(_) => Err(APIError::StreamError(format!(
+                                        Err(_) => Err(ModelError::StreamError(format!(
                                             "{} {}",
                                             error, message.data
                                         ))),
@@ -134,14 +136,15 @@ impl Client {
                                 }
                             };
 
-                            if let Err(_error) = tx.send(response) {
+                            if let Err(e) = tx.send(response) {
+                                log::error!("{}", e);
                                 break;
                             }
                         }
                     },
                     Err(error) => {
-                        if let Err(_error) = tx.send(Err(APIError::StreamError(error.to_string())))
-                        {
+                        if let Err(e) = tx.send(Err(ModelError::StreamError(error.to_string()))) {
+                            log::error!("{}", e);
                             break;
                         }
                     }
