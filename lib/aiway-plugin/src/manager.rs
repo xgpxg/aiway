@@ -1,7 +1,7 @@
+use crate::protocol::gateway::HttpContext;
 use crate::{Plugin, PluginError};
 use dashmap::DashMap;
 use serde_json::Value;
-use protocol::gateway::HttpContext;
 
 pub struct PluginManager {
     plugins: DashMap<String, Box<dyn Plugin>>,
