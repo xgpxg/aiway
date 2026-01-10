@@ -32,7 +32,9 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 ./aiway
 ```
 
-或者从源码构建：
+> 发布版基于 glibc 2.35 版本构建，如果你的系统glibc版本低于2.35，请从源码构建。
+
+从源码构建：
 
 ```shell
 cargo build --bin gateway -F standalone && \
