@@ -53,7 +53,7 @@ impl Fairing for PreFilter {
                 Ok(_) => {}
                 Err(e) => {
                     log::error!(
-                        "execute global pre filter plugin {} error: {}",
+                        "execute route pre filter plugin {} error: {}",
                         configured_plugin.name,
                         e
                     );
