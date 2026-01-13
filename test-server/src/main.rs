@@ -1,6 +1,6 @@
 use rocket::http::Status;
 use rocket::response::stream::{Event, EventStream};
-use rocket::{Config, get, routes};
+use rocket::{Config, get, post, routes};
 use std::net::IpAddr;
 use std::str::FromStr;
 
@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
         ..Config::debug_default()
     });
 
-    builder = builder.mount("/", routes![hello, sse, html]);
+    builder = builder.mount("/", routes![hello, hello_post, sse, html]);
 
     builder.launch().await?;
 
@@ -23,6 +23,11 @@ async fn main() -> anyhow::Result<()> {
 
 #[get("/hello")]
 fn hello() -> &'static str {
+    "World"
+}
+
+#[post("/hello")]
+fn hello_post() -> &'static str {
     "World"
 }
 
