@@ -4,6 +4,7 @@ use alert::Alert;
 use logging::log;
 use rbs::value;
 use std::time::Duration;
+use aiway_protocol::common::constants;
 
 /// 更新心跳超时的网关节点状态为Offline
 ///
@@ -23,7 +24,7 @@ pub async fn update_timeout_heartbeat_node() {
     }
     for node in nodes {
         if tools::now().sub(Duration::from_secs(
-            common::constants::REPORT_STATE_INTERVAL * 2,
+            constants::REPORT_STATE_INTERVAL * 2,
         )) > node.last_heartbeat_time.unwrap()
         {
             log::warn!(

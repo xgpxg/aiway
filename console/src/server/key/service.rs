@@ -1,24 +1,26 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::db::models::api_key::{ApiKeySource, ApiKeyStatus};
+use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use crate::server::db::{Pool, models, tools};
 use crate::server::key::ApiKeyListReq;
 use crate::server::key::request::ApiKeyAddOrUpdateReq;
 use crate::server::key::response::ApiKeyListRes;
-use cache::caches::CacheKey;
-use common::constants::ENCRYPT_KEY;
-use common::id;
 use aiway_protocol::common::req::{IdsReq, Pagination};
 use aiway_protocol::common::res::{IntoPageRes, PageRes};
-use aiway_protocol::gateway::ApiKey;
+use aiway_protocol::gateway::{ApiKey, Firewall};
+use cache::caches::CacheKey;
+use common::id;
 use rbs::value;
 use serde_json::Value;
 
 pub async fn add(req: ApiKeyAddOrUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
+    let firewall = SystemConfig::get::<Firewall>(ConfigKey::Firewall).await?;
+
+    let api_secret_encrypt_key = &firewall.api_secret_encrypt_key;
     let ak = match &req.principal {
-        None => ApiKey::new().encrypt(ENCRYPT_KEY),
-        Some(principal) => ApiKey::new_with_principal(principal).encrypt(ENCRYPT_KEY),
+        None => ApiKey::new().encrypt(api_secret_encrypt_key),
+        Some(principal) => ApiKey::new_with_principal(principal).encrypt(api_secret_encrypt_key),
     };
-    println!("{}", ak);
     cache::set(CacheKey::ApiKey(ak.clone()).to_string(), &Value::Null, None).await?;
 
     let api_key = models::api_key::ApiKeyBuilder::default()

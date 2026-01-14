@@ -1,6 +1,6 @@
 use crate::components::client::INNER_HTTP_CLIENT;
-use anyhow::Context;
 use aiway_protocol::gateway::{AllowDenyPolicy, Firewall};
+use anyhow::Context;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -12,7 +12,6 @@ pub struct Firewalld {
 }
 
 pub static FIREWALLD: OnceLock<Firewalld> = OnceLock::new();
-
 impl Firewalld {
     pub async fn init() {
         if let Err(e) = Self::load().await {
@@ -136,5 +135,15 @@ impl Firewalld {
             AllowDenyPolicy::Disable => {}
         }
         Ok(())
+    }
+
+    pub async fn get_api_secret_encrypt_key() -> [u8; 32] {
+        FIREWALLD
+            .get()
+            .unwrap()
+            .config
+            .read()
+            .await
+            .api_secret_encrypt_key
     }
 }

@@ -21,6 +21,7 @@ pub mod response_context;
 pub mod route;
 pub mod service;
 pub mod state;
+pub mod config;
 
 #[cfg(feature = "api-key")]
 pub use api_key::ApiKey;
@@ -34,3 +35,4 @@ pub use request_context::RequestContext;
 pub use response_context::ResponseContext;
 pub use route::Route;
 pub use service::Service;
+pub use config::Config;

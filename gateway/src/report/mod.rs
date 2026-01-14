@@ -12,6 +12,8 @@ use crate::Args;
 use aiway_protocol::gateway::state::{NodeInfo, State};
 pub use state::STATE;
 use std::time::Duration;
+use aiway_protocol::common::constants;
+
 pub struct Reporter {
     client: reqwest::Client,
 }
@@ -20,7 +22,7 @@ impl Reporter {
     pub fn new() -> Self {
         let client = reqwest::ClientBuilder::default()
             .connect_timeout(Duration::from_secs(
-                common::constants::REPORT_STATE_INTERVAL,
+                constants::REPORT_STATE_INTERVAL,
             ))
             .build()
             .unwrap();

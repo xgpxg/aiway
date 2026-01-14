@@ -66,9 +66,12 @@ impl SystemConfig {
     /// 获取系统配置。
     ///
     /// 优先从内存缓存中获取，如果没有则从数据库中获取并缓存。
-    pub async fn get<T: Default + for<'a> Deserialize<'a>>(
+    ///
+    /// ⚡⚡⚡ 注意：通过`get`获取的地方，在更新数据时，必须调用`upsert`来更新缓存。
+    pub async fn get<T: Default + Serialize + for<'a> Deserialize<'a>>(
         config_key: ConfigKey,
     ) -> anyhow::Result<T> {
+        // 优先取缓存
         if let Some(cached) = CACHED_SYSTEM_CONFIG
             .read()
             .await
@@ -82,10 +85,24 @@ impl SystemConfig {
             );
             return Ok(serde_json::from_str(value)?);
         }
+
+        // 缓存没有查数据库
         let config =
             SystemConfig::select_by_map(Pool::get()?, value! {"config_key": &config_key}).await?;
         if config.is_empty() {
-            return Ok(T::default());
+            log::info!(
+                "system config not found, key: {}, set default value to cache",
+                config_key
+            );
+            let default = T::default();
+            CACHED_SYSTEM_CONFIG.write().await.insert(
+                config_key.to_string(),
+                SystemConfig {
+                    config_key: Some(config_key.clone()),
+                    config_value: Some(serde_json::to_string(&default)?),
+                },
+            );
+            return Ok(default);
         }
         let config = config[0].clone();
         CACHED_SYSTEM_CONFIG

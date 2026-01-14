@@ -1,10 +1,10 @@
 //! # 网关和控制台的交互
 //!
 use crate::Args;
+use aiway_protocol::common::res::Res;
+use aiway_protocol::gateway::{Config, Firewall, GlobalFilter, Plugin, Route, Service};
 use anyhow::bail;
 use clap::Parser;
-use aiway_protocol::common::res::Res;
-use aiway_protocol::gateway::{Firewall, GlobalFilter, Plugin, Route, Service};
 use reqwest::{Client, ClientBuilder};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -117,5 +117,11 @@ impl InnerHttpClient {
                 bail!("fetch ip region file error: {}", e);
             }
         }
+    }
+
+    pub async fn fetch_config(&self) -> anyhow::Result<Config> {
+        let endpoint = format!("http://{}/api/v1/gateway/config", self.args.console);
+        let config = self.fetch_resource::<Config>(endpoint).await?;
+        Ok(config)
     }
 }

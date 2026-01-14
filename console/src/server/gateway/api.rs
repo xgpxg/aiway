@@ -6,8 +6,10 @@
 //!
 
 use crate::server;
+use crate::server::gateway;
 use crate::server::gateway::{alerter, ip_region, plugin, reporter, route, service};
 use aiway_protocol::common::res::Res;
+use aiway_protocol::gateway::Config;
 use aiway_protocol::gateway::alert::AlertMessage;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
@@ -21,7 +23,8 @@ pub fn routes() -> Vec<rocket::Route> {
         firewall,
         report,
         alert,
-        download_ip_region_file
+        download_ip_region_file,
+        config
     ]
 }
 
@@ -94,5 +97,14 @@ async fn download_ip_region_file() -> Result<Vec<u8>, String> {
     match ip_region::download_ip_region_file().await {
         Ok(res) => Ok(res),
         Err(e) => Err(e.to_string()),
+    }
+}
+
+/// 查询配置
+#[get("/gateway/config")]
+async fn config() -> Res<Config> {
+    match gateway::config::config().await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
     }
 }

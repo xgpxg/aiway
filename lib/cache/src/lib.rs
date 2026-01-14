@@ -136,6 +136,14 @@ pub async fn remove(key: &str) -> anyhow::Result<()> {
     }
 }
 
+pub async fn exists(key: &str) -> anyhow::Result<bool> {
+    if let Some(cache) = CACHE.get() {
+        cache.exists(key).await
+    } else {
+        Err(anyhow::anyhow!("Cache not initialized"))
+    }
+}
+
 #[allow(unused)]
 pub async fn ttl(key: &str) -> anyhow::Result<i64> {
     if let Some(cache) = CACHE.get() {

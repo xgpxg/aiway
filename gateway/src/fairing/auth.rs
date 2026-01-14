@@ -4,13 +4,13 @@
 //!
 //! 考虑是调用另外的服务验证，还是对API Key解密验证?
 //!
-use cache::caches::CacheKey;
-use common::constants::ENCRYPT_KEY;
+use crate::components::Firewalld;
 use aiway_protocol::gateway::ApiKey;
+use cache::caches::CacheKey;
+use context::{HCM, Headers, set_error, skip_if_error};
 use rocket::fairing::Fairing;
 use rocket::{Data, Request};
 use serde_json::Value;
-use context::{set_error, skip_if_error, Headers, HCM};
 
 pub struct Authentication {}
 impl Authentication {
@@ -45,7 +45,7 @@ impl Fairing for Authentication {
         }
         // FIXME 修改匹配方式
         if route.auth_white_list.contains(&ctx.request.get_path()) {
-            log::info!(
+            log::debug!(
                 "匹配到白名单，跳过鉴权，{} => {}",
                 route.path,
                 ctx.request.path
@@ -69,7 +69,8 @@ impl Fairing for Authentication {
             }
         };
 
-        if ApiKey::decrypt(ENCRYPT_KEY, api_key).is_err() {
+        let decrypt_key = &Firewalld::get_api_secret_encrypt_key().await;
+        if ApiKey::decrypt(decrypt_key, api_key).is_err() {
             set_error!(req, 401, "Unauthorized");
             return;
         }

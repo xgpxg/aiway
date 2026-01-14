@@ -1,10 +1,11 @@
 use crate::server::db::models::gateway_node::{GatewayNode, GatewayNodeBuilder, GatewayNodeStatus};
 use crate::server::db::models::gateway_node_state::{GatewayNodeState, GatewayNodeStateBuilder};
 use crate::server::db::{Pool, tools};
+use aiway_protocol::common::constants;
+use aiway_protocol::gateway::state::State;
 use alert::Alert;
 use common::id;
 use logging::log;
-use aiway_protocol::gateway::state::State;
 use rbs::value;
 
 /// 接收gateway上报数据
@@ -72,7 +73,7 @@ pub async fn report(req: State) -> anyhow::Result<()> {
         .http_connect_count(req.moment_counter.http_connect_count)
         .sse_connect_count(req.moment_counter.sse_connect_count)
         .avg_qps(if req.counter.response_time_since_last > 0 {
-            req.counter.request_count / common::constants::REPORT_STATE_INTERVAL as usize
+            req.counter.request_count / constants::REPORT_STATE_INTERVAL as usize
         } else {
             0
         })

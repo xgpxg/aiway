@@ -7,3 +7,4 @@ mod reporter;
 mod firewall;
 mod alerter;
 mod ip_region;
+mod config;
