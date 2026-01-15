@@ -8,6 +8,7 @@ use crate::server::key::response::ApiKeyListRes;
 use aiway_protocol::common::req::{IdsReq, Pagination};
 use aiway_protocol::common::res::{IntoPageRes, PageRes};
 use aiway_protocol::gateway::{ApiKey, Firewall};
+use anyhow::bail;
 use cache::caches::CacheKey;
 use common::id;
 use rbs::value;
@@ -27,7 +28,7 @@ pub async fn add(req: ApiKeyAddOrUpdateReq, user: UserPrincipal) -> anyhow::Resu
         .id(Some(id::next()))
         .name(Some(req.name))
         .principal(req.principal)
-        .secret(Some(ak))
+        .secret(Some(ak.clone()))
         .status(Some(ApiKeyStatus::Ok))
         .eff_time(Some(tools::now()))
         .exp_time(req.exp_time)
@@ -36,7 +37,10 @@ pub async fn add(req: ApiKeyAddOrUpdateReq, user: UserPrincipal) -> anyhow::Resu
         .create_time(Some(tools::now()))
         .build()?;
 
-    models::api_key::ApiKey::insert(Pool::get()?, &api_key).await?;
+    if let Err(e) = models::api_key::ApiKey::insert(Pool::get()?, &api_key).await {
+        cache::remove(&CacheKey::ApiKey(ak).to_string()).await?;
+        bail!(e);
+    }
 
     Ok(())
 }

@@ -49,7 +49,7 @@ impl Default for Firewall {
             referer_policy: Default::default(),
             allow_empty_referer: false,
             max_connections: Default::default(),
-            api_secret_encrypt_key: ENCRYPT_KEY.clone(),
+            api_secret_encrypt_key: *ENCRYPT_KEY,
         }
     }
 }
@@ -81,7 +81,7 @@ where
 }
 
 fn default_api_secret_encrypt_key() -> [u8; 32] {
-    ENCRYPT_KEY.clone()
+    *ENCRYPT_KEY
 }
 
 #[derive(Debug, Clone, Default, Eq, Ord, PartialOrd, PartialEq, Serialize, Deserialize)]
