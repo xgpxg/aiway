@@ -1,9 +1,8 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cell::UnsafeCell;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 /// 一个具有内部可变性的单值容器
-#[derive(Debug)]
 pub struct SingleValue<T> {
     value: UnsafeCell<Option<T>>,
 }
@@ -105,5 +104,14 @@ where
     {
         let value = T::deserialize(deserializer)?;
         Ok(SingleValue::new(value))
+    }
+}
+
+impl<T: Debug> Debug for SingleValue<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.get() {
+            Some(value) => write!(f, "SingleValue({:?})", value),
+            None => write!(f, "SingleValue(None)"),
+        }
     }
 }
