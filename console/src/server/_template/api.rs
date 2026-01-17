@@ -2,7 +2,7 @@ use crate::args::Args;
 use crate::server::auth::UserPrincipal;
 use crate::server::_template::request::DemoReq;
 use crate::server::_template::response::DemoRes;
-use aiway_protocol::common::res::{PageRes, Res};
+use busi::res::{PageRes, Res};
 use aiway_protocol::logg::LogEntry;
 use rocket::serde::json::Json;
 use rocket::{State, post, routes};

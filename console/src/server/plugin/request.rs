@@ -1,5 +1,5 @@
-use aiway_protocol::common::req::PageReq;
-use aiway_protocol::impl_pagination;
+use busi::req::PageReq;
+use busi::impl_pagination;
 use rocket::form::FromForm;
 use rocket::fs::TempFile;
 use rocket::serde::{Deserialize, Serialize};

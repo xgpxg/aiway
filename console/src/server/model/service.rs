@@ -10,7 +10,7 @@ use crate::server::model::request::{
 use crate::server::model::response::ModelListRes;
 use anyhow::bail;
 use common::id;
-use aiway_protocol::common::req::IdReq;
+use busi::req::IdReq;
 use aiway_protocol::model::LbStrategy;
 use rbs::value;
 use std::collections::HashMap;

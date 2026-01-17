@@ -1,5 +1,5 @@
 use crate::server::model_proxy::model;
-use aiway_protocol::common::res::Res;
+use busi::res::Res;
 use rocket::{get, routes};
 
 pub fn routes() -> Vec<rocket::Route> {

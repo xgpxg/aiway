@@ -4,8 +4,8 @@ use crate::server::model::request::{
 };
 use crate::server::model::response::ModelListRes;
 use crate::server::model::service;
-use aiway_protocol::common::req::IdReq;
-use aiway_protocol::common::res::Res;
+use busi::req::IdReq;
+use busi::res::Res;
 use rocket::serde::json::Json;
 use rocket::{post, routes};
 

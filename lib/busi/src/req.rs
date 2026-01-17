@@ -57,7 +57,7 @@ impl Default for PageReq {
 #[macro_export]
 macro_rules! impl_pagination {
     ($s:ty) => {
-        impl $crate::common::req::Pagination for $s {
+        impl $crate::req::Pagination for $s {
             fn page_num(&self) -> u64 {
                 self.page.page_num
             }

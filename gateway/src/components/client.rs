@@ -1,7 +1,7 @@
 //! # 网关和控制台的交互
 //!
 use crate::Args;
-use aiway_protocol::common::res::Res;
+use busi::res::Res;
 use aiway_protocol::gateway::{Config, Firewall, GlobalFilter, Plugin, Route, Service};
 use anyhow::bail;
 use clap::Parser;

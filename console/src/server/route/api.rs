@@ -4,8 +4,8 @@ use crate::server::route::request::{
 };
 use crate::server::route::response::RouteListRes;
 use crate::server::route::service;
-use aiway_protocol::common::req::IdsReq;
-use aiway_protocol::common::res::{PageRes, Res};
+use busi::req::IdsReq;
+use busi::res::{PageRes, Res};
 use aiway_protocol::gateway::GlobalFilter;
 use rocket::serde::json::Json;
 use rocket::{post, routes};

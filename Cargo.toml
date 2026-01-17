@@ -19,5 +19,5 @@ members = [
     "lib/alert",
     "model-proxy",
     "lib/plugin-manager",
-    "lib/context"
-]
+    "lib/context",
+    "lib/busi"]

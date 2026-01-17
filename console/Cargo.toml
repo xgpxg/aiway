@@ -7,7 +7,8 @@ edition = "2024"
 logging = { path = "../lib/logging" }
 cache = { path = "../lib/cache", optional = true }
 common = { path = "../lib/common" }
-aiway-protocol = { path = "../lib/aiway-protocol", features = ["rbatis", "rocket", "logg", "api-key", "model"] }
+aiway-protocol = { path = "../lib/aiway-protocol", features = ["logg", "api-key", "model"] }
+busi = { path = "../lib/busi", features = ["rocket", "rbatis"] }
 alert = { path = "../lib/alert" }
 aiway-plugin = { path = "../lib/aiway-plugin" }
 rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }

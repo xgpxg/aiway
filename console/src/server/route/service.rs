@@ -10,8 +10,8 @@ use crate::server::route::request::{
 use crate::server::route::response::RouteListRes;
 use anyhow::{Context, bail};
 use common::id;
-use aiway_protocol::common::req::{IdsReq, Pagination};
-use aiway_protocol::common::res::{IntoPageRes, PageRes};
+use busi::req::{IdsReq, Pagination};
+use busi::res::{IntoPageRes, PageRes};
 use aiway_protocol::gateway::GlobalFilter;
 use rbs::value;
 

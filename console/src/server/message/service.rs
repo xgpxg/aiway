@@ -4,8 +4,8 @@ use crate::server::db::models::message::{Message, MessageBuilder, MessageReadSta
 use crate::server::message::MessageCountRes;
 use crate::server::message::request::MessageListReq;
 use crate::server::message::response::MessageListRes;
-use aiway_protocol::common::req::{IdReq, Pagination};
-use aiway_protocol::common::res::{IntoPageRes, PageRes};
+use busi::req::{IdReq, Pagination};
+use busi::res::{IntoPageRes, PageRes};
 use rbs::value;
 
 pub(crate) async fn count_unread() -> anyhow::Result<MessageCountRes> {

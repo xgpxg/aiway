@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 aiway-protocol = { path = "../aiway-protocol" }
+busi = { path = "../busi" }
 logging = { path = "../logging" }
 aiway-plugin = { path = "../aiway-plugin" }
 serde = "1.0"

@@ -1,5 +1,5 @@
-use aiway_protocol::common::req::PageReq;
-use aiway_protocol::impl_pagination;
+use busi::req::PageReq;
+use busi::impl_pagination;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 

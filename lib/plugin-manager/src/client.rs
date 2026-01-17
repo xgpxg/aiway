@@ -2,7 +2,7 @@
 //!
 use crate::CONSOLE;
 use anyhow::bail;
-use aiway_protocol::common::res::Res;
+use busi::res::Res;
 use aiway_protocol::gateway::Plugin;
 use reqwest::{Client, ClientBuilder};
 use serde::Serialize;

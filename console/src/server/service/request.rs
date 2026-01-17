@@ -1,7 +1,7 @@
 use crate::server::db::models::service::ServiceStatus;
-use aiway_protocol::common::req::PageReq;
+use busi::req::PageReq;
 use aiway_protocol::gateway::service::LbStrategy;
-use aiway_protocol::impl_pagination;
+use busi::impl_pagination;
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

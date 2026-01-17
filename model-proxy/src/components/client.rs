@@ -3,7 +3,7 @@
 use crate::Args;
 use anyhow::bail;
 use clap::Parser;
-use aiway_protocol::common::res::Res;
+use busi::res::Res;
 use aiway_protocol::model::Model;
 use reqwest::{Client, ClientBuilder};
 use serde::Serialize;

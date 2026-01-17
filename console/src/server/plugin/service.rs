@@ -7,8 +7,8 @@ use crate::server::plugin::request::{PluginAddReq, PluginInfoReq, PluginListReq,
 use crate::server::plugin::response::{PluginInfoRes, PluginListRes};
 use anyhow::bail;
 use common::id;
-use aiway_protocol::common::req::{IdsReq, Pagination};
-use aiway_protocol::common::res::{IntoPageRes, PageRes};
+use busi::req::{IdsReq, Pagination};
+use busi::res::{IntoPageRes, PageRes};
 use rbs::value;
 use rocket::fs::TempFile;
 use rocket::tokio::io;

@@ -8,7 +8,7 @@
 use crate::server;
 use crate::server::gateway;
 use crate::server::gateway::{alerter, ip_region, plugin, reporter, route, service};
-use aiway_protocol::common::res::Res;
+use busi::res::Res;
 use aiway_protocol::gateway::Config;
 use aiway_protocol::gateway::alert::AlertMessage;
 use rocket::serde::json::Json;

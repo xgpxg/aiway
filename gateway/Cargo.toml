@@ -5,7 +5,8 @@ edition = "2024"
 
 [dependencies]
 common = { path = "../lib/common" }
-aiway-protocol = { path = "../lib/aiway-protocol", features = ["rocket", "api-key", "alert"] }
+aiway-protocol = { path = "../lib/aiway-protocol", features = ["api-key", "alert"] }
+busi = { path = "../lib/busi" }
 context = { path = "../lib/context" }
 logging = { path = "../lib/logging", features = ["request-log"] }
 loadbalance = { path = "../lib/loadbalance" }

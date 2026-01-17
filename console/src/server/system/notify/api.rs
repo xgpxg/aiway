@@ -1,7 +1,7 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::system::notify::request::NotifyConfigUpdateReq;
 use crate::server::system::notify::service;
-use aiway_protocol::common::res::Res;
+use busi::res::Res;
 use aiway_protocol::gateway::alert::AlertConfig;
 use rocket::serde::json::Json;
 use rocket::{get, post};

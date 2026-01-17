@@ -74,15 +74,13 @@ dependencies = [
 
 [[package]]
 name = "aiway-protocol"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base58",
  "bytes",
  "chacha20poly1305",
  "chrono",
  "dashmap",
- "rbatis",
- "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "serde",
  "serde_json",
  "tokio-stream",
@@ -569,6 +567,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5dd9dc738b7a8311c7ade152424974d8115f2cdad61e8dab8dac9f2362298510"
 
 [[package]]
+name = "busi"
+version = "0.1.0"
+dependencies = [
+ "rbatis",
+ "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -845,6 +853,7 @@ dependencies = [
  "alert",
  "anyhow",
  "bcrypt",
+ "busi",
  "cache",
  "chrono",
  "chrono-tz",
@@ -1745,6 +1754,7 @@ dependencies = [
  "aiway-protocol",
  "alert",
  "anyhow",
+ "busi",
  "cache",
  "chrono",
  "clap",
@@ -2755,6 +2765,7 @@ dependencies = [
  "aiway-protocol",
  "alert",
  "anyhow",
+ "busi",
  "bytes",
  "clap",
  "context",
@@ -3366,6 +3377,7 @@ dependencies = [
  "aiway-plugin",
  "aiway-protocol",
  "anyhow",
+ "busi",
  "dashmap",
  "logging",
  "md5",

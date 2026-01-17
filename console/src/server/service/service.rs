@@ -8,8 +8,8 @@ use crate::server::service::request::{
 use crate::server::service::response::ServiceListRes;
 use anyhow::bail;
 use common::id;
-use aiway_protocol::common::req::{IdsReq, Pagination};
-use aiway_protocol::common::res::{IntoPageRes, PageRes};
+use busi::req::{IdsReq, Pagination};
+use busi::res::{IntoPageRes, PageRes};
 use rbs::value;
 
 pub async fn add(req: ServiceAddReq, user: UserPrincipal) -> anyhow::Result<()> {

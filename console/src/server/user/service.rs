@@ -11,8 +11,8 @@ use crate::server::user::response::{
 use anyhow::bail;
 use cache::caches::CacheKey;
 use common::id;
-use aiway_protocol::common::req::{IdsReq, Pagination};
-use aiway_protocol::common::res::PageRes;
+use busi::req::{IdsReq, Pagination};
+use busi::res::PageRes;
 use rbs::value;
 use std::time::Duration;
 use validator::Validate;

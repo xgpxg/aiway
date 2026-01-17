@@ -2,8 +2,8 @@ use crate::server::auth::UserPrincipal;
 use crate::server::user::request::{LoginReq, UpdatePasswordReq, UserAddReq, UserUpdateReq};
 use crate::server::user::response::{LoginRes, UserCenterRes, UserListRes};
 use crate::server::user::{UserListReq, service};
-use aiway_protocol::common::req::IdsReq;
-use aiway_protocol::common::res::{PageRes, Res};
+use busi::req::IdsReq;
+use busi::res::{PageRes, Res};
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 
