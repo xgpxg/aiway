@@ -5,11 +5,11 @@ mod header;
 pub mod macros;
 mod manager;
 
+use aiway_protocol::SV;
+use aiway_protocol::gateway::{HttpContext, RequestContext, ResponseContext};
 use dashmap::DashMap;
 pub use header::Headers;
 pub use manager::HCM;
-use aiway_protocol::SV;
-use aiway_protocol::gateway::{HttpContext, RequestContext, ResponseContext};
 use rocket::fairing::Fairing;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
@@ -37,9 +37,14 @@ impl Fairing for HttpContextFairing {
         }
     }
 
-    async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+    async fn on_request(&self, req: &mut Request<'_>, data: &mut Data<'_>) {
         skip_if_error!(req);
         let context = HttpContextOnce::from_request(req).0;
+
+        // 提取body，后续的body将不可用，仅能通过context获取。
+        let body = data.take().await;
+        context.request.set_body(bytes::Bytes::from(body));
+
         let request_id = context.request.request_id.clone();
 
         // 设置请求上下文
@@ -57,6 +62,7 @@ impl Fairing for HttpContextFairing {
 ///
 /// 目前仅在gateway中使用。
 ///
+#[derive(Debug)]
 pub struct HttpContextWrapper(pub Arc<HttpContext>);
 
 #[rocket::async_trait]
@@ -74,6 +80,7 @@ impl<'r> FromRequest<'r> for HttpContextWrapper {
 }
 
 /// 一次性的请求上下文包装器，不会被HCM管理。
+/// 注意：不包含body数据。
 pub struct HttpContextOnce(pub HttpContext);
 
 #[rocket::async_trait]

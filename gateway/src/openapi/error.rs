@@ -18,6 +18,7 @@ pub enum GatewayError {
     // #[deprecated]
     // Forbidden,
     /// IO错误，对应状态码：500
+    #[allow(unused)]
     IO(String),
 }
 

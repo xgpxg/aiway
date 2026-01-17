@@ -82,7 +82,7 @@ dependencies = [
  "chrono",
  "dashmap",
  "rbatis",
- "rocket",
+ "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "serde",
  "serde_json",
  "tokio-stream",
@@ -862,7 +862,7 @@ dependencies = [
  "rbdc-sqlite",
  "rbs",
  "reqwest",
- "rocket",
+ "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "rust-embed",
  "semver",
  "serde",
@@ -885,9 +885,10 @@ name = "context"
 version = "0.1.0"
 dependencies = [
  "aiway-protocol",
+ "bytes",
  "chrono",
  "dashmap",
- "rocket",
+ "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "uuid",
 ]
 
@@ -1446,7 +1447,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1757,7 +1758,7 @@ dependencies = [
  "matchit",
  "md5",
  "reqwest",
- "rocket",
+ "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "serde",
  "serde_json",
  "sysinfo",
@@ -2084,7 +2085,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "system-configuration",
  "tokio",
  "tower-service",
@@ -2352,7 +2353,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2565,7 +2566,7 @@ dependencies = [
  "chrono",
  "clap",
  "common",
- "rocket",
+ "rocket 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_json",
  "tantivy",
@@ -2763,7 +2764,7 @@ dependencies = [
  "openai_dive",
  "plugin-manager",
  "reqwest",
- "rocket",
+ "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -2875,7 +2876,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3541,7 +3542,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -3579,9 +3580,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4027,8 +4028,45 @@ dependencies = [
  "pin-project-lite",
  "rand 0.8.5",
  "ref-cast",
- "rocket_codegen",
- "rocket_http",
+ "rocket_codegen 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rocket_http 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_json",
+ "state",
+ "tempfile",
+ "time",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "ubyte",
+ "version_check",
+ "yansi",
+]
+
+[[package]]
+name = "rocket"
+version = "0.5.1"
+source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#c205e0b8a834fdf09142f9bd5e2dd2b70419d7a1"
+dependencies = [
+ "async-stream",
+ "async-trait",
+ "atomic 0.5.3",
+ "binascii",
+ "bytes",
+ "either",
+ "figment",
+ "futures",
+ "indexmap",
+ "log",
+ "memchr",
+ "multer",
+ "num_cpus",
+ "parking_lot 0.12.5",
+ "pin-project-lite",
+ "rand 0.8.5",
+ "ref-cast",
+ "rocket_codegen 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
+ "rocket_http 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "serde",
  "serde_json",
  "state",
@@ -4053,7 +4091,23 @@ dependencies = [
  "indexmap",
  "proc-macro2",
  "quote",
- "rocket_http",
+ "rocket_http 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 2.0.112",
+ "unicode-xid",
+ "version_check",
+]
+
+[[package]]
+name = "rocket_codegen"
+version = "0.5.1"
+source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#c205e0b8a834fdf09142f9bd5e2dd2b70419d7a1"
+dependencies = [
+ "devise",
+ "glob",
+ "indexmap",
+ "proc-macro2",
+ "quote",
+ "rocket_http 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "syn 2.0.112",
  "unicode-xid",
  "version_check",
@@ -4064,6 +4118,32 @@ name = "rocket_http"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e274915a20ee3065f611c044bd63c40757396b6dbc057d6046aec27f14f882b9"
+dependencies = [
+ "cookie",
+ "either",
+ "futures",
+ "http 0.2.12",
+ "hyper 0.14.32",
+ "indexmap",
+ "log",
+ "memchr",
+ "pear",
+ "percent-encoding",
+ "pin-project-lite",
+ "ref-cast",
+ "serde",
+ "smallvec",
+ "stable-pattern",
+ "state",
+ "time",
+ "tokio",
+ "uncased",
+]
+
+[[package]]
+name = "rocket_http"
+version = "0.5.1"
+source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#c205e0b8a834fdf09142f9bd5e2dd2b70419d7a1"
 dependencies = [
  "cookie",
  "either",
@@ -4175,7 +4255,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4255,7 +4335,7 @@ dependencies = [
  "security-framework 3.5.1",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4949,7 +5029,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4957,7 +5037,7 @@ name = "test-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "rocket",
+ "rocket 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
 ]
 
@@ -5721,7 +5801,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

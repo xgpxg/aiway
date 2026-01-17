@@ -10,7 +10,7 @@ common = { path = "../lib/common" }
 aiway-protocol = { path = "../lib/aiway-protocol", features = ["rbatis", "rocket", "logg", "api-key", "model"] }
 alert = { path = "../lib/alert" }
 aiway-plugin = { path = "../lib/aiway-plugin" }
-rocket = { version = "0.5", features = ["json"] }
+rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 rbatis = { version = "4.6", features = ["debug_mode"] }

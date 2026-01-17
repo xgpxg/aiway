@@ -10,9 +10,9 @@ use crate::report::STATE;
 use context::{HCM, Headers, skip_if_error};
 use rocket::Request;
 use rocket::fairing::Fairing;
-use rocket::http::hyper::body::Bytes;
 use rocket::http::{Header, Status};
 use std::io::Cursor;
+use tokio_util::bytes::Bytes;
 
 pub struct ResponseData {}
 impl ResponseData {

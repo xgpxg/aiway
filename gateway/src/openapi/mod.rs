@@ -19,60 +19,26 @@ use crate::openapi::response::{GatewayResponse, ResponseExt};
 use alert::Alert;
 use context::HttpContextWrapper;
 use reqwest::{StatusCode, Url};
-use rocket::data::ToByteUnit;
-use rocket::{Data, delete, get, head, options, patch, post, put};
+use rocket::{delete, get, head, options, patch, post, put};
 use std::path::PathBuf;
-
-async fn set_body(wrapper: &HttpContextWrapper, body: Data<'_>) -> Result<(), GatewayError> {
-    wrapper.0.request.set_body(
-        body.open(10.megabytes())
-            .into_bytes()
-            .await
-            .map_err(|e| GatewayError::IO(e.to_string()))?
-            .to_vec()
-            .into(),
-    );
-    Ok(())
-}
 
 #[get("/<path..>")]
 pub async fn call_get(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     handle(wrapper, path).await
 }
 
-#[post("/<path..>", data = "<body>")]
-pub async fn call_post(
-    wrapper: HttpContextWrapper,
-    path: PathBuf,
-    body: Data<'_>,
-) -> GatewayResponse {
-    if let Err(e) = set_body(&wrapper, body).await {
-        return GatewayResponse::Error(e);
-    }
+#[post("/<path..>")]
+pub async fn call_post(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     handle(wrapper, path).await
 }
 
-#[put("/<path..>", data = "<body>")]
-pub async fn call_put(
-    wrapper: HttpContextWrapper,
-    path: PathBuf,
-    body: Data<'_>,
-) -> GatewayResponse {
-    if let Err(e) = set_body(&wrapper, body).await {
-        return GatewayResponse::Error(e);
-    }
+#[put("/<path..>")]
+pub async fn call_put(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     handle(wrapper, path).await
 }
 
-#[patch("/<path..>", data = "<body>")]
-pub async fn call_patch(
-    wrapper: HttpContextWrapper,
-    path: PathBuf,
-    body: Data<'_>,
-) -> GatewayResponse {
-    if let Err(e) = set_body(&wrapper, body).await {
-        return GatewayResponse::Error(e);
-    }
+#[patch("/<path..>")]
+pub async fn call_patch(wrapper: HttpContextWrapper, path: PathBuf) -> GatewayResponse {
     handle(wrapper, path).await
 }
 
