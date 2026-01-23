@@ -12,6 +12,7 @@ mod response;
 #[deprecated]
 #[allow(unused)]
 mod sse;
+pub(crate) mod ws;
 
 use crate::openapi::client::HTTP_CLIENT;
 use crate::openapi::error::GatewayError;

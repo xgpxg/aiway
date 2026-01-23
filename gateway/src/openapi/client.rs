@@ -3,6 +3,7 @@ use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::{Client, ClientBuilder, Url};
 use std::str::FromStr;
 use std::sync::LazyLock;
+use reqwest_websocket::RequestBuilderExt;
 
 /// 对LoadBalanceClient的封装
 pub struct HttpClient {
@@ -31,6 +32,24 @@ impl HttpClient {
             .headers(headers.into_header_map())
             .send()
             .await)
+    }
+
+    pub async fn request_ws(
+        &self,
+        method: &str,
+        url: Url,
+        headers: DashMap<String, String>,
+        body: impl Into<reqwest::Body>,
+    ) -> anyhow::Result<reqwest_websocket::UpgradeResponse> {
+        let response = self
+            .client
+            .request(reqwest::Method::from_str(method)?, url)
+            .body(body)
+            .headers(headers.into_header_map())
+            .upgrade()
+            .send()
+            .await?;
+        Ok(response)
     }
 }
 

@@ -74,6 +74,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.attach(fairing::filter::PreFilter::new());
     // 负载均衡，通过路由配置对应的服务，进行负载，然后路由到具体的服务执行
     builder = builder.attach(fairing::lb::LoadBalance::new());
+    // 转发到websocket端点
+    builder = builder.attach(fairing::forward_ws::ForwardWebsocketFairing::new());
 
     ////////////////////////////////// 响应阶段 //////////////////////////////////
     // 路由后置过滤器，可自由配置，串联执行
@@ -98,6 +100,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
             openapi::call_patch,
             openapi::call_head,
             openapi::call_options,
+            openapi::ws::call_get_websocket,
+            openapi::ws::call_post_websocket,
         ],
     );
     //builder = builder.mount("/eep", eep::routes());

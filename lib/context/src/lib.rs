@@ -97,7 +97,7 @@ impl HttpContextOnce {
             .headers()
             .iter()
             // 移除不需要透传到下游服务的Header
-            .filter(|h| h.name().ne("content-length") && h.name().ne("authorization"))
+            .filter(|h| !Self::is_ignore_header(h.name().as_str()))
             .map(|h| (h.name().to_string(), h.value().to_string()))
             .collect::<DashMap<String, String>>();
 
@@ -143,5 +143,20 @@ impl HttpContextOnce {
         };
 
         HttpContextOnce(context)
+    }
+
+    pub(crate) fn is_ignore_header(name: &str) -> bool {
+        matches!(
+            name,
+            "content-length"
+                | "x-node-name"
+                | "x-service-name"
+                | "transfer-encoding"
+                | "x-content-type-options"
+                | "x-frame-options"
+                | "permissions-policy"
+                | "authorization"
+                | "host"
+        )
     }
 }

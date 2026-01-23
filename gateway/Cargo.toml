@@ -16,6 +16,7 @@ alert = { path = "../lib/alert" }
 #pubsub = { path = "../lib/pubsub" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }
+rocket_ws = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", package = "rocket_ws" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
@@ -25,6 +26,7 @@ dashmap = "6.1"
 uuid = { version = "1.18", features = ["v4"] }
 tokio-util = "0.7"
 reqwest = { version = "0.13", features = ["stream", "json", "query"] }
+reqwest-websocket = { git = "https://github.com/jgraef/reqwest-websocket.git" }
 sysinfo = "0.37"
 md5 = "0.8"
 chrono = "0.4"

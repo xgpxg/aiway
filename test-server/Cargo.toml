@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { version = "0.5", features = ["json"] }
+rocket_ws = "0.1.1"
 anyhow = "1.0"
