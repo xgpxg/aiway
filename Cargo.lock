@@ -467,9 +467,9 @@ checksum = "0e050f626429857a27ddccb31e0aca21356bfa709c04041aefddac081a8f068a"
 
 [[package]]
 name = "bcrypt"
-version = "0.17.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abaf6da45c74385272ddf00e1ac074c7d8a6c1a1dda376902bd6a427522a8b2c"
+checksum = "9a0f5948f30df5f43ac29d310b7476793be97c50787e6ef4a63d960a0d0be827"
 dependencies = [
  "base64",
  "blowfish",
@@ -862,7 +862,7 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "aiway-plugin",
  "aiway-protocol",
@@ -1082,6 +1082,18 @@ dependencies = [
  "crossbeam-utils",
  "futures-core",
  "parking_lot 0.12.5",
+]
+
+[[package]]
+name = "crossfire"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e1ff29ef3add47897a4dab381889ccf8dedcedec4e2c8feed37efcf22a6392b"
+dependencies = [
+ "crossbeam-utils",
+ "futures-core",
+ "parking_lot 0.12.5",
+ "smallvec",
 ]
 
 [[package]]
@@ -1515,7 +1527,7 @@ checksum = "f9e67063ce10faa93bc59760c2e85af04adf41918e20c14b0f25d4cd5423dc43"
 dependencies = [
  "async-trait",
  "atomic 0.6.1",
- "crossfire",
+ "crossfire 2.1.9",
  "futures-core",
  "tokio",
 ]
@@ -3721,9 +3733,9 @@ dependencies = [
 
 [[package]]
 name = "rbatis"
-version = "4.6.14"
+version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "495f142e09f5130d92147fa3e8314fcd3fcb4037cfabfb04356e2c4a1867a533"
+checksum = "583f95e4062f3a18abd0200f031ec99a27067f1dd50c9b5261f6b3eafea13264"
 dependencies = [
  "async-trait",
  "dark-std",
@@ -3743,9 +3755,9 @@ dependencies = [
 
 [[package]]
 name = "rbatis-codegen"
-version = "4.6.6"
+version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3933ecae4c5858884f65d51a23b381591ea4680ca9437235628d721e4ef9743e"
+checksum = "fda0f3b77bd172c69564eab6f15b1218c14afb58045b4a2bdc14be352ad7f900"
 dependencies = [
  "html_parser",
  "proc-macro2",
@@ -3758,9 +3770,9 @@ dependencies = [
 
 [[package]]
 name = "rbatis-macro-driver"
-version = "4.6.0"
+version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8de1009344065e1ae5ad2b8a1499a32cb185881121f5e47062c21e6706af5c44"
+checksum = "dc68c126c5e4862821f07ef96d33692bf6fca99b803e567dabf67184dbed8423"
 dependencies = [
  "dark-std",
  "proc-macro2",
@@ -3771,9 +3783,9 @@ dependencies = [
 
 [[package]]
 name = "rbdc"
-version = "4.6.2"
+version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "186bbc558fc32294dff157ee5c0dde49b1a82d59cf1a3cc4be3e156fc1d8b88f"
+checksum = "8f5f31334ebbb0ad799b3e91941f6a3a5c9c204526d2ad316724ed4a14506eb9"
 dependencies = [
  "async-trait",
  "bigdecimal",
@@ -3800,9 +3812,9 @@ dependencies = [
 
 [[package]]
 name = "rbdc-mysql"
-version = "4.6.2"
+version = "4.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f48ef5f666372bb3db7c89c04325c839dfc5ab9b2547fc95c6d934493ebbc7c7"
+checksum = "9fd83bd7c0f4f543204a96540689de59280b6280e08ce7ebd4171ed2509d6670"
 dependencies = [
  "bitflags 2.10.0",
  "byteorder",
@@ -3827,9 +3839,9 @@ dependencies = [
 
 [[package]]
 name = "rbdc-pool-fast"
-version = "4.6.3"
+version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78b9e217f104d980241e25c33e97c3ca588fea7a572ac5e3b064a79f3df7bcd4"
+checksum = "f0608fc6032167caba5358d623af7fa272c6c710444953f04a334227843961b7"
 dependencies = [
  "async-trait",
  "dark-std",
@@ -3842,14 +3854,14 @@ dependencies = [
 
 [[package]]
 name = "rbdc-sqlite"
-version = "4.6.5"
+version = "4.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58d1b90b57aa9eb8946e9e0a0d79db142c757abe14655c9bef3be7b5deddb145"
+checksum = "37af67d42a6902f307b9d929d9a71e7070258804fdcbca634e1285cc7c10ecbf"
 dependencies = [
  "atoi",
  "bytes",
+ "crossfire 3.0.2",
  "either",
- "flume",
  "futures-channel",
  "futures-core",
  "futures-executor",
@@ -3870,9 +3882,9 @@ dependencies = [
 
 [[package]]
 name = "rbs"
-version = "4.6.2"
+version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fce90100e809c1438979030f69c4d37969cb22b0ddd59901418feb0aee54bde"
+checksum = "2f850aedb06577bc1ecf3923d9bad6af06c5d86e089c71fe8cd5e065bcc31170"
 dependencies = [
  "indexmap",
  "serde",

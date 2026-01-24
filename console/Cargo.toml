@@ -14,11 +14,11 @@ aiway-plugin = { path = "../lib/aiway-plugin" }
 rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
-rbatis = { version = "4.6", features = ["debug_mode"] }
-rbs = { version = "4.6" }
-rbdc-sqlite = { version = "^4.6" }
-rbdc-pool-fast = "4.6"
-rbdc-mysql = { version = "4.6" }
+rbatis = { version = "4.7", features = ["debug_mode"] }
+rbs = { version = "4.7" }
+rbdc-sqlite = { version = "4.7" }
+rbdc-pool-fast = "4.7"
+rbdc-mysql = { version = "4.7" }
 strum = "0.27"
 strum_macros = "0.27"
 serde = "1"
@@ -27,7 +27,7 @@ derive_builder = "0.20"
 fs_extra = "1.3"
 semver = "1.0"
 reqwest = "0.13"
-bcrypt = "0.17"
+bcrypt = "0.18"
 uuid = { version = "1.17.0", features = ["v4"] }
 nanoid = "0.4.0"
 # config = { version = "0.15", default-features = false, features = ["json"] }
