@@ -68,6 +68,6 @@ https://github.com/xgpxg/aiway-plugins
 
 ### 截图
 
-![Dashboard](docs/images/1.png)
+![Dashboard](docs/images/screenshot.png)
 
 
