@@ -18,6 +18,12 @@
 - Linux(arm64)
 - MacOS(arm64)
 
+支持的协议：
+
+- HTTP
+- SSE
+- Websocket
+
 📑 [文档](https://aiway.coderbox.cn/doc.html)
 
 ### 快速启动
