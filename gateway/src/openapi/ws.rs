@@ -1,19 +1,11 @@
 use crate::openapi::client::HTTP_CLIENT;
-use crate::openapi::error::GatewayError;
-use crate::openapi::response::GatewayResponse;
 use context::HttpContextWrapper;
 use reqwest::Url;
-use reqwest_websocket::RequestBuilderExt;
-use rocket::data::ToByteUnit;
 use rocket::futures::{SinkExt, StreamExt, TryStreamExt};
-use rocket::http::Status;
 use rocket::{Data, get, post};
 use rocket_ws::frame::{CloseCode, CloseFrame};
-use std::net::IpAddr;
 use std::path::PathBuf;
-use std::str::FromStr;
 use tokio::select;
-use tokio_util::bytes::Bytes;
 
 #[get("/ws/<path..>", data = "<data>")]
 pub async fn call_get_websocket(
@@ -38,8 +30,8 @@ pub async fn call_post_websocket(
 async fn call_websocket(
     ws: rocket_ws::WebSocket,
     wrapper: HttpContextWrapper,
-    path: PathBuf,
-    data: Data<'_>,
+    _path: PathBuf,
+    _data: Data<'_>,
 ) -> rocket_ws::Channel<'static> {
     let request_context = &wrapper.0.clone().request;
 
@@ -85,7 +77,7 @@ async fn call_websocket(
                 .request_ws(&method, url, headers, body.unwrap_or_default())
                 .await;
 
-            if let Err(err) = response {
+            if  response.is_err() {
                 let _ = stream.close(Some(CloseFrame {
                     code: CloseCode::Error,
                     reason: "Response Error".into(),
