@@ -9,10 +9,10 @@
 mod state;
 
 use crate::Args;
+use aiway_protocol::common::constants;
 use aiway_protocol::gateway::state::{NodeInfo, State};
 pub use state::STATE;
 use std::time::Duration;
-use aiway_protocol::common::constants;
 
 pub struct Reporter {
     client: reqwest::Client,
@@ -21,9 +21,7 @@ pub struct Reporter {
 impl Reporter {
     pub fn new() -> Self {
         let client = reqwest::ClientBuilder::default()
-            .connect_timeout(Duration::from_secs(
-                constants::REPORT_STATE_INTERVAL,
-            ))
+            .connect_timeout(Duration::from_secs(constants::REPORT_STATE_INTERVAL))
             .build()
             .unwrap();
         Self { client }
@@ -54,11 +52,11 @@ pub fn init(args: &Args) {
         // TODO 考虑15秒上报一次
         let reporter = Reporter::new();
         let mut timer = tokio::time::interval(Duration::from_secs(5));
-        STATE.refresh(node_info.clone());
+        STATE.refresh(node_info.clone()).await;
         loop {
             timer.tick().await;
             {
-                let state = STATE.refresh(node_info.clone());
+                let state = STATE.refresh(node_info.clone()).await;
                 reporter.report(&console_addr, &state).await;
             };
         }

@@ -130,7 +130,7 @@ fn print_banner() {
     use clap::Parser;
     let args = Args::parse();
     log::info!(
-        "aiway started success, current version: {}, listening on: {}:{}",
+        "gateway started success, current version: {}, listening on: {}:{}",
         crate::VERSION,
         args.address,
         args.port

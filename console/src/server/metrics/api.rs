@@ -1,6 +1,8 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::metrics::request::{RegionRequestCountReq, RequestStatusCountReq};
-use crate::server::metrics::response::{GatewayState, RegionRequestCountRes, RequestStatusCountRes};
+use crate::server::metrics::response::{
+    GatewayState, RegionRequestCountRes, RequestStatusCountRes,
+};
 use crate::server::metrics::service;
 use busi::res::Res;
 use rocket::serde::json::Json;

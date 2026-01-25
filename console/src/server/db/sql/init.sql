@@ -114,6 +114,7 @@ create table if not exists gateway_node
     id                  bigint primary key,
     node_id             varchar(100) not null,          -- 节点ID，md5(ip:port)后取前8位
     node_name           varchar(100),                   -- 节点名称
+    attr                varchar(500),                   -- 节点属性，JSON字符串
     ip                  varchar(100) not null,          -- IP
     port                int          not null,          -- 端口
     status              varchar(50)  not null,          -- 节点状态：Online | Offline | Unknown

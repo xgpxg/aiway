@@ -24,8 +24,12 @@ pub struct NodeInfo {
 pub struct SystemState {
     /// 操作系统及版本，如: Ubuntu 22.04
     pub os: String,
+    /// CPU 架构
+    pub arch: String,
     /// 主机名
     pub host_name: String,
+    /// 运行时间，单位：秒
+    pub uptime: u64,
     /// cpu 使用率
     pub cpu_usage: f32,
     /// 内存状态
@@ -116,7 +120,6 @@ pub struct MomentCounter {
     pub http_connect_count: isize,
     // TODO SSE计数？
     pub sse_connect_count: isize,
-
 }
 
 impl State {

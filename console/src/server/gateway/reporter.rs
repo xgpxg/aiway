@@ -1,4 +1,6 @@
-use crate::server::db::models::gateway_node::{GatewayNode, GatewayNodeBuilder, GatewayNodeStatus};
+use crate::server::db::models::gateway_node::{
+    GatewayNode, GatewayNodeAttr, GatewayNodeBuilder, GatewayNodeStatus,
+};
 use crate::server::db::models::gateway_node_state::{GatewayNodeState, GatewayNodeStateBuilder};
 use crate::server::db::{Pool, tools};
 use aiway_protocol::common::constants;
@@ -18,11 +20,18 @@ pub async fn report(req: State) -> anyhow::Result<()> {
 
     let tx = Pool::get()?;
     let gateway_node = GatewayNode::select_by_map(tx, value! {"node_id": node_id}).await?;
+    let attr = GatewayNodeAttr {
+        os: req.system_state.os.clone(),
+        host_name: req.system_state.host_name.clone(),
+        arch: req.system_state.arch.clone(),
+        uptime: req.system_state.uptime,
+    };
     if gateway_node.is_empty() {
         // 新增
         let gateway_node = GatewayNodeBuilder::default()
             .id(Some(id::next()))
             .node_id(Some(node_id.clone()))
+            .attr(Some(attr))
             .ip(Some(req.node_info.ip))
             .port(Some(req.node_info.port))
             .status(Some(GatewayNodeStatus::Online))
@@ -39,6 +48,7 @@ pub async fn report(req: State) -> anyhow::Result<()> {
             send_alert(&gateway_node);
         }
         let gateway_node = GatewayNodeBuilder::default()
+            .attr(Some(attr))
             .last_heartbeat_time(Some(tools::now()))
             .status(Some(GatewayNodeStatus::Online))
             .update_time(Some(tools::now()))

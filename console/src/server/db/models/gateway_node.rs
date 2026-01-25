@@ -13,6 +13,8 @@ pub struct GatewayNode {
     pub node_id: Option<String>,
     /// 节点名称
     pub node_name: Option<String>,
+    /// 节点属性
+    pub attr: Option<GatewayNodeAttr>,
     ///  IP
     pub ip: Option<String>,
     /// 端口
@@ -44,6 +46,19 @@ pub enum GatewayNodeStatus {
     Online,
     Offline,
     Unknown,
+}
+
+/// 节点属性
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GatewayNodeAttr {
+    /// 操作系统
+    pub os: String,
+    /// 主机名
+    pub host_name: String,
+    /// CPU 架构
+    pub arch: String,
+    /// 运行时间
+    pub uptime: u64,
 }
 
 impl GatewayNode {

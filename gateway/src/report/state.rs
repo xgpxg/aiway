@@ -9,8 +9,8 @@ pub struct GatewayState {
 }
 impl GatewayState {
     /// 刷新状态，并清空计数器。返回旧状态。
-    pub fn refresh(&self, node_info: NodeInfo) -> State {
-        let system_state = self.build_system_state();
+    pub async fn refresh(&self, node_info: NodeInfo) -> State {
+        let system_state = self.build_system_state().await;
 
         // 锁定
         let mut state_guard = self.state.lock().unwrap();
@@ -29,7 +29,7 @@ impl GatewayState {
         old
     }
 
-    fn build_system_state(&self) -> SystemState {
+    async fn build_system_state(&self) -> SystemState {
         let mut system_state = SystemState::default();
 
         let mut sys = System::new();
@@ -43,7 +43,12 @@ impl GatewayState {
             System::os_version().unwrap_or_default()
         );
         system_state.host_name = System::host_name().unwrap_or_default();
+        system_state.arch = System::cpu_arch();
+        system_state.uptime = System::uptime();
 
+        // Wait a bit because CPU usage is based on diff.
+        tokio::time::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL).await;
+        sys.refresh_cpu_usage();
         system_state.cpu_usage = sys.global_cpu_usage();
         system_state.mem_state = MemState {
             total: sys.total_memory(),
