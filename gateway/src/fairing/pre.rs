@@ -1,11 +1,11 @@
 //! # 预处理
 //!
 use crate::report::STATE;
+use context::Headers;
 use rocket::fairing::Fairing;
 use rocket::http::Header;
 use rocket::{Data, Request};
 use uuid::Uuid;
-use context::Headers;
 
 pub struct Pre {}
 impl Pre {
@@ -19,7 +19,7 @@ impl Fairing for Pre {
     fn info(&self) -> rocket::fairing::Info {
         rocket::fairing::Info {
             name: "Pre",
-            kind: rocket::fairing::Kind::Request | rocket::fairing::Kind::Response,
+            kind: rocket::fairing::Kind::Request,
         }
     }
 
@@ -38,15 +38,5 @@ impl Fairing for Pre {
             Headers::REQUEST_TIME,
             chrono::Local::now().timestamp_millis().to_string(),
         ));
-    }
-
-    async fn on_response<'r>(&self, _req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
-        if let Some(content_type) = res.headers().get_one(Headers::CONTENT_TYPE)
-            && content_type.starts_with("text/event-stream")
-        {
-            // 增加SSE连接数
-            // 当SSE流结束后，会在openapi中减去
-            STATE.inc_sse_connect_count(1);
-        }
     }
 }

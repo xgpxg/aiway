@@ -71,6 +71,15 @@ impl Fairing for ResponseData {
         STATE.inc_response_time(
             (response_context.get_response_ts() - request_context.get_request_ts()) as usize,
         );
+
+        if let Some(content_type) = res.headers().get_one(Headers::CONTENT_TYPE)
+            && content_type.starts_with("text/event-stream")
+        {
+            // 增加SSE连接数
+            // 当SSE流结束后，会在openapi中减去
+            STATE.inc_sse_connect_count(1);
+        }
+
         //println!("ResponseData: {:?}", res);
     }
 }
