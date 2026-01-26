@@ -6,6 +6,7 @@ use rocket::{Data, get, post};
 use rocket_ws::frame::{CloseCode, CloseFrame};
 use std::path::PathBuf;
 use tokio::select;
+use crate::report::STATE;
 
 #[get("/ws/<path..>", data = "<data>")]
 pub async fn call_get_websocket(
@@ -33,6 +34,8 @@ async fn call_websocket(
     _path: PathBuf,
     _data: Data<'_>,
 ) -> rocket_ws::Channel<'static> {
+    STATE.inc_websocket_connect_count(1);
+
     let request_context = &wrapper.0.clone().request;
 
     // 实际路由路径
@@ -82,6 +85,8 @@ async fn call_websocket(
                     code: CloseCode::Error,
                     reason: "Response Error".into(),
                 })).await;
+
+                STATE.inc_websocket_connect_count(-1);
                 return Ok(());
             }
 
@@ -96,6 +101,8 @@ async fn call_websocket(
                         code: CloseCode::Protocol,
                         reason: format!("Handshake failed: {}", e).into(),
                     })).await;
+
+                    STATE.inc_websocket_connect_count(-1);
                     return Ok(());
                 }
             };
@@ -174,6 +181,8 @@ async fn call_websocket(
                     }
                 }
             }
+
+            STATE.inc_websocket_connect_count(-1);
 
             Ok(())
         })

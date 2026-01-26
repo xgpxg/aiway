@@ -110,7 +110,7 @@ pub(crate) async fn node_connection_usage(
     node_id: &str,
     start_timestamp: i64,
     end_timestamp: i64,
-) -> anyhow::Result<(Vec<UsageRes>, Vec<UsageRes>, Vec<UsageRes>)> {
+) -> anyhow::Result<(Vec<UsageRes>, Vec<UsageRes>, Vec<UsageRes>, Vec<UsageRes>)> {
     let tx = Pool::get()?;
     let tcp_list: Vec<UsageRes> = tx.query_decode(
         "SELECT ts as t,net_tcp_conn_count as v  FROM gateway_node_state  WHERE node_id = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC LIMIT 20000",
@@ -139,5 +139,14 @@ pub(crate) async fn node_connection_usage(
         ],
     )
         .await?;
-    Ok((tcp_list, http_list, sse_list))
+    let ws_list: Vec<UsageRes> = tx.query_decode(
+        "SELECT ts as t,websocket_connect_count as v  FROM gateway_node_state  WHERE node_id = ? AND ts >= ? AND ts <= ? ORDER BY ts ASC LIMIT 20000",
+        vec![
+            value!(node_id),
+            value!(start_timestamp),
+            value!(end_timestamp),
+        ],
+    )
+        .await?;
+    Ok((tcp_list, http_list, sse_list, ws_list))
 }

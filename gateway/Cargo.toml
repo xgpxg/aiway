@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-common = { path = "../lib/common" }
 aiway-protocol = { path = "../lib/aiway-protocol", features = ["api-key", "alert"] }
 busi = { path = "../lib/busi" }
 context = { path = "../lib/context" }
@@ -16,7 +15,7 @@ alert = { path = "../lib/alert" }
 #pubsub = { path = "../lib/pubsub" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }
-rocket_ws = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", package = "rocket_ws" }
+rocket_ws = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"

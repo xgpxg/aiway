@@ -118,8 +118,10 @@ pub struct MomentCounter {
     /// - 不含被防火墙拦截的请求
     ///
     pub http_connect_count: isize,
-    // TODO SSE计数？
+    /// SSE计数
     pub sse_connect_count: isize,
+    /// WebSocket计数
+    pub websocket_connect_count: isize,
 }
 
 impl State {

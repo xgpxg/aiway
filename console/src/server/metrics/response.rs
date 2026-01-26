@@ -39,6 +39,9 @@ pub struct GatewayState {
     /// 当前sse连接总数
     /// 取值：gateway_node表的所有节点的sse连接总数
     pub sse_connect_count: usize,
+    /// 当前websocket连接总数
+    /// 取值：gateway_node表的所有节点的websocket连接总数
+    pub websocket_connect_count: usize,
     /// 网关当前网络接收字节数
     pub net_rx: usize,
     /// 网关当前网络发送字节数

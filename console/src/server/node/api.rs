@@ -77,7 +77,7 @@ async fn node_connection_usage(
     start_timestamp: i64,
     end_timestamp: i64,
     _user: UserPrincipal,
-) -> Res<(Vec<UsageRes>,Vec<UsageRes>,Vec<UsageRes>)> {
+) -> Res<(Vec<UsageRes>, Vec<UsageRes>, Vec<UsageRes>, Vec<UsageRes>)> {
     match service::node_connection_usage(node_id, start_timestamp, end_timestamp).await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
