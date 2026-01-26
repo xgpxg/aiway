@@ -12,5 +12,5 @@ rocket = { version = "0.5", features = ["json"] }
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 tantivy = { version = "0.25.0" }
-tantivy-jieba = { version = "0.17.0" }
+tantivy-jieba = { version = "0.18.0" }
 chrono = { version = "0.4" }
