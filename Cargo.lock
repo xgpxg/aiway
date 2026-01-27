@@ -68,7 +68,7 @@ dependencies = [
 
 [[package]]
 name = "aiway-plugin"
-version = "0.1.2-alpha.2"
+version = "0.1.2"
 dependencies = [
  "aiway-model-protocol",
  "aiway-protocol",
