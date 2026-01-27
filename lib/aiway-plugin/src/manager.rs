@@ -1,4 +1,4 @@
-use crate::protocol::gateway::HttpContext;
+use crate::protocol::context::HttpContext;
 use crate::{Plugin, PluginError};
 use dashmap::DashMap;
 use serde_json::Value;

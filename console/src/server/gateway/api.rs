@@ -30,7 +30,7 @@ pub fn routes() -> Vec<rocket::Route> {
 
 /// 查询路由表
 #[get("/gateway/routes")]
-async fn all_routes() -> Res<Vec<aiway_protocol::gateway::Route>> {
+async fn all_routes() -> Res<Vec<aiway_protocol::context::Route>> {
     match route::routes().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),

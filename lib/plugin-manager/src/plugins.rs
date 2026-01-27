@@ -12,12 +12,13 @@
 
 use crate::CONSOLE;
 use crate::client::INNER_HTTP_CLIENT;
+use aiway_plugin::{AsyncTryInto, NetworkPlugin, Plugin};
+use aiway_protocol::context::HttpContext;
+use aiway_protocol::gateway::Plugin as PluginConfig;
+use aiway_protocol::gateway::plugin::ConfiguredPlugin;
 use anyhow::bail;
 use dashmap::DashMap;
 use logging::log;
-use aiway_plugin::{AsyncTryInto, NetworkPlugin, Plugin};
-use aiway_protocol::gateway::plugin::ConfiguredPlugin;
-use aiway_protocol::gateway::{HttpContext, Plugin as PluginConfig};
 use serde_json::Value;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};

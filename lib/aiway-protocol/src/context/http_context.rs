@@ -1,5 +1,5 @@
-use crate::gateway::request_context::RequestContext;
-use crate::gateway::response_context::ResponseContext;
+use crate::context::request_context::RequestContext;
+use crate::context::response_context::ResponseContext;
 use dashmap::DashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;

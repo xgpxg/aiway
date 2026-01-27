@@ -12,16 +12,17 @@
 
 use crate::Args;
 use crate::components::client::INNER_HTTP_CLIENT;
+use aiway_plugin::{AsyncTryInto, NetworkPlugin, Plugin};
+use aiway_protocol::context::HttpContext;
+use aiway_protocol::gateway::Plugin as PluginConfig;
+use aiway_protocol::gateway::plugin::ConfiguredPlugin;
 use anyhow::bail;
 use clap::Parser;
 use dashmap::DashMap;
-use aiway_plugin::{AsyncTryInto, NetworkPlugin, Plugin};
-use aiway_protocol::gateway::plugin::ConfiguredPlugin;
-use aiway_protocol::gateway::{HttpContext, Plugin as PluginConfig};
+use serde_json::Value;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
-use serde_json::Value;
 use tokio::sync::RwLock;
 
 pub struct PluginFactory {

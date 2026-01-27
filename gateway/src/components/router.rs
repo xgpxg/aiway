@@ -12,8 +12,8 @@
 //!
 
 use crate::components::client::INNER_HTTP_CLIENT;
+use aiway_protocol::context::{HttpContext, Route};
 use dashmap::DashMap;
-use aiway_protocol::gateway::{HttpContext, Route};
 use std::process::exit;
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;

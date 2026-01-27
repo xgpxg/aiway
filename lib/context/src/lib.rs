@@ -6,7 +6,7 @@ pub mod macros;
 mod manager;
 
 use aiway_protocol::SV;
-use aiway_protocol::gateway::{HttpContext, RequestContext, ResponseContext};
+use aiway_protocol::context::{HttpContext, RequestContext, ResponseContext};
 use dashmap::DashMap;
 pub use header::Headers;
 pub use manager::HCM;

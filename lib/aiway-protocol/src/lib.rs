@@ -2,6 +2,7 @@
 //!
 #[allow(unused)]
 pub mod common;
+pub mod context;
 #[allow(unused)]
 pub mod gateway;
 #[cfg(feature = "logg")]

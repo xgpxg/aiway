@@ -1,9 +1,10 @@
 //! # 网关和控制台的交互
 //!
 use crate::Args;
-use busi::res::Res;
-use aiway_protocol::gateway::{Config, Firewall, GlobalFilter, Plugin, Route, Service};
+use aiway_protocol::context::Route;
+use aiway_protocol::gateway::{Config, Firewall, GlobalFilter, Plugin, Service};
 use anyhow::bail;
+use busi::res::Res;
 use clap::Parser;
 use reqwest::{Client, ClientBuilder};
 use serde::Serialize;

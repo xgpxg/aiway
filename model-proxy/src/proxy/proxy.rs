@@ -7,10 +7,11 @@
 use crate::proxy::client::Client;
 use crate::proxy::request::ModifyModelName;
 use crate::proxy::response::{ModelError, ModelResponse};
+use aiway_model_protocol::audio::{AudioSpeechParameters, AudioSpeechResponse};
 use aiway_model_protocol::chat::{ChatCompletionChunkResponse, ChatCompletionParameters};
+use aiway_model_protocol::image::{CreateImageParameters, EditImageParameters};
 use aiway_protocol::common::constants::BAN_HEADERS;
-use aiway_protocol::gateway::http_context::InnerState;
-use aiway_protocol::gateway::{HttpContext, http_context};
+use aiway_protocol::context::HttpContext;
 use aiway_protocol::model::Provider;
 use dashmap::DashMap;
 use logging::log;
@@ -20,8 +21,6 @@ use rocket::serde::Serialize;
 use serde_json::Value;
 use std::sync::LazyLock;
 use tokio_stream::StreamExt;
-use aiway_model_protocol::audio::{AudioSpeechParameters, AudioSpeechResponse};
-use aiway_model_protocol::image::{CreateImageParameters, EditImageParameters};
 
 pub struct Proxy {
     /// (模型名称, 提供商名称) -> Client实例

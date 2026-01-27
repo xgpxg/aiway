@@ -81,7 +81,7 @@ pub use aiway_protocol as protocol;
 pub use async_trait::async_trait;
 use libloading::Symbol;
 pub use manager::PluginManager;
-use protocol::gateway::HttpContext;
+use protocol::context::HttpContext;
 pub use semver::Version;
 use serde::{Deserialize, Serialize};
 pub use serde_json;
