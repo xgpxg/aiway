@@ -1,16 +1,7 @@
-use openai_dive::v1::resources::audio::AudioSpeechParameters;
-use openai_dive::v1::resources::chat::ChatCompletionParameters;
-use openai_dive::v1::resources::embedding::EmbeddingParameters;
-
-/// 对话补全请求
-pub type ChatCompletionRequest = ChatCompletionParameters;
-/// 嵌入请求
-#[allow(unused)]
-pub type EmbeddingRequest = EmbeddingParameters;
-
-pub type AudioSpeechRequest = AudioSpeechParameters;
-
-pub type CreateImageRequest = openai_dive::v1::resources::image::CreateImageParameters;
+use aiway_model_protocol::audio::AudioSpeechParameters;
+use aiway_model_protocol::chat::ChatCompletionParameters;
+use aiway_model_protocol::embedding::EmbeddingParameters;
+use aiway_model_protocol::image::{CreateImageParameters, EditImageParameters};
 
 /// 修改模型名称
 ///
@@ -38,10 +29,20 @@ macro_rules! impl_modify_model_name {
     };
 }
 
-impl_modify_model_name!(ChatCompletionRequest);
-impl_modify_model_name!(EmbeddingRequest);
-impl_modify_model_name!(AudioSpeechRequest);
-impl ModifyModelName for CreateImageRequest {
+impl_modify_model_name!(ChatCompletionParameters);
+impl_modify_model_name!(EmbeddingParameters);
+impl_modify_model_name!(AudioSpeechParameters);
+impl ModifyModelName for CreateImageParameters {
+    fn get_source_model_name(&self) -> String {
+        self.model.clone().expect("model is required")
+    }
+
+    fn modify_model_name(mut self, target_model_name: &str) -> Self {
+        self.model = Some(target_model_name.to_string());
+        self
+    }
+}
+impl ModifyModelName for EditImageParameters {
     fn get_source_model_name(&self) -> String {
         self.model.clone().expect("model is required")
     }

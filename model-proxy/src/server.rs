@@ -29,6 +29,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
             proxy::api::audio_speech,
             // 图像生成
             proxy::api::images_generations,
+            // 图像编辑
+            proxy::api::images_edits,
         ],
     );
 

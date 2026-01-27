@@ -5,24 +5,23 @@
 //! 网关 → model-proxy → 获取提供商 → 模型名称映射 → 请求参数转换 → 调用提供商 → 响应参数转换 → 返回结果
 //!
 use crate::proxy::client::Client;
-use crate::proxy::request::{
-    AudioSpeechRequest, ChatCompletionRequest, CreateImageRequest, ModifyModelName,
-};
+use crate::proxy::request::ModifyModelName;
 use crate::proxy::response::{ModelError, ModelResponse};
+use aiway_model_protocol::chat::{ChatCompletionChunkResponse, ChatCompletionParameters};
 use aiway_protocol::common::constants::BAN_HEADERS;
 use aiway_protocol::gateway::http_context::InnerState;
 use aiway_protocol::gateway::{HttpContext, http_context};
 use aiway_protocol::model::Provider;
 use dashmap::DashMap;
 use logging::log;
-use openai_dive::v1::resources::audio::AudioSpeechResponse;
-use openai_dive::v1::resources::chat::ChatCompletionChunkResponse;
 use plugin_manager::PluginFactory;
 use reqwest::Response;
 use rocket::serde::Serialize;
 use serde_json::Value;
 use std::sync::LazyLock;
 use tokio_stream::StreamExt;
+use aiway_model_protocol::audio::{AudioSpeechParameters, AudioSpeechResponse};
+use aiway_model_protocol::image::{CreateImageParameters, EditImageParameters};
 
 pub struct Proxy {
     /// (模型名称, 提供商名称) -> Client实例
@@ -130,7 +129,7 @@ impl Proxy {
 
     /// 对话补全
     pub async fn chat_completions(
-        req: ChatCompletionRequest,
+        req: ChatCompletionParameters,
         provider: &Provider,
         context: &HttpContext,
     ) -> Result<ModelResponse, ModelError> {
@@ -228,7 +227,7 @@ impl Proxy {
 
     /// 文本转语音
     pub async fn audio_speech(
-        req: AudioSpeechRequest,
+        req: AudioSpeechParameters,
         provider: &Provider,
         context: &HttpContext,
     ) -> Result<ModelResponse, ModelError> {
@@ -252,7 +251,7 @@ impl Proxy {
 
     /// 创建图像(文生图)
     pub async fn create_image(
-        req: CreateImageRequest,
+        req: CreateImageParameters,
         provider: &Provider,
         context: &HttpContext,
     ) -> Result<ModelResponse, ModelError> {
@@ -269,6 +268,30 @@ impl Proxy {
         let body = context.response.body.take().unwrap_or_default();
         let body = serde_json::from_slice(&body).map_err(|e| ModelError::Parse(e.to_string()))?;
         Ok(ModelResponse::CreateImageResponse(
+            context.response.get_status().unwrap_or_default(),
+            context.response.headers.clone(),
+            body,
+        ))
+    }
+
+    pub(crate) async fn edit_image(
+        req: EditImageParameters,
+        provider: &Provider,
+        context: &HttpContext,
+    ) -> Result<ModelResponse, ModelError> {
+        let client = get_or_create_client!(req.model.clone().unwrap_or_default(), provider);
+        let req = Self::modify_model_name(req, provider);
+        Self::convert_request(&req, provider, context).await?;
+
+        let request_body = context.request.get_body().cloned().unwrap_or_default();
+
+        let response = client.post(&provider.api_url, request_body, None).await?;
+
+        Self::convert_response(response, provider, context).await?;
+
+        let body = context.response.body.take().unwrap_or_default();
+        let body = serde_json::from_slice(&body).map_err(|e| ModelError::Parse(e.to_string()))?;
+        Ok(ModelResponse::EditImageResponse(
             context.response.get_status().unwrap_or_default(),
             context.response.headers.clone(),
             body,

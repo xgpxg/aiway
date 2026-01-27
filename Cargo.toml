@@ -20,4 +20,6 @@ members = [
     "model-proxy",
     "lib/plugin-manager",
     "lib/context",
-    "lib/busi"]
+    "lib/busi",
+    "lib/aiway-model-protocol"
+]

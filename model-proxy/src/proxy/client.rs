@@ -1,7 +1,6 @@
 use crate::proxy::ModelError;
 use aha_reqwest_eventsource::{Event, EventSource, RequestBuilderExt};
 use logging::log;
-use openai_dive::v1::error::InvalidRequestError;
 use reqwest::{Method, RequestBuilder, Response};
 use rocket::futures::Stream;
 use rocket::serde::DeserializeOwned;
@@ -123,16 +122,10 @@ impl Client {
                             let response = match serde_json::from_str::<O>(&message.data) {
                                 Ok(result) => Ok(result),
                                 Err(error) => {
-                                    match serde_json::from_str::<InvalidRequestError>(&message.data)
-                                    {
-                                        Ok(invalid_request_error) => Err(ModelError::StreamError(
-                                            invalid_request_error.to_string(),
-                                        )),
-                                        Err(_) => Err(ModelError::StreamError(format!(
-                                            "{} {}",
-                                            error, message.data
-                                        ))),
-                                    }
+                                    Err(ModelError::StreamError(format!(
+                                        "{} {}",
+                                        error, message.data
+                                    )))
                                 }
                             };
 

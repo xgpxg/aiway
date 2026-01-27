@@ -75,6 +75,8 @@ mod manager;
 mod network;
 
 use crate::network::NETWORK;
+#[cfg(feature = "model")]
+pub use aiway_model_protocol as model_protocol;
 pub use aiway_protocol as protocol;
 pub use async_trait::async_trait;
 use libloading::Symbol;

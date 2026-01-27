@@ -1,15 +1,17 @@
 use crate::components::ModelFactory;
 use crate::proxy::proxy::Proxy;
-use crate::proxy::request::{AudioSpeechRequest, ChatCompletionRequest, CreateImageRequest};
 use crate::proxy::response::{ModelError, ModelResponse};
 use context::HttpContextOnce;
 use rocket::post;
 use rocket::serde::json::Json;
+use aiway_model_protocol::audio::AudioSpeechParameters;
+use aiway_model_protocol::chat::ChatCompletionParameters;
+use aiway_model_protocol::image::{CreateImageParameters, EditImageParameters};
 
 /// 对话补全
 #[post("/chat/completions", data = "<req>")]
 pub async fn chat_completions(
-    req: Json<ChatCompletionRequest>,
+    req: Json<ChatCompletionParameters>,
     context: HttpContextOnce,
 ) -> Result<ModelResponse, ModelError> {
     match ModelFactory::get_provider(&req.model.clone()) {
@@ -21,7 +23,7 @@ pub async fn chat_completions(
 /// 文本转语音
 #[post("/audio/speech", data = "<req>")]
 pub async fn audio_speech(
-    req: Json<AudioSpeechRequest>,
+    req: Json<AudioSpeechParameters>,
     context: HttpContextOnce,
 ) -> Result<ModelResponse, ModelError> {
     match ModelFactory::get_provider(&req.model.clone()) {
@@ -30,13 +32,26 @@ pub async fn audio_speech(
     }
 }
 
+/// 创建图像
 #[post("/images/generations", data = "<req>")]
 pub async fn images_generations(
-    req: Json<CreateImageRequest>,
+    req: Json<CreateImageParameters>,
     context: HttpContextOnce,
 ) -> Result<ModelResponse, ModelError> {
     match ModelFactory::get_provider(&req.model.clone().unwrap_or_default()) {
         Ok(provider) => Proxy::create_image(req.0, &provider, &context.0).await,
+        Err(e) => Err(e),
+    }
+}
+
+/// 编辑图像
+#[post("/images/edits", data = "<req>")]
+pub async fn images_edits(
+    req: Json<EditImageParameters>,
+    context: HttpContextOnce,
+) -> Result<ModelResponse, ModelError> {
+    match ModelFactory::get_provider(&req.model.clone().unwrap_or_default()) {
+        Ok(provider) => Proxy::edit_image(req.0, &provider, &context.0).await,
         Err(e) => Err(e),
     }
 }

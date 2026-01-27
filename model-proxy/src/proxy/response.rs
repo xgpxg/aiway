@@ -1,8 +1,9 @@
+use aiway_model_protocol::audio::AudioSpeechResponse;
+use aiway_model_protocol::chat::ChatCompletionChunkResponse;
+use aiway_model_protocol::chat::ChatCompletionResponse;
+use aiway_model_protocol::embedding::EmbeddingResponse;
+use aiway_model_protocol::image::ImageResponse;
 use dashmap::DashMap;
-use openai_dive::v1::resources::audio::AudioSpeechResponse;
-use openai_dive::v1::resources::chat::{ChatCompletionChunkResponse, ChatCompletionResponse};
-use openai_dive::v1::resources::embedding::EmbeddingResponse;
-use openai_dive::v1::resources::image::ImageResponse;
 use rocket::Request;
 use rocket::futures::{Stream, StreamExt};
 use rocket::http::{Header, Status};
@@ -27,6 +28,9 @@ pub enum ModelResponse {
 
     /// 创建图像
     CreateImageResponse(u16, DashMap<String, String>, ImageResponse),
+
+    /// 编辑图像
+    EditImageResponse(u16, DashMap<String, String>, ImageResponse),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -100,7 +104,8 @@ impl<'r> Responder<'r, 'r> for ModelResponse {
 
                 Ok(response)
             }
-            ModelResponse::CreateImageResponse(status, headers, response) => {
+            ModelResponse::CreateImageResponse(status, headers, response)
+            | ModelResponse::EditImageResponse(status, headers, response) => {
                 let mut response = json!(&response).respond_to(request)?;
                 response.set_status(Status::new(status));
 

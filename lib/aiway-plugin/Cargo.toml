@@ -11,6 +11,7 @@ repository = "https://github.com/xgpxg/aiway"
 
 [dependencies]
 aiway-protocol = { path = "../aiway-protocol", version = "0.1.2-alpha.1" }
+aiway-model-protocol = { path = "../aiway-model-protocol", version = "0.1.0", optional = true }
 libloading = "0.9"
 reqwest = "0.13"
 uuid = { version = "1.18", features = ["v4"] }
@@ -24,4 +25,4 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["macros"] }
 
 [features]
-model = ["aiway-protocol/model"]
+model = ["aiway-protocol/model", "aiway-model-protocol"]

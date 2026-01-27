@@ -57,9 +57,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aiway-model-protocol"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "derive_builder",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "aiway-plugin"
 version = "0.1.2-alpha.1"
 dependencies = [
+ "aiway-model-protocol",
  "aiway-protocol",
  "async-trait",
  "dashmap",
@@ -1083,7 +1094,7 @@ dependencies = [
  "crossbeam-queue",
  "crossbeam-utils",
  "futures-core",
- "parking_lot 0.12.5",
+ "parking_lot 0.11.2",
 ]
 
 [[package]]
@@ -1094,7 +1105,7 @@ checksum = "7e1ff29ef3add47897a4dab381889ccf8dedcedec4e2c8feed37efcf22a6392b"
 dependencies = [
  "crossbeam-utils",
  "futures-core",
- "parking_lot 0.12.5",
+ "parking_lot 0.11.2",
  "smallvec",
 ]
 
@@ -1486,7 +1497,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2155,7 +2166,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core",
 ]
 
 [[package]]
@@ -2394,7 +2405,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2761,16 +2772,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
-name = "mime_guess"
-version = "2.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7c44f8e672c00fe5308fa235f821cb4198414e1c77935c1ab6948d3fd78550e"
-dependencies = [
- "mime",
- "unicase",
-]
-
-[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2792,6 +2793,7 @@ name = "model-proxy"
 version = "0.1.0"
 dependencies = [
  "aha-reqwest-eventsource",
+ "aiway-model-protocol",
  "aiway-plugin",
  "aiway-protocol",
  "alert",
@@ -2803,7 +2805,6 @@ dependencies = [
  "dashmap",
  "fastrand",
  "logging",
- "openai_dive",
  "plugin-manager",
  "reqwest",
  "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
@@ -2918,7 +2919,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3061,24 +3062,6 @@ name = "opaque-debug"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
-
-[[package]]
-name = "openai_dive"
-version = "1.4.0"
-source = "git+https://github.com/xgpxg/openai-client#496b655cefa7d6713c55768446db7e16f3c6ccb9"
-dependencies = [
- "aha-reqwest-eventsource",
- "bytes",
- "derive_builder",
- "futures",
- "reqwest",
- "serde",
- "serde_html_form",
- "serde_json",
- "tokio",
- "tokio-stream",
- "tokio-util",
-]
 
 [[package]]
 name = "openssl-probe"
@@ -3625,7 +3608,7 @@ dependencies = [
  "once_cell",
  "socket2 0.6.1",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4004,7 +3987,6 @@ dependencies = [
  "js-sys",
  "log",
  "mime",
- "mime_guess",
  "percent-encoding",
  "pin-project-lite",
  "quinn",
@@ -4106,7 +4088,7 @@ dependencies = [
 [[package]]
 name = "rocket"
 version = "0.5.1"
-source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#c205e0b8a834fdf09142f9bd5e2dd2b70419d7a1"
+source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#0c84854a5fa75299ac82e70433c6c05f040d2c9e"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -4160,7 +4142,7 @@ dependencies = [
 [[package]]
 name = "rocket_codegen"
 version = "0.5.1"
-source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#c205e0b8a834fdf09142f9bd5e2dd2b70419d7a1"
+source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#0c84854a5fa75299ac82e70433c6c05f040d2c9e"
 dependencies = [
  "devise",
  "glob",
@@ -4203,7 +4185,7 @@ dependencies = [
 [[package]]
 name = "rocket_http"
 version = "0.5.1"
-source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#c205e0b8a834fdf09142f9bd5e2dd2b70419d7a1"
+source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#0c84854a5fa75299ac82e70433c6c05f040d2c9e"
 dependencies = [
  "cookie",
  "either",
@@ -4239,7 +4221,7 @@ dependencies = [
 [[package]]
 name = "rocket_ws"
 version = "0.1.1"
-source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#c205e0b8a834fdf09142f9bd5e2dd2b70419d7a1"
+source = "git+https://github.com/xgpxg/Rocket.git?branch=v0.5#0c84854a5fa75299ac82e70433c6c05f040d2c9e"
 dependencies = [
  "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
  "tokio-tungstenite",
@@ -4334,7 +4316,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4414,7 +4396,7 @@ dependencies = [
  "security-framework 3.5.1",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4579,19 +4561,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.112",
-]
-
-[[package]]
-name = "serde_html_form"
-version = "0.2.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2f2d7ff8a2140333718bb329f5c40fc5f0865b84c426183ce14c97d2ab8154f"
-dependencies = [
- "form_urlencoded",
- "indexmap",
- "itoa",
- "ryu",
- "serde_core",
 ]
 
 [[package]]
@@ -5122,7 +5091,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5648,12 +5617,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "unicase"
-version = "2.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75b844d17643ee918803943289730bec8aac480150456169e647ed0b576ba539"
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5951,7 +5914,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5976,7 +5939,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9babd3a767a4c1aef6900409f85f5d53ce2544ccdfaa86dad48c91782c6d6893"
 dependencies = [
  "windows-collections",
- "windows-core 0.61.2",
+ "windows-core",
  "windows-future",
  "windows-link 0.1.3",
  "windows-numerics",
@@ -5988,7 +5951,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3beeceb5e5cfd9eb1d76b381630e82c4241ccd0d27f1a39ed41b2760b255c5e8"
 dependencies = [
- "windows-core 0.61.2",
+ "windows-core",
 ]
 
 [[package]]
@@ -6005,25 +5968,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "windows-core"
-version = "0.62.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8e83a14d34d0623b51dce9581199302a221863196a1dde71a7663a4c2be9deb"
-dependencies = [
- "windows-implement",
- "windows-interface",
- "windows-link 0.2.1",
- "windows-result 0.4.1",
- "windows-strings 0.5.1",
-]
-
-[[package]]
 name = "windows-future"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc6a41e98427b19fe4b73c550f060b59fa592d7d686537eebf9385621bfbad8e"
 dependencies = [
- "windows-core 0.61.2",
+ "windows-core",
  "windows-link 0.1.3",
  "windows-threading",
 ]
@@ -6068,7 +6018,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9150af68066c4c5c07ddc0ce30421554771e528bde427614c61038bc2c92c2b1"
 dependencies = [
- "windows-core 0.61.2",
+ "windows-core",
  "windows-link 0.1.3",
 ]
 
