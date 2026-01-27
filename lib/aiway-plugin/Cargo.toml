@@ -1,6 +1,6 @@
 [package]
 name = "aiway-plugin"
-version = "0.1.1"
+version = "0.1.2-alpha.1"
 edition = "2024"
 authors = ["wxg <1584929962@qq.com>"]
 description = "The aiway plugin lib"
@@ -10,7 +10,7 @@ license = "Apache-2.0"
 repository = "https://github.com/xgpxg/aiway"
 
 [dependencies]
-aiway-protocol = { path = "../aiway-protocol", version = "0.1.1" }
+aiway-protocol = { path = "../aiway-protocol", version = "0.1.2-alpha.1" }
 libloading = "0.9"
 reqwest = "0.13"
 uuid = { version = "1.18", features = ["v4"] }

@@ -9,14 +9,15 @@ use crate::proxy::request::{
     AudioSpeechRequest, ChatCompletionRequest, CreateImageRequest, ModifyModelName,
 };
 use crate::proxy::response::{ModelError, ModelResponse};
+use aiway_protocol::common::constants::BAN_HEADERS;
+use aiway_protocol::gateway::http_context::InnerState;
+use aiway_protocol::gateway::{HttpContext, http_context};
+use aiway_protocol::model::Provider;
 use dashmap::DashMap;
 use logging::log;
 use openai_dive::v1::resources::audio::AudioSpeechResponse;
 use openai_dive::v1::resources::chat::ChatCompletionChunkResponse;
 use plugin_manager::PluginFactory;
-use aiway_protocol::common::constants::BAN_HEADERS;
-use aiway_protocol::gateway::HttpContext;
-use aiway_protocol::model::Provider;
 use reqwest::Response;
 use rocket::serde::Serialize;
 use serde_json::Value;
@@ -80,7 +81,7 @@ impl Proxy {
                 .map_err(|e| ModelError::Parse(e.to_string()))?
                 .into(),
         );
-        context.request.insert_state("provider", provider.clone());
+        context.inner_state.set_model_provider(provider.clone());
         if let Some(converter) = &provider.request_converter {
             // 调用插件执行转换，在插件内部更新context的body
             PluginFactory::execute(converter, context)

@@ -11,6 +11,7 @@
 pub mod alert;
 #[cfg(feature = "api-key")]
 mod api_key;
+pub mod config;
 mod firewall;
 mod global_filter;
 pub mod http_context;
@@ -21,10 +22,10 @@ pub mod response_context;
 pub mod route;
 pub mod service;
 pub mod state;
-pub mod config;
 
 #[cfg(feature = "api-key")]
 pub use api_key::ApiKey;
+pub use config::Config;
 pub use firewall::AllowDenyPolicy;
 pub use firewall::Firewall;
 pub use global_filter::GlobalFilter;
@@ -35,4 +36,3 @@ pub use request_context::RequestContext;
 pub use response_context::ResponseContext;
 pub use route::Route;
 pub use service::Service;
-pub use config::Config;

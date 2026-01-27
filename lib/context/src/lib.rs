@@ -127,10 +127,8 @@ impl HttpContextOnce {
                 .map(|q| (q.name.to_string(), q.value.to_string()))
                 .collect::<DashMap<String, String>>(),
             body: Default::default(),
-            state: Default::default(),
             route: SV::empty(),
             routing_url: SV::empty(),
-            //routing_path: SV::new(req.uri().path().to_string()),
             host: req.host().unwrap().to_string(),
         };
 
@@ -140,6 +138,8 @@ impl HttpContextOnce {
         let context = HttpContext {
             request: request_context,
             response: response_context,
+            inner_state: Default::default(),
+            state: Default::default(),
         };
 
         HttpContextOnce(context)

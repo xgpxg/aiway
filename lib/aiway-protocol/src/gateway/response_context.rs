@@ -1,9 +1,6 @@
 use crate::SV;
 use bytes::Bytes;
 use dashmap::DashMap;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-use serde_json::Value;
 use std::error::Error;
 use std::fmt::Debug;
 use std::pin::Pin;
@@ -14,6 +11,7 @@ type StreamItem = Result<Vec<u8>, Box<dyn Error + Send + Sync>>;
 /// 响应上下文
 #[derive(Default)]
 pub struct ResponseContext {
+    /// 响应时间戳，毫秒
     pub response_ts: SV<i64>,
     /// 响应状态码
     pub status: SV<Option<u16>>,
@@ -23,8 +21,6 @@ pub struct ResponseContext {
     pub body: SV<Bytes>,
     /// 响应流
     pub stream_body: SV<Option<Pin<Box<dyn Stream<Item = StreamItem> + Send>>>>,
-    /// 自定义的扩展数据
-    pub state: DashMap<String, Value>,
 }
 
 impl Debug for ResponseContext {
@@ -96,23 +92,6 @@ impl ResponseContext {
 
     pub fn take_stream_body(&self) -> Option<Pin<Box<dyn Stream<Item = StreamItem> + Send>>> {
         self.stream_body.take().unwrap_or_default()
-    }
-
-    pub fn insert_state<T: Serialize>(&self, key: &str, value: T) {
-        self.state.insert(
-            key.to_string(),
-            serde_json::to_value(value).expect("Failed to serialize state value"),
-        );
-    }
-
-    pub fn get_state<T: DeserializeOwned>(
-        &self,
-        key: &str,
-    ) -> Result<Option<T>, serde_json::Error> {
-        self.state
-            .get(key)
-            .map(|v| serde_json::from_value(v.clone()))
-            .transpose()
     }
 
     pub fn is_success(&self) -> bool {
