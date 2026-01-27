@@ -2,6 +2,12 @@
 name = "aiway-model-protocol"
 version = "0.1.0"
 edition = "2024"
+authors = ["wxg <1584929962@qq.com>"]
+description = "The aiway model protocol lib"
+documentation = "https://docs.rs/aiway-model-protocol"
+keywords = ["aiway", "model", "protocol"]
+license = "Apache-2.0"
+repository = "https://github.com/xgpxg/aiway"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
