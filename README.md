@@ -58,19 +58,20 @@ cargo run --bin aiway
 
 ### 功能
 
-- 动态路由
-- 服务管理
-- 插件系统
-- 安全验证（防火墙）
-- 统一API Key管理
-- 日志存储和监控
-- 可视化
-- AI模型转发和路由
-- 支持单机/集群部署
+- ✅ 动态路由
+- ✅ 服务管理
+- ✅ 插件系统
+- ✅ 安全验证（防火墙）
+- ✅ 统一API Key管理
+- ✅ 日志存储和监控
+- ✅ 可视化
+- ✅ AI模型代理和转发
 
 ### 插件
 
-https://github.com/xgpxg/aiway-plugins
+这里提供了一些常用插件：https://github.com/xgpxg/aiway-plugins
+
+如果需要自定义插件，可参考这里：https://aiway.coderbox.cn/doc.html?path=docs/plugins/introduction.md
 
 ### 截图
 
