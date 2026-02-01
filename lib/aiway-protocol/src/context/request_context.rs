@@ -92,4 +92,7 @@ impl RequestContext {
         self.routing_url.get()
     }
 
+    pub fn route_match_key(&self) -> String {
+        format!("{}/{}", self.get_host(), self.get_path())
+    }
 }

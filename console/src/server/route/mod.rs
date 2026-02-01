@@ -3,6 +3,7 @@ mod request;
 mod response;
 mod service;
 
+use logging::log;
 use matchit::InsertError;
 pub use request::RouteListReq;
 
@@ -15,26 +16,45 @@ impl PathPattern {
         PathPattern(path.into())
     }
 
-    pub fn to_pattern(&self) -> String {
-        let mut result = String::new();
+    pub fn to_patterns(&self) -> Vec<String> {
+        let mut result = Vec::new();
         let mut param_count = 1;
         let mut chars = self.0.chars().peekable();
+        let mut i = 0;
+        let mut double_star_pos: Option<usize> = None;
 
+        let mut pattern = String::new();
         while let Some(ch) = chars.next() {
             if ch == '*' {
                 // Check if it's a tailing "**" capturing all remaining path
                 if chars.peek() == Some(&'*') {
                     chars.next(); // consume the second '*'
-                    result.push_str("{*p}");
+                    pattern.push_str("{*p}");
+                    double_star_pos = Some(i);
+                    break;
                 } else {
                     // Single '*' - named parameter
-                    result.push_str(&format!("{{p{}}}", param_count));
+                    pattern.push_str(&format!("{{p{}}}", param_count));
                     param_count += 1;
                 }
             } else {
-                result.push(ch);
+                pattern.push(ch);
+            }
+            i += 1;
+        }
+
+        result.push(pattern);
+
+        // 如果有双星号，添加匹配空路径的
+        // 例如：/aa/** -> /aa/, /** -> /
+        if let Some(pos) = double_star_pos {
+            if pos < self.0.len() {
+                result.push(self.0[..pos].to_string());
             }
         }
+
+        log::debug!("{} => {:?}", self.0, result);
+
         result
     }
 }
@@ -57,15 +77,17 @@ impl TryFrom<PathPatterns> for matchit::Router<()> {
     fn try_from(patterns: PathPatterns) -> Result<Self, Self::Error> {
         let mut router = matchit::Router::new();
         for pattern in patterns.0 {
-            let result = pattern.to_pattern();
-            if let Err(e) = router.insert(result, ()) {
-                return match e {
-                    InsertError::Conflict { .. } => Err(format!("路由路径冲突：{}", pattern.0)),
-                    InsertError::InvalidCatchAll => {
-                        Err("通配符 ** 仅支持添加在路径尾部".to_string())
-                    }
-                    _ => Err(format!("路由路径解析错误：{}", e)),
-                };
+            let results = pattern.to_patterns();
+            for result in results {
+                if let Err(e) = router.insert(result, ()) {
+                    return match e {
+                        InsertError::Conflict { .. } => Err(format!("路由路径冲突：{}", pattern.0)),
+                        InsertError::InvalidCatchAll => {
+                            Err("通配符 ** 仅支持添加在路径尾部".to_string())
+                        }
+                        _ => Err(format!("路由路径解析错误：{}", e)),
+                    };
+                }
             }
         }
 

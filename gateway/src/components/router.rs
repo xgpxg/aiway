@@ -22,6 +22,9 @@ pub struct Router {
     /// 路由表
     routes: Arc<RwLock<Vec<Arc<Route>>>>,
     /// 路由匹配器
+    ///
+    /// Key: host + path
+    /// Value: Route
     matcher: Arc<RwLock<matchit::Router<Arc<Route>>>>,
 }
 
@@ -73,11 +76,13 @@ impl Router {
         let mut matcher = matchit::Router::new();
 
         for route in routes {
-            // 这里理论上不会发生路径冲突，因为在控制台保存的时候已经验证了
-            // 但为了避免错误，这里这里还是输出一下日志
-            // 如果这里输出错误日志了，应该检查控制台的验证逻辑是否正确
-            if let Err(e) = matcher.insert(route.match_path.clone(), route.clone()) {
-                log::error!("build route matcher error: {}", e);
+            for k in route.to_match_keys() {
+                // 这里理论上不会发生路径冲突，因为在控制台保存的时候已经验证了
+                // 但为了避免错误，这里这里还是输出一下日志
+                // 如果这里输出错误日志了，应该检查控制台的验证逻辑是否正确
+                if let Err(e) = matcher.insert(k, route.clone()) {
+                    log::error!("build route matcher error: {}", e);
+                }
             }
         }
         matcher
@@ -137,12 +142,11 @@ impl Router {
 
     pub fn matches(&self, context: Arc<HttpContext>) -> Option<Arc<Route>> {
         if let Ok(router) = self.matcher.read()
-            && let Ok(result) = router.at(&context.request.get_path())
+            && let Ok(result) = router.at(&context.request.route_match_key())
         {
             let route = result.value;
-            // 再依次匹配 Host/Method/Header/Query
-            if Self::match_host(route, context.request.get_host())
-                && Self::match_method(route, context.request.get_method())
+            // 再依次匹配 Method/Header/Query
+            if Self::match_method(route, context.request.get_method())
                 && Self::match_host(route, &context.request.host)
                 && Self::match_header(route, &context)
                 && Self::match_query(route, &context.request.query)

@@ -148,14 +148,12 @@ impl HttpContextOnce {
     pub(crate) fn is_ignore_header(name: &str) -> bool {
         matches!(
             name,
-            "content-length"
-                | "x-node-name"
-                | "x-service-name"
+            Headers::AUTHORIZATION
+                | "content-length"
                 | "transfer-encoding"
                 | "x-content-type-options"
                 | "x-frame-options"
                 | "permissions-policy"
-                | "authorization"
                 | "host"
         )
     }

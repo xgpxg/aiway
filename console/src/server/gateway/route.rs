@@ -11,9 +11,7 @@ pub(crate) async fn routes() -> anyhow::Result<Vec<aiway_protocol::context::Rout
             name: route.name.unwrap(),
             host: route.host.unwrap(),
             path: route.path.clone().unwrap(),
-            // 由路径重写插件实现
-            //strip_prefix: route.strip_prefix.unwrap() == 1,
-            match_path: PathPattern::new(route.path.unwrap()).to_pattern(),
+            match_paths: PathPattern::new(route.path.unwrap()).to_patterns(),
             service: route.service.unwrap(),
             methods: route.methods.unwrap_or_default(),
             header: route.header.unwrap_or_default(),
