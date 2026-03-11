@@ -11,13 +11,15 @@
 //! 服务定义：[`Servicer`]
 //!
 
+use crate::Args;
 use crate::components::client::INNER_HTTP_CLIENT;
-use dashmap::DashMap;
-use loadbalance::LoadBalance;
 use aiway_protocol::gateway;
 use aiway_protocol::gateway::service::LbStrategy;
+use clap::Parser;
+use dashmap::DashMap;
+use loadbalance::LoadBalance;
 use std::process::exit;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, LazyLock, OnceLock};
 use std::time::Duration;
 use tokio::sync::RwLock;
 
@@ -27,6 +29,14 @@ pub struct Servicer {
 }
 
 pub static SERVICES: OnceLock<Servicer> = OnceLock::new();
+pub static LOCAL_SERVICE: LazyLock<gateway::Service> = LazyLock::new(|| {
+    let args = Args::parse();
+    gateway::Service {
+        name: "__local__".to_string(),
+        nodes: vec![format!("{}:{}", args.address, args.port)],
+        lb: LbStrategy::Random,
+    }
+});
 
 impl Servicer {
     pub async fn init() {
@@ -65,7 +75,9 @@ impl Servicer {
     }
 
     async fn fetch_services() -> anyhow::Result<Vec<gateway::Service>> {
-        INNER_HTTP_CLIENT.fetch_services().await
+        let mut services = INNER_HTTP_CLIENT.fetch_services().await?;
+        services.push(LOCAL_SERVICE.clone());
+        Ok(services)
     }
 
     const INTERVAL: Duration = Duration::from_secs(5);

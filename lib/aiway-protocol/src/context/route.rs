@@ -1,7 +1,6 @@
 use crate::gateway::plugin::ConfiguredPlugin;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Route {
@@ -59,10 +58,17 @@ impl Route {
         &self.service
     }
 
+    /// host + path作为匹配的key
     pub fn to_match_keys(&self) -> Vec<String> {
         self.match_paths
             .iter()
-            .map(|p| format!("{}/{}", self.host, p))
+            .map(|p| {
+                if self.host == "*" {
+                    format!("{{host}}{}", p)
+                } else {
+                    format!("{}{}", self.host, p)
+                }
+            })
             .collect()
     }
 }

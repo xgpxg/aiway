@@ -15,7 +15,7 @@ alert = { path = "../lib/alert" }
 #pubsub = { path = "../lib/pubsub" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }
-rocket_ws = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5"}
+rocket_ws = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
@@ -31,8 +31,15 @@ md5 = "0.8"
 chrono = "0.4"
 ip2region = { git = "https://github.com/lionsoul2014/ip2region.git", branch = "master" }
 matchit = "0.9.1"
+fastrand = { version = "2.3.0", optional = true }
+aha-reqwest-eventsource = { version = "0.1.0", optional = true }
+aiway-model-protocol = { path = "../lib/aiway-model-protocol", optional = true, features = ["stream"] }
+thiserror = { version = "2.0", optional = true }
+tokio-stream = { version = "0.1", optional = true }
+plugin-manager = { path = "../lib/plugin-manager", optional = true }
 
 [features]
 default = []
 standalone = ["cache/share-cache"]
 cluster = ["cache/redis-cache"]
+model-proxy = ["fastrand", "aha-reqwest-eventsource", "aiway-model-protocol", "thiserror", "tokio-stream", "plugin-manager"]

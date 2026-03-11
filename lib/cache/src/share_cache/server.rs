@@ -47,6 +47,12 @@ impl ShareCacheServer {
             .ttl(key)
             .map_err(|e| zbus::fdo::Error::Failed(e.to_string()))
     }
+
+    async fn exists(&self, key: &str) -> Result<bool, zbus::fdo::Error> {
+        self.local_cache
+            .exists(key)
+            .map_err(|e| zbus::fdo::Error::Failed(e.to_string()))
+    }
 }
 
 /// 启动zbus服务

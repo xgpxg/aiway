@@ -36,7 +36,7 @@
 //!
 //!
 //!
-use crate::{Args, fairing, openapi};
+use crate::{Args, fairing, openapi, model_proxy};
 use rocket::data::{ByteUnit, Limits};
 use rocket::fairing::AdHoc;
 use rocket::{Config, catchers, routes};
@@ -104,7 +104,11 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
             openapi::ws::call_post_websocket,
         ],
     );
-    //builder = builder.mount("/eep", eep::routes());
+
+    #[cfg(feature = "model-proxy")]
+    {
+        builder = builder.mount("/model", model_proxy::routes());
+    }
 
     builder = builder.attach(AdHoc::on_liftoff("Print Banner", |_| {
         Box::pin(async {

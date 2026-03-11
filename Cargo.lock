@@ -1791,6 +1791,8 @@ dependencies = [
 name = "gateway"
 version = "0.1.0"
 dependencies = [
+ "aha-reqwest-eventsource",
+ "aiway-model-protocol",
  "aiway-plugin",
  "aiway-protocol",
  "alert",
@@ -1801,12 +1803,14 @@ dependencies = [
  "clap",
  "context",
  "dashmap",
+ "fastrand",
  "ip2region",
  "loadbalance",
  "log",
  "logging",
  "matchit",
  "md5",
+ "plugin-manager",
  "reqwest",
  "reqwest-websocket",
  "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
@@ -1814,7 +1818,9 @@ dependencies = [
  "serde",
  "serde_json",
  "sysinfo",
+ "thiserror 2.0.17",
  "tokio",
+ "tokio-stream",
  "tokio-util",
  "uuid",
 ]

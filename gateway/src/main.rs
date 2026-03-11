@@ -7,6 +7,9 @@ mod openapi;
 mod report;
 mod server;
 
+#[cfg(feature = "model-proxy")]
+mod model_proxy;
+
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser, Debug)]

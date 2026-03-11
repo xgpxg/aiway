@@ -22,9 +22,9 @@ struct AiwayApp {
     // 控制台应用
     #[allow(unused)]
     console: embed::EmbedApp,
-    // 模型代理
+   /* // 模型代理
     #[allow(unused)]
-    model_proxy: embed::EmbedApp,
+    model_proxy: embed::EmbedApp,*/
 }
 
 impl AiwayApp {
@@ -32,7 +32,7 @@ impl AiwayApp {
         let console = Asset::get("console").unwrap();
         let gateway = Asset::get("gateway").unwrap();
         let logg = Asset::get("logg").unwrap();
-        let model_proxy = Asset::get("model-proxy").unwrap();
+        //let model_proxy = Asset::get("model-proxy").unwrap();
 
         let logg = embed::EmbedApp::new("logg", &logg.data, &[]).unwrap();
         log::info!("log server started");
@@ -64,19 +64,19 @@ impl AiwayApp {
         .unwrap();
         log::info!("gateway started");
 
-        let model_proxy = embed::EmbedApp::new(
+        /*let model_proxy = embed::EmbedApp::new(
             "model-proxy",
             &model_proxy.data,
             &["--log-server", "127.0.0.1:7281"],
         )
         .unwrap();
-        log::info!("model-proxy started");
+        log::info!("model-proxy started");*/
 
         AiwayApp {
             logg,
             console,
             gateway,
-            model_proxy,
+            //model_proxy,
         }
     }
 }

@@ -89,7 +89,26 @@ impl Router {
     }
 
     async fn fetch_routes() -> anyhow::Result<Vec<Route>> {
-        INNER_HTTP_CLIENT.fetch_routes().await
+        let mut routes = INNER_HTTP_CLIENT.fetch_routes().await?;
+        routes.extend(Self::inner_routes());
+        Ok(routes)
+    }
+
+    fn inner_routes() -> Vec<Route> {
+        vec![Route {
+            name: "model-proxy".to_string(),
+            host: "*".to_string(),
+            path: "/model/**".to_string(),
+            match_paths: vec!["/model/{*p}".to_string()],
+            service: "__local__".to_string(),
+            methods: vec![],
+            header: Default::default(),
+            query: Default::default(),
+            pre_filters: vec![],
+            post_filters: vec![],
+            is_auth: true,
+            auth_white_list: vec![],
+        }]
     }
 
     const INTERVAL: Duration = Duration::from_secs(5);

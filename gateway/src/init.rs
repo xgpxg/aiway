@@ -2,7 +2,7 @@ use crate::components::{
     ConfigFactory, Firewalld, GlobalFilterConfig, IpRegion, PluginFactory, Router, Servicer,
 };
 use crate::report::STATE;
-use crate::{Args, report};
+use crate::{Args, model_proxy, report};
 use alert::Alert;
 use logging::LogAppender;
 
@@ -57,6 +57,11 @@ pub async fn init(args: &Args) {
 
     // 设置panic hook
     set_panic_hook();
+
+    #[cfg(feature = "model-proxy")]
+    {
+        model_proxy::init(args).await;
+    }
 }
 
 fn set_panic_hook() {

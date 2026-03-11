@@ -16,6 +16,8 @@ trait ShareCacheClient {
     async fn remove(&self, key: &str) -> anyhow::Result<()>;
 
     async fn ttl(&self, key: &str) -> anyhow::Result<i64>;
+
+    async fn exists(&self, key: &str) -> anyhow::Result<bool>;
 }
 
 #[derive(Debug, Clone)]
@@ -70,8 +72,8 @@ impl crate::Cache for ShareCache {
         self.proxy.ttl(key).await
     }
 
-    async fn exists(&self, _key: &str) -> anyhow::Result<bool> {
-        unimplemented!()
+    async fn exists(&self, key: &str) -> anyhow::Result<bool> {
+        self.proxy.exists(key).await
     }
 
     async fn increment(&self, _key: &str, _value: i64) -> anyhow::Result<i64> {
