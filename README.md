@@ -46,7 +46,6 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 cargo build --bin gateway -F standalone && \
 cargo build --bin console -F standalone && \
 cargo build --bin logg && \
-cargo build --bin model-proxy && \
 cargo run --bin aiway
 ```
 
@@ -55,6 +54,18 @@ cargo run --bin aiway
 网关入口：http://127.0.0.1:7001
 
 默认用户名/密码：admin/admin
+
+
+Gateway Features:
+
+- standalone: 构建单机模式
+- cluster: 构建集群模式
+- model-proxy: 启用模型代理
+
+Console Features:
+- standalone: 构建单机模式
+- cluster: 构建集群模式
+
 
 ### 功能
 
