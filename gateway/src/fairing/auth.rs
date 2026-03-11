@@ -69,7 +69,6 @@ impl Fairing for Authentication {
         };
 
         let decrypt_key = &Firewalld::get_api_secret_encrypt_key().await;
-        log::info!("解密ApiKey: {}", api_key);
         if ApiKey::decrypt(decrypt_key, api_key).is_err() {
             set_error!(req, 401, "Unauthorized");
             return;
