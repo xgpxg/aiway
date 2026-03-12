@@ -1,3 +1,4 @@
+use crate::report::STATE;
 use aiway_model_protocol::audio::AudioSpeechResponse;
 use aiway_model_protocol::chat::ChatCompletionChunkResponse;
 use aiway_model_protocol::chat::ChatCompletionResponse;
@@ -76,10 +77,15 @@ impl<'r> Responder<'r, 'r> for ModelResponse {
                 Ok(response)
             }
             ModelResponse::ChatCompletionStreamResponse(stream) => {
-                let sse_stream = stream.map(move |result| match result {
-                    Ok(chunk) => Event::json(&chunk),
-                    Err(e) => Event::data(e.to_string()).event("error"),
-                });
+                let sse_stream = stream
+                    .map(move |result| match result {
+                        Ok(chunk) => Event::json(&chunk),
+                        Err(e) => Event::data(e.to_string()).event("error"),
+                    })
+                    .chain(rocket::futures::stream::once(async {
+                        STATE.inc_sse_connect_count(-1);
+                        Event::empty()
+                    }));
 
                 let response = EventStream::from(sse_stream).respond_to(request)?;
 
