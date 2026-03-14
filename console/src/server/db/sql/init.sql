@@ -235,6 +235,46 @@ create table if not exists model_provider
     remark             varchar(500),                    -- 备注
     is_delete          tinyint(1)   not null default 0  -- 是否删除
 );
+
+-- mcp服务
+create table if not exists mcp_server
+(
+    id             bigint primary key,
+    name           varchar(500) not null,          -- 服务名称
+    description    varchar(500),                   -- 描述
+    status         varchar(20)  not null,          -- 状态：Disable | Ok
+    create_user_id bigint,                         -- 创建人ID
+    update_user_id bigint,                         -- 修改人ID
+    create_time    datetime,                       -- 创建时间
+    update_time    datetime,                       -- 更新时间
+    remark         varchar(500),                   -- 备注
+    is_delete      tinyint(1)   not null default 0 -- 是否删除
+);
+
+-- mcp工具
+create table if not exists mcp_tool
+(
+    id             bigint primary key,
+    mcp_server_id  bigint       not null,
+    name           varchar(500) not null,          -- 工具名称
+    description    varchar(500),                   -- 描述
+    input_schema   text,                           -- 输入参数
+    output_schema  text,                           -- 输出参数
+    route_type     varchar(20)  not null,          -- 路由类型：Service | Url | Proxy | Database
+    service_name   varchar(100),                   -- 目标服务名称，来自service.name，可自动负载均衡。当route_type=Service时，该字段有效
+    service_path   varchar(500),                   -- 目标服务路径。当route_type=Service时，该字段有效
+    url            varchar(500),                   -- 直接请求的地址。当route_type=Url，该字段有效
+    method         varchar(10),                    -- 请求方法
+    request_param  text,                           -- 请求参数配置
+    status         varchar(20)  not null,          -- 状态：Disable | Ok
+    create_user_id bigint,                         -- 创建人ID
+    update_user_id bigint,                         -- 修改人ID
+    create_time    datetime,                       -- 创建时间
+    update_time    datetime,                       -- 更新时间
+    remark         varchar(500),                   -- 备注
+    is_delete      tinyint(1)   not null default 0 -- 是否删除
+);
+
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');

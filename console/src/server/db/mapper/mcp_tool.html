@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+<mapper>
+    <select id="list_page">
+        <if test="do_count == true">
+            select count(1)
+        </if>
+        <if test="do_count == false">
+            select mt.*
+        </if>
+        ` `
+        from mcp_tool mt
+        <where>
+            ` mt.mcp_server_id = #{param.mcp_server_id} `
+            <if test="param.filter_text != null && param.filter_text != ''">
+                ` and (mt.name LIKE #{param.filter_text} or mt.description like #{param.filter_text}) `
+            </if>
+            <if test="param.status != null && param.status != ''">
+                ` and mt.status = #{param.status} `
+            </if>
+            <if test="param.service != null && param.service != ''">
+                ` and mt.service = #{param.service} `
+            </if>
+        </where>
+        <if test="do_count == false">
+            ` order by mt.id desc `
+            ` limit ${page_no},${page_size} `
+        </if>
+    </select>
+</mapper>

@@ -12,3 +12,5 @@ pub mod statistics_request_status_code;
 pub mod system_config;
 pub mod user;
 pub mod user_auth;
+pub mod mcp_server;
+pub mod mcp_tool;

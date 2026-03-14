@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+<mapper>
+    <select id="list_page">
+        SELECT * FROM mcp_server
+        <where>
+            <if test="param.filter_text != null && param.filter_text != ''">
+                AND (name LIKE
+                #{filter_text}
+                OR
+                description
+                LIKE
+                #{filter_text}
+                )
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+</mapper>
+
