@@ -4,6 +4,7 @@ use rbatis::rbdc::DateTime;
 use rbatis::{crud, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
 use serde_json::Value;
+use aiway_protocol::mcp::mcp::RouteType;
 
 /// MCP 工具配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -21,7 +22,7 @@ pub struct McpTool {
     /// 输出参数 Schema
     pub output_schema: Option<Value>,
     /// 路由类型
-    pub route_type: Option<McpToolRouteType>,
+    pub route_type: Option<RouteType>,
     /// 目标服务名称，可自动负载均衡
     pub service_name: Option<String>,
     /// 服务路径
@@ -59,19 +60,7 @@ pub enum McpToolStatus {
     Ok,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum McpToolRouteType {
-    #[default]
-    /// 已有服务
-    Service,
-    /// 指定URL
-    Url,
-    /// 代理直连
-    Proxy,
-    /// 数据库
-    Database,
-}
+
 
 crud!(McpTool {});
 

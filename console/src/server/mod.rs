@@ -103,6 +103,7 @@ mod user;
 mod web;
 mod model_proxy;
 mod model;
+mod mcp_proxy;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     //let config = &AppConfig::server();
@@ -120,6 +121,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
 
     builder = builder.mount("/api/v1", gateway::api::routes());
     builder = builder.mount("/api/v1", model_proxy::api::routes());
+    builder = builder.mount("/api/v1", mcp_proxy::api::routes());
 
     builder = builder.mount("/api/user", user::api::routes());
     builder = builder.mount("/api/route", route::api::routes());

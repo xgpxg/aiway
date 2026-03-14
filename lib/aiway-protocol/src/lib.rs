@@ -7,8 +7,13 @@ pub mod context;
 pub mod gateway;
 #[cfg(feature = "logg")]
 pub mod logg;
+#[cfg(feature = "mcp")]
+pub mod mcp;
 #[cfg(feature = "model")]
 pub mod model;
 mod single;
 
 pub use single::SingleValue as SV;
+
+#[cfg(feature = "mcp")]
+pub use rmcp;

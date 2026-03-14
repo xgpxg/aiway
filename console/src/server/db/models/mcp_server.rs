@@ -1,6 +1,7 @@
+use aiway_protocol::mcp::mcp::{McpServerProxyConfig, McpServerType};
 use derive_builder::Builder;
-use rbatis::rbdc::DateTime;
 use rbatis::crud;
+use rbatis::rbdc::DateTime;
 use rocket::serde::{Deserialize, Serialize};
 
 /// MCP 服务配置
@@ -12,6 +13,10 @@ pub struct McpServer {
     pub name: Option<String>,
     /// 描述
     pub description: Option<String>,
+    /// 服务类型
+    pub server_type: Option<McpServerType>,
+    /// 代理配置
+    pub proxy_config: Option<McpServerProxyConfig>,
     /// 状态：Disable | Ok
     pub status: Option<McpServerStatus>,
     /// 创建人 ID

@@ -243,6 +243,8 @@ create table if not exists mcp_server
     name           varchar(500) not null,          -- 服务名称
     description    varchar(500),                   -- 描述
     status         varchar(20)  not null,          -- 状态：Disable | Ok
+    server_type    varchar(20)  not null,          -- 服务类型：Http | Proxy | Database
+    proxy_config   text,                           -- 代理配置，当server_type=Proxy时使用
     create_user_id bigint,                         -- 创建人ID
     update_user_id bigint,                         -- 修改人ID
     create_time    datetime,                       -- 创建时间
@@ -260,7 +262,7 @@ create table if not exists mcp_tool
     description    varchar(500),                   -- 描述
     input_schema   text,                           -- 输入参数
     output_schema  text,                           -- 输出参数
-    route_type     varchar(20)  not null,          -- 路由类型：Service | Url | Proxy | Database
+    route_type     varchar(20),                    -- 路由类型：Service | Url
     service_name   varchar(100),                   -- 目标服务名称，来自service.name，可自动负载均衡。当route_type=Service时，该字段有效
     service_path   varchar(500),                   -- 目标服务路径。当route_type=Service时，该字段有效
     url            varchar(500),                   -- 直接请求的地址。当route_type=Url，该字段有效

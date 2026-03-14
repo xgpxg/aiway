@@ -1,11 +1,11 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::mcp::request::{
     McpServerAddReq, McpServerStatusUpdateReq, McpServerUpdateReq, McpToolAddReq, McpToolUpdateReq,
-    UpdateMcpToolStatusReq,
+    SyncProxyServerToolsReq, UpdateMcpToolStatusReq,
 };
 use crate::server::mcp::response::{McpServerListRes, McpToolListRes};
 use crate::server::mcp::{McpServerListReq, McpToolListReq, service};
-use busi::req::IdsReq;
+use busi::req::{IdReq, IdsReq};
 use busi::res::{PageRes, Res};
 use rocket::serde::json::Json;
 use rocket::{post, routes};
@@ -22,6 +22,7 @@ pub fn routes() -> Vec<rocket::Route> {
         tool_update,
         tool_delete,
         tool_update_status,
+        sync_proxy_server_tools,
     ]
 }
 
@@ -106,6 +107,17 @@ async fn tool_delete(req: Json<IdsReq>, _user: UserPrincipal) -> Res<()> {
 #[post("/tool/update_status", data = "<req>")]
 async fn tool_update_status(req: Json<UpdateMcpToolStatusReq>, user: UserPrincipal) -> Res<()> {
     match service::tool_update_status(req.0, user).await {
+        Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+#[post("/server/sync_proxy_server_tools", data = "<req>")]
+async fn sync_proxy_server_tools(
+    req: Json<IdReq>,
+    user: UserPrincipal,
+) -> Res<()> {
+    match service::sync_proxy_server_tools(req.0, user).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),
     }

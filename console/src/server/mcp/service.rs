@@ -1,24 +1,35 @@
 use crate::server::auth::UserPrincipal;
+use crate::server::common::pool::HTTP_CLIENT;
 use crate::server::db::models::mcp_server::{McpServer, McpServerBuilder, McpServerStatus};
 use crate::server::db::models::mcp_tool;
 use crate::server::db::models::mcp_tool::{McpTool, McpToolBuilder, McpToolStatus};
 use crate::server::db::{Pool, tools};
 use crate::server::mcp::request::{
     McpServerAddReq, McpServerStatusUpdateReq, McpServerUpdateReq, McpToolAddReq, McpToolUpdateReq,
-    UpdateMcpToolStatusReq,
+    SyncProxyServerToolsReq, UpdateMcpToolStatusReq,
 };
 use crate::server::mcp::response::{McpServerListRes, McpToolListRes};
 use crate::server::mcp::{McpServerListReq, McpToolListReq};
+use aiway_protocol::mcp::mcp::RouteType;
+use aiway_protocol::rmcp::model::{
+    InitializeRequest, InitializeRequestParams, JsonRpcMessage, JsonRpcResponse, ListToolsRequest,
+    Notification, RequestId,
+};
+use aiway_protocol::rmcp::object;
 use anyhow::bail;
-use busi::req::{IdsReq, Pagination};
+use busi::req::{IdReq, IdsReq, Pagination};
 use busi::res::{IntoPageRes, PageRes};
 use common::id;
+use logging::log;
 use rbs::value;
+use reqwest::Method;
+use serde_json::{Value, json};
 
 pub async fn server_add(req: McpServerAddReq, user: UserPrincipal) -> anyhow::Result<()> {
     let server = McpServerBuilder::default()
         .id(id::next().into())
         .name(req.name.into())
+        .server_type(req.server_type.into())
         .description(req.description)
         .status(McpServerStatus::Disable.into())
         .create_user_id(Some(user.id))
@@ -80,6 +91,8 @@ pub async fn server_update(req: McpServerUpdateReq, user: UserPrincipal) -> anyh
         .id(req.id.into())
         .name(req.name)
         .description(req.description)
+        .server_type(req.server_type)
+        .proxy_config(req.proxy_config)
         .update_user_id(Some(user.id))
         .update_time(Some(tools::now()))
         .build()?;
@@ -177,7 +190,7 @@ pub async fn tool_update(req: McpToolUpdateReq, user: UserPrincipal) -> anyhow::
     }
 
     let old = old.first().unwrap();
-    if check_tool_exists(&old, None).await? {
+    if check_tool_exists(&old, Some(req.id)).await? {
         bail!(
             "MCP Tool with name {} already exists",
             old.name.as_ref().unwrap()
@@ -226,5 +239,77 @@ pub async fn tool_update_status(
         value! { "id": req.id},
     )
     .await?;
+    Ok(())
+}
+
+pub async fn sync_proxy_server_tools(req: IdReq, user: UserPrincipal) -> anyhow::Result<()> {
+    let id = req.id;
+    let mcp_server = McpServer::select_by_map(Pool::get()?, value! { "id": id}).await?;
+    if mcp_server.is_empty() {
+        bail!("MCP Server not found")
+    }
+    let mcp_server = mcp_server.first().unwrap();
+
+    let proxy_config = mcp_server.proxy_config.as_ref().unwrap();
+    let url = &proxy_config.url;
+    let res = HTTP_CLIENT
+        .request(Method::POST, url)
+        .header("accept", "application/json, text/event-stream")
+        .json(&json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"clientInfo":{"name":"rmcp","version":"1.2.0"},"protocolVersion":"2025-06-18"}}))
+        .send()
+        .await?;
+
+    let mcp_session_id = res
+        .headers()
+        .get("mcp-session-id")
+        .map(|h| h.to_str().unwrap().to_string())
+        .unwrap_or_default();
+
+    let _ = HTTP_CLIENT
+        .request(Method::POST, url)
+        .header("accept", "application/json, text/event-stream")
+        .header("mcp-session-id", mcp_session_id.clone())
+        .json(&json!({"jsonrpc":"2.0","method":"notifications/initialized","params":{}}))
+        .send()
+        .await?;
+
+    let res = HTTP_CLIENT
+        .request(Method::POST, url)
+        .header("accept", "application/json, text/event-stream")
+        .header("mcp-session-id", mcp_session_id)
+        .json(&json!({"method":"tools/list","jsonrpc":"2.0","id":2}))
+        .send()
+        .await?;
+    let result = &res.json::<Value>().await?["result"];
+
+    let tools = result["tools"].as_array().unwrap();
+
+    let mut mcp_tools = vec![];
+    for tool in tools.into_iter() {
+        log::info!("sync tool: {:?}", tool);
+
+        let name = tool["name"].as_str().unwrap();
+        let description = tool["description"].as_str().unwrap();
+        let input_schema = tool["inputSchema"].clone();
+
+        mcp_tools.push(
+            McpToolBuilder::default()
+                .id(id::next().into())
+                .mcp_server_id(mcp_server.id)
+                .name(name.to_string().into())
+                .description(description.to_string().into())
+                .input_schema(input_schema.into())
+                .route_type(RouteType::Url.into())
+                .status(McpToolStatus::Ok.into())
+                .create_time(tools::now().into())
+                .create_user_id(user.id.into())
+                .build()?,
+        );
+    }
+
+    // 先删除
+    McpTool::delete_by_map(Pool::get()?, value! { "mcp_server_id": id}).await?;
+    McpTool::insert_batch(Pool::get()?, &mcp_tools, 10).await?;
+
     Ok(())
 }

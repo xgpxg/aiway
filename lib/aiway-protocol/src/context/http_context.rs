@@ -42,7 +42,7 @@ impl HttpContext {
 }
 
 #[derive(Debug, Default)]
-pub struct InnerState(DashMap<String, Value>);
+pub struct InnerState(pub DashMap<String, Value>);
 
 impl InnerState {
     #[cfg(feature = "model")]

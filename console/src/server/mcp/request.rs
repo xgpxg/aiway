@@ -1,5 +1,6 @@
 use crate::server::db::models::mcp_server::McpServerStatus;
-use crate::server::db::models::mcp_tool::{McpToolRouteType, McpToolStatus};
+use crate::server::db::models::mcp_tool::McpToolStatus;
+use aiway_protocol::mcp::mcp::{McpServerProxyConfig, McpServerType, RouteType};
 use busi::impl_pagination;
 use busi::req::PageReq;
 use rocket::serde::{Deserialize, Serialize};
@@ -10,6 +11,10 @@ pub struct McpServerAddReq {
     pub name: String,
     /// 描述
     pub description: Option<String>,
+    /// 服务类型
+    pub server_type: McpServerType,
+    /// 代理配置
+    pub proxy_config: Option<McpServerProxyConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,6 +23,10 @@ pub struct McpServerUpdateReq {
     pub name: Option<String>,
     /// 描述
     pub description: Option<String>,
+    /// 服务类型
+    pub server_type: Option<McpServerType>,
+    /// 代理配置
+    pub proxy_config: Option<McpServerProxyConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,7 +53,7 @@ pub struct McpToolAddReq {
     /// 输出参数 Schema
     pub output_schema: Option<serde_json::Value>,
     /// 路由类型
-    pub route_type: McpToolRouteType,
+    pub route_type: Option<RouteType>,
     /// 目标服务名称
     pub service_name: Option<String>,
     /// 目标服务路径
@@ -71,7 +80,7 @@ pub struct McpToolUpdateReq {
     /// 输出参数 Schema
     pub output_schema: Option<serde_json::Value>,
     /// 路由类型
-    pub route_type: Option<McpToolRouteType>,
+    pub route_type: Option<RouteType>,
     /// 目标服务名称
     pub service_name: Option<String>,
     /// 目标服务路径
@@ -102,4 +111,13 @@ impl_pagination!(McpToolListReq);
 pub struct UpdateMcpToolStatusReq {
     pub id: i64,
     pub status: McpToolStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncProxyServerToolsReq {
+    pub mcp_server_id: i64,
+    /// 描述
+    pub url: Option<String>,
+    /// 输入参数 Schema
+    pub headers: Option<serde_json::Value>,
 }
