@@ -34,17 +34,6 @@ impl McpFactory {
                 .collect::<_>(),
         });
 
-        log::info!(
-            "mcp servers: {:?}",
-            MCP_FACTORY
-                .get()
-                .unwrap()
-                .servers
-                .iter()
-                .map(|item| item.key().clone())
-                .collect::<Vec<_>>()
-        );
-
         Self::watch();
 
         Ok(())
