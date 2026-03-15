@@ -95,20 +95,36 @@ impl Router {
     }
 
     fn inner_routes() -> Vec<Route> {
-        vec![Route {
-            name: "model-proxy".to_string(),
-            host: "*".to_string(),
-            path: "/model/**".to_string(),
-            match_paths: vec!["/model/{*p}".to_string()],
-            service: "__local__".to_string(),
-            methods: vec![],
-            header: Default::default(),
-            query: Default::default(),
-            pre_filters: vec![],
-            post_filters: vec![],
-            is_auth: true,
-            auth_white_list: vec![],
-        }]
+        vec![
+            Route {
+                name: "model-proxy".to_string(),
+                host: "*".to_string(),
+                path: "/model/**".to_string(),
+                match_paths: vec!["/model/{*p}".to_string()],
+                service: "__local__".to_string(),
+                methods: vec![],
+                header: Default::default(),
+                query: Default::default(),
+                pre_filters: vec![],
+                post_filters: vec![],
+                is_auth: true,
+                auth_white_list: vec![],
+            },
+            Route {
+                name: "mcp-proxy".to_string(),
+                host: "*".to_string(),
+                path: "/mcp/**".to_string(),
+                match_paths: vec!["/mcp/{*p}".to_string()],
+                service: "__local__".to_string(),
+                methods: vec![],
+                header: Default::default(),
+                query: Default::default(),
+                pre_filters: vec![],
+                post_filters: vec![],
+                is_auth: true,
+                auth_white_list: vec![],
+            },
+        ]
     }
 
     const INTERVAL: Duration = Duration::from_secs(5);

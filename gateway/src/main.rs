@@ -7,6 +7,8 @@ mod openapi;
 mod report;
 mod server;
 
+#[cfg(feature = "mcp-proxy")]
+mod mcp_proxy;
 #[cfg(feature = "model-proxy")]
 mod model_proxy;
 

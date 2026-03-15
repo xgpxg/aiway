@@ -33,7 +33,7 @@ pub static LOCAL_SERVICE: LazyLock<gateway::Service> = LazyLock::new(|| {
     let args = Args::parse();
     gateway::Service {
         name: "__local__".to_string(),
-        nodes: vec![format!("{}:{}", args.address, args.port)],
+        nodes: vec![format!("http://{}:{}", args.address, args.port)],
         lb: LbStrategy::Random,
     }
 });

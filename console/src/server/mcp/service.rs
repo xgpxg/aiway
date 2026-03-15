@@ -1,29 +1,30 @@
+use crate::VERSION;
 use crate::server::auth::UserPrincipal;
-use crate::server::common::pool::HTTP_CLIENT;
 use crate::server::db::models::mcp_server::{McpServer, McpServerBuilder, McpServerStatus};
 use crate::server::db::models::mcp_tool;
 use crate::server::db::models::mcp_tool::{McpTool, McpToolBuilder, McpToolStatus};
 use crate::server::db::{Pool, tools};
 use crate::server::mcp::request::{
     McpServerAddReq, McpServerStatusUpdateReq, McpServerUpdateReq, McpToolAddReq, McpToolUpdateReq,
-    SyncProxyServerToolsReq, UpdateMcpToolStatusReq,
+    UpdateMcpToolStatusReq,
 };
 use crate::server::mcp::response::{McpServerListRes, McpToolListRes};
 use crate::server::mcp::{McpServerListReq, McpToolListReq};
 use aiway_protocol::mcp::mcp::RouteType;
-use aiway_protocol::rmcp::model::{
-    InitializeRequest, InitializeRequestParams, JsonRpcMessage, JsonRpcResponse, ListToolsRequest,
-    Notification, RequestId,
-};
-use aiway_protocol::rmcp::object;
-use anyhow::bail;
+use aiway_protocol::rmcp::ServiceExt;
+use aiway_protocol::rmcp::model::{ClientCapabilities, ClientInfo, Implementation};
+use aiway_protocol::rmcp::transport::StreamableHttpClientTransport;
+use aiway_protocol::rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig;
+use anyhow::{anyhow, bail};
 use busi::req::{IdReq, IdsReq, Pagination};
 use busi::res::{IntoPageRes, PageRes};
 use common::id;
-use logging::log;
 use rbs::value;
-use reqwest::Method;
-use serde_json::{Value, json};
+use reqwest::header::{HeaderName, HeaderValue};
+use rocket::futures::StreamExt;
+use serde_json::json;
+use std::collections::HashMap;
+use std::str::FromStr;
 
 pub async fn server_add(req: McpServerAddReq, user: UserPrincipal) -> anyhow::Result<()> {
     let server = McpServerBuilder::default()
@@ -250,47 +251,37 @@ pub async fn sync_proxy_server_tools(req: IdReq, user: UserPrincipal) -> anyhow:
     }
     let mcp_server = mcp_server.first().unwrap();
 
-    let proxy_config = mcp_server.proxy_config.as_ref().unwrap();
+    let proxy_config = mcp_server
+        .proxy_config
+        .as_ref()
+        .ok_or(anyhow!("MCP Server proxy configuration is not set"))?;
+
     let url = &proxy_config.url;
-    let res = HTTP_CLIENT
-        .request(Method::POST, url)
-        .header("accept", "application/json, text/event-stream")
-        .json(&json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"clientInfo":{"name":"rmcp","version":"1.2.0"},"protocolVersion":"2025-06-18"}}))
-        .send()
-        .await?;
+    let headers = HashMap::from_iter(proxy_config.headers.iter().map(|(k, v)| {
+        let name = HeaderName::from_str(k).expect("Invalid header name");
+        let value = HeaderValue::from_str(v).expect("Invalid header value");
+        (name, value)
+    }));
 
-    let mcp_session_id = res
-        .headers()
-        .get("mcp-session-id")
-        .map(|h| h.to_str().unwrap().to_string())
-        .unwrap_or_default();
+    let config =
+        StreamableHttpClientTransportConfig::with_uri(url.as_str()).custom_headers(headers);
+    let transport = StreamableHttpClientTransport::from_config(config);
+    let client_info = ClientInfo::new(
+        ClientCapabilities::default(),
+        Implementation::new("aiway mcp client", VERSION),
+    );
+    let client = client_info.serve(transport).await?;
 
-    let _ = HTTP_CLIENT
-        .request(Method::POST, url)
-        .header("accept", "application/json, text/event-stream")
-        .header("mcp-session-id", mcp_session_id.clone())
-        .json(&json!({"jsonrpc":"2.0","method":"notifications/initialized","params":{}}))
-        .send()
-        .await?;
+    let result = client.list_tools(None).await?;
+    let tools = result.tools;
 
-    let res = HTTP_CLIENT
-        .request(Method::POST, url)
-        .header("accept", "application/json, text/event-stream")
-        .header("mcp-session-id", mcp_session_id)
-        .json(&json!({"method":"tools/list","jsonrpc":"2.0","id":2}))
-        .send()
-        .await?;
-    let result = &res.json::<Value>().await?["result"];
-
-    let tools = result["tools"].as_array().unwrap();
+    client.cancel().await?;
 
     let mut mcp_tools = vec![];
     for tool in tools.into_iter() {
-        log::info!("sync tool: {:?}", tool);
-
-        let name = tool["name"].as_str().unwrap();
-        let description = tool["description"].as_str().unwrap();
-        let input_schema = tool["inputSchema"].clone();
+        let name = tool.name.to_string();
+        let description = tool.description.unwrap_or_default().to_string();
+        let input_schema = tool.input_schema;
 
         mcp_tools.push(
             McpToolBuilder::default()
@@ -298,7 +289,7 @@ pub async fn sync_proxy_server_tools(req: IdReq, user: UserPrincipal) -> anyhow:
                 .mcp_server_id(mcp_server.id)
                 .name(name.to_string().into())
                 .description(description.to_string().into())
-                .input_schema(input_schema.into())
+                .input_schema(json!(input_schema).into())
                 .route_type(RouteType::Url.into())
                 .status(McpToolStatus::Ok.into())
                 .create_time(tools::now().into())
@@ -307,7 +298,6 @@ pub async fn sync_proxy_server_tools(req: IdReq, user: UserPrincipal) -> anyhow:
         );
     }
 
-    // 先删除
     McpTool::delete_by_map(Pool::get()?, value! { "mcp_server_id": id}).await?;
     McpTool::insert_batch(Pool::get()?, &mcp_tools, 10).await?;
 

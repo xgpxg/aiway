@@ -99,9 +99,21 @@ async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse 
     let body = request_context.get_body().cloned();
 
     // 转发请求
-    let response = HTTP_CLIENT
-        .request(method, url, headers, body.unwrap_or_default())
-        .await;
+    let response = match path {
+        // 处理MCP
+        p if p.starts_with("/mcp/") => {
+            let response = crate::mcp_proxy::mcp_post_endpoint(&wrapper.0).await;
+            Ok(response)
+        }
+        p if p.starts_with("/model/") => {
+            todo!()
+        }
+        _ => {
+            HTTP_CLIENT
+                .request(method, url, headers, body.unwrap_or_default())
+                .await
+        }
+    };
 
     let response_context = &wrapper.0.response;
     // 获取响应
@@ -131,4 +143,15 @@ async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse 
             GatewayResponse::Error(GatewayError::BadGateway)
         }
     }
+}
+
+fn build_mock_response() -> reqwest::Response {
+    // 1. 构建 http::Response
+    let http_resp = http::Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "application/json")
+        .body(tokio_util::bytes::Bytes::from(r#"{"message": "hello"}"#))
+        .unwrap();
+
+    reqwest::Response::from(http_resp)
 }

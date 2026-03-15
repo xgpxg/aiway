@@ -2,7 +2,7 @@ use crate::components::{
     ConfigFactory, Firewalld, GlobalFilterConfig, IpRegion, PluginFactory, Router, Servicer,
 };
 use crate::report::STATE;
-use crate::{Args, model_proxy, report};
+use crate::{Args, model_proxy, report, mcp_proxy};
 use alert::Alert;
 use logging::LogAppender;
 
@@ -61,6 +61,11 @@ pub async fn init(args: &Args) {
     #[cfg(feature = "model-proxy")]
     {
         model_proxy::init(args).await;
+    }
+
+    #[cfg(feature = "mcp-proxy")]
+    {
+        mcp_proxy::init(args).await;
     }
 }
 
