@@ -54,7 +54,9 @@ cargo build --bin gateway -F cluster
 - [x] Log Storage and Monitoring
 - [x] Visualization Dashboard
 - [x] Standalone/Cluster Deployment
+- [x] AI Model Proxy and Forwarding
+- [x] MCP Integration
 
 ## Screenshot
 
-![Dashboard](docs/images/1.png)
+![Dashboard](docs/images/screenshot.png)
