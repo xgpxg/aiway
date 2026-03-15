@@ -1,92 +1,116 @@
 <div align="center">
-  <img src="docs/logo.png" style="width:150px" alt="Conreg Logo">
+  <img src="docs/logo.png" style="width:150px" alt="Aiway Logo">
 
 ![Release](https://github.com/xgpxg/aiway/actions/workflows/publish.yml/badge.svg)
 ![GitHub release](https://img.shields.io/github/v/release/xgpxg/aiway?label=Version)
-![License](https://img.shields.io/github/license/xgpxg/conreg)
+![License](https://img.shields.io/github/license/xgpxg/aiway)
 
 [中文](README.md) | [English](README_en.md)
 </div>
 
-### 简介
+## 📖 项目简介
 
-一个Rust实现的API+AI网关，性能还算不错。
+**Aiway** 是一款基于 Rust 开发的高性能 API + AI 网关，致力于提供稳定、高效、可扩展的请求转发与管理解决方案。
 
-支持的平台：
+凭借 Rust 的内存安全特性和零成本抽象优势，Aiway 在保证高性能的同时，提供了卓越的安全性和稳定性。
 
-- Linux(x86_64)
-- Linux(arm64)
-- MacOS(arm64)
+## 🌍 平台支持
 
-支持的协议：
+- **Linux** (x86_64 / arm64)
+- **macOS** (arm64)
 
-- HTTP
-- SSE
-- Websocket
+## 🔄 协议支持
+
+- **HTTP/HTTPS** - 标准 HTTP 协议支持
+- **SSE** (Server-Sent Events) - 服务器推送事件
+- **WebSocket** - 全双工通信协议
 
 📑 [文档](https://aiway.coderbox.cn/doc.html)
 
-### 快速启动
+## 🚀 快速开始
 
-运行已发布的版本：
+### 方式一：使用预编译版本
 
-```shell
+```bash
 # 下载并解压
 curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd64-standalone.tar.gz | tar -zxvf - -C .
 
-# 启动
+# 启动服务
 ./aiway
 ```
 
-> 发布版基于 glibc 2.35 版本构建，如果你的系统glibc版本低于2.35，请从源码构建。
+> **注意**：预编译版本基于 glibc 2.35 构建，如果您的系统glibc版本低于 2.35，请从源码构建。
 
-从源码构建：
+### 方式二：从源码构建
 
-```shell
-cargo build --bin gateway -F standalone && \
-cargo build --bin console -F standalone && \
-cargo build --bin logg && \
+```bash
+# 构建 Gateway（单机模式）
+cargo build --bin gateway -F standalone
+
+# 构建 Console（单机模式）
+cargo build --bin console -F standalone
+
+# 构建 Logg
+cargo build --bin logg
+
+# 运行
 cargo run --bin aiway
 ```
 
-控制台：http://127.0.0.1:7000
+### 访问服务
 
-网关入口：http://127.0.0.1:7001
+- **管理控制台**: http://127.0.0.1:7000
+- **网关入口**: http://127.0.0.1:7001
+- **默认账号**: `admin` / `admin`
 
-默认用户名/密码：admin/admin
+### 构建选项
+
+**Gateway 特性：**
+- `standalone` - 单机模式
+- `cluster` - 集群模式
+- `model-proxy` - 启用模型代理功能
+
+**Console 特性：**
+- `standalone` - 单机模式
+- `cluster` - 集群模式
 
 
-Gateway Features:
+## ✨ 核心功能
 
-- standalone: 构建单机模式
-- cluster: 构建集群模式
-- model-proxy: 启用模型代理
+- **🔀 动态路由** - 灵活配置请求路由规则
+- **🛠️ 服务管理** - 统一管理后端服务实例
+- **🔌 插件系统** - 可扩展的插件架构
+- **🔒 安全防护** - 内置防火墙和安全验证机制
+- **🔑 API Key 管理** - 统一的 API 密钥管理
+- **📊 日志监控** - 完整的日志存储和实时监控
+- **📈 可视化面板** - 直观的管理控制台
+- **🤖 AI 模型代理** - 智能 AI 模型代理和请求转发
+- **🔗 MCP 集成** - Model Context Protocol 支持
 
-Console Features:
-- standalone: 构建单机模式
-- cluster: 构建集群模式
+## 🔌 插件生态
 
+### 官方插件
 
-### 功能
+我们提供了一系列常用插件，访问 [aiway-plugins](https://github.com/xgpxg/aiway-plugins) 获取更多信息。
 
-- ✅ 动态路由
-- ✅ 服务管理
-- ✅ 插件系统
-- ✅ 安全验证（防火墙）
-- ✅ 统一API Key管理
-- ✅ 日志存储和监控
-- ✅ 可视化
-- ✅ AI模型代理和转发
-- ✅ MCP集成
+### 自定义插件
 
-### 插件
+如需开发自定义插件，请参考 [插件开发文档](https://aiway.coderbox.cn/doc.html?path=docs/plugins/introduction.md)。
 
-这里提供了一些常用插件：https://github.com/xgpxg/aiway-plugins
-
-如果需要自定义插件，可参考这里：https://aiway.coderbox.cn/doc.html?path=docs/plugins/introduction.md
-
-### 截图
+## 📸 界面预览
 
 ![Dashboard](docs/images/screenshot.png)
+
+## 📚 文档
+
+详细文档请访问：[https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request 来帮助改进 Aiway！
+
+## 📄 许可证
+
+本项目采用开源许可证，详见 [LICENSE](LICENSE) 文件。
 
 
