@@ -68,7 +68,7 @@ dependencies = [
 
 [[package]]
 name = "aiway-plugin"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "aiway-model-protocol",
  "aiway-protocol",
@@ -85,7 +85,7 @@ dependencies = [
 
 [[package]]
 name = "aiway-protocol"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "base58",
  "bytes",
@@ -874,7 +874,7 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.1.10"
+version = "0.2.0"
 dependencies = [
  "aiway-plugin",
  "aiway-protocol",
