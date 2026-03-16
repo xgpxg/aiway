@@ -90,8 +90,11 @@ mod gateway;
 mod key;
 mod log;
 mod mcp;
+mod mcp_proxy;
 mod message;
 mod metrics;
+mod model;
+mod model_proxy;
 mod node;
 mod plugin;
 mod route;
@@ -101,9 +104,6 @@ pub mod task;
 mod user;
 #[cfg(not(debug_assertions))]
 mod web;
-mod model_proxy;
-mod model;
-mod mcp_proxy;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     //let config = &AppConfig::server();
@@ -119,10 +119,12 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
         ..Config::debug_default()
     });
 
+    // 网关调用
     builder = builder.mount("/api/v1", gateway::api::routes());
     builder = builder.mount("/api/v1", model_proxy::api::routes());
     builder = builder.mount("/api/v1", mcp_proxy::api::routes());
 
+    // 业务调用
     builder = builder.mount("/api/user", user::api::routes());
     builder = builder.mount("/api/route", route::api::routes());
     builder = builder.mount("/api/service", service::api::routes());

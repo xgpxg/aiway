@@ -17,7 +17,8 @@ pub async fn mcp_get(mcp_server: String, context: HttpContextWrapper) {
 pub async fn mcp_post(context: &HttpContext) -> reqwest::Result<reqwest::Response> {
     // 提取server
     let path = context.request.get_path();
-    let mcp_server = path.split("/").nth(2).unwrap();
+    // /v1/mcp/<server>
+    let mcp_server = path.split("/").nth(3).unwrap();
     let response = proxy::mcp(mcp_server, context).await;
     Ok(reqwest::Response::from(response))
 }

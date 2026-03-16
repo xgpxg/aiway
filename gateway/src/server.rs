@@ -107,7 +107,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
 
     #[cfg(feature = "model-proxy")]
     {
-        builder = builder.mount("/model", crate::model_proxy::routes());
+        builder = builder.mount("/v1/model", crate::model_proxy::routes());
     }
 
     builder = builder.attach(AdHoc::on_liftoff("Print Banner", |_| {

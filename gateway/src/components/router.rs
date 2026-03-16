@@ -99,8 +99,8 @@ impl Router {
             Route {
                 name: "model-proxy".to_string(),
                 host: "*".to_string(),
-                path: "/model/**".to_string(),
-                match_paths: vec!["/model/{*p}".to_string()],
+                path: "/v1/model/**".to_string(),
+                match_paths: vec!["/v1/model/{*p}".to_string()],
                 service: "__local__".to_string(),
                 methods: vec![],
                 header: Default::default(),
@@ -113,8 +113,8 @@ impl Router {
             Route {
                 name: "mcp-proxy".to_string(),
                 host: "*".to_string(),
-                path: "/mcp/**".to_string(),
-                match_paths: vec!["/mcp/{*p}".to_string()],
+                path: "/v1/mcp/**".to_string(),
+                match_paths: vec!["/v1/mcp/{*p}".to_string()],
                 service: "__local__".to_string(),
                 methods: vec![],
                 header: Default::default(),

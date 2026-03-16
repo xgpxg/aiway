@@ -20,9 +20,10 @@
 
 ## 协议支持
 
-- **HTTP/HTTPS** - 标准 HTTP 协议支持
-- **SSE** (Server-Sent Events) - 服务器推送事件
-- **WebSocket** - 全双工通信协议
+- HTTP/HTTPS
+- SSE
+- WebSocket
+- MCP
 
 📑 [文档](https://aiway.coderbox.cn/doc.html)
 

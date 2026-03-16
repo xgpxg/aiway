@@ -101,11 +101,11 @@ async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse 
     // 转发请求
     let response = match path {
         // 处理MCP
-        p if p.starts_with("/mcp/") => {
+        p if p.starts_with("/v1/mcp/") => {
             let response = crate::mcp_proxy::mcp_post_endpoint(&wrapper.0).await;
             Ok(response)
         }
-        p if p.starts_with("/model/") => {
+        p if p.starts_with("/v1/model/") => {
             todo!()
         }
         _ => {
