@@ -1,6 +1,6 @@
 mod embed;
 
-use cache::start_share_cache_server;
+//use cache::start_share_cache_server;
 use clap::Parser;
 use common::dir::AppDir;
 use logging::{init_log, log};
@@ -22,7 +22,7 @@ struct AiwayApp {
     // 控制台应用
     #[allow(unused)]
     console: embed::EmbedApp,
-   /* // 模型代理
+    /* // 模型代理
     #[allow(unused)]
     model_proxy: embed::EmbedApp,*/
 }
@@ -98,9 +98,10 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     init_log();
-    tokio::spawn(async {
+
+    /* tokio::spawn(async {
         start_share_cache_server(AppDir::cache_dir()).await.unwrap();
-    });
+    });*/
 
     let _app = AiwayApp::new(&args);
 

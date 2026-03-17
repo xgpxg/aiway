@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 logging = { path = "../lib/logging" }
-cache = { path = "../lib/cache", optional = true }
+cache = { path = "../lib/cache" }
 common = { path = "../lib/common" }
 aiway-protocol = { path = "../lib/aiway-protocol", features = ["logg", "api-key", "model", "mcp"] }
 busi = { path = "../lib/busi", features = ["rocket", "rbatis"] }
@@ -19,8 +19,8 @@ rbs = { version = "4.7" }
 rbdc-sqlite = { version = "4.7" }
 rbdc-pool-fast = "4.7"
 rbdc-mysql = { version = "4.7" }
-strum = "0.27"
-strum_macros = "0.27"
+strum = "0.28"
+strum_macros = "0.28"
 serde = "1"
 serde_json = "1"
 derive_builder = "0.20"
@@ -40,8 +40,8 @@ matchit = "0.9.0"
 itertools = "0.14.0"
 [features]
 default = []
-standalone = ["cache/share-cache"]
-cluster = ["cache/redis-cache"]
+#standalone = ["cache/share-cache"]
+#cluster = ["cache/redis-cache"]
 
 
 [dev-dependencies]

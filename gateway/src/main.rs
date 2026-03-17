@@ -33,17 +33,17 @@ struct Args {
     #[arg(short, long, default_value = "127.0.0.1:7280")]
     log_server: String,
 
-    /// Cache connection url
-    #[arg(long, default_value = "redis://127.0.0.1:6379")]
-    pub cache_url: String,
-
-    /// Cache username
-    #[arg(long, default_value = "")]
-    pub cache_username: String,
-
-    /// Cache password
-    #[arg(long, default_value = "")]
-    pub cache_password: String,
+    // /// Cache connection url
+    // #[arg(long, default_value = "redis://127.0.0.1:6379")]
+    // pub cache_url: String,
+    //
+    // /// Cache username
+    // #[arg(long, default_value = "")]
+    // pub cache_username: String,
+    //
+    // /// Cache password
+    // #[arg(long, default_value = "")]
+    // pub cache_password: String,
 }
 
 impl Args {

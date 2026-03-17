@@ -2,7 +2,7 @@
 //!
 use crate::Args;
 use aiway_protocol::context::Route;
-use aiway_protocol::gateway::{Config, Firewall, GlobalFilter, Plugin, Service};
+use aiway_protocol::gateway::{ApiKeySync, Config, Firewall, GlobalFilter, Plugin, Service};
 use anyhow::bail;
 use busi::res::Res;
 use clap::Parser;
@@ -124,5 +124,33 @@ impl InnerHttpClient {
         let endpoint = format!("http://{}/api/v1/gateway/config", self.args.console);
         let config = self.fetch_resource::<Config>(endpoint).await?;
         Ok(config)
+    }
+
+    pub async fn pull_api_key(
+        &self,
+        last_pull_time: Option<i64>,
+    ) -> anyhow::Result<Vec<ApiKeySync>> {
+        let endpoint = format!("http://{}/api/v1/gateway/pull-api-key", self.args.console);
+        let param = if let Some(last_pull_time) = last_pull_time {
+            HashMap::from_iter([("last_pull_time".to_string(), last_pull_time.to_string())])
+        } else {
+            HashMap::new()
+        };
+        match self.get(endpoint, param).await {
+            Ok(response) => {
+                if let Err(e) = response.error_for_status_ref() {
+                    bail!("pull api key error: {}", e);
+                }
+                let res = response.json::<Res<Vec<ApiKeySync>>>().await?;
+                if res.is_success() {
+                    res.data.ok_or_else(|| anyhow::anyhow!("no data returned"))
+                } else {
+                    bail!("console returned error: {}", res.msg);
+                }
+            }
+            Err(e) => {
+                bail!("fetch ip region file error: {}", e);
+            }
+        }
     }
 }

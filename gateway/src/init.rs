@@ -1,10 +1,12 @@
 use crate::components::{
-    ConfigFactory, Firewalld, GlobalFilterConfig, IpRegion, PluginFactory, Router, Servicer,
+    ApiKeySyncer, ConfigFactory, Firewalld, GlobalFilterConfig, IpRegion, PluginFactory, Router,
+    Servicer,
 };
 use crate::report::STATE;
-use crate::{Args, model_proxy, report, mcp_proxy};
+use crate::{Args, mcp_proxy, model_proxy, report};
 use alert::Alert;
 use logging::LogAppender;
+use std::path::PathBuf;
 
 pub async fn init(args: &Args) {
     // 初始化日志
@@ -20,10 +22,12 @@ pub async fn init(args: &Args) {
     //init_client(args).await;
 
     // 初始化缓存
-    #[cfg(feature = "cluster")]
-    cache::init_redis_cache(args.cache_url.split(",").collect::<Vec<_>>()).unwrap();
-    #[cfg(feature = "standalone")]
-    cache::init_share_cache().await.unwrap();
+    // #[cfg(feature = "cluster")]
+    // cache::init_redis_cache(args.cache_url.split(",").collect::<Vec<_>>()).unwrap();
+    // #[cfg(feature = "standalone")]
+    // cache::init_share_cache().await.unwrap();
+
+    cache::init_local_cache(cache_dir(args)).unwrap();
 
     // 初始化发布订阅
     //pubsub::init("127.0.0.1:4222").await.unwrap();
@@ -58,6 +62,9 @@ pub async fn init(args: &Args) {
     // 设置panic hook
     set_panic_hook();
 
+    // 同步APIKey
+    ApiKeySyncer::init().await;
+
     #[cfg(feature = "model-proxy")]
     {
         model_proxy::init(args).await;
@@ -67,6 +74,12 @@ pub async fn init(args: &Args) {
     {
         mcp_proxy::init(args).await;
     }
+}
+
+fn cache_dir(args: &Args) -> PathBuf {
+    common::dir::AppDir::cache_dir()
+        .join("gateway")
+        .join(args.port.to_string())
 }
 
 fn set_panic_hook() {

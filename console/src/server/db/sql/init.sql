@@ -99,6 +99,7 @@ create table if not exists api_key
     eff_time       datetime     not null,          -- 生效时间，默认当前时间
     exp_time       datetime,                       -- 失效时间，为空表示永久有效
     source         varchar(20)  not null,          -- 密钥来源
+    ts             bigint,                         -- 密钥变更时间戳，UTC，毫秒级，用于数据同步
     create_user_id bigint,                         -- 创建人ID
     update_user_id bigint,                         -- 修改人ID
     create_time    datetime,                       -- 创建时间

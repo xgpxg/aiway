@@ -31,10 +31,12 @@ pub async fn init(args: &Args) {
     db::init(args).await.unwrap();
 
     // 初始化缓存
-    #[cfg(feature = "cluster")]
-    cache::init_redis_cache(args.cache_url.split(",").collect::<Vec<_>>()).unwrap();
-    #[cfg(feature = "standalone")]
-    cache::init_share_cache().await.unwrap();
+    // #[cfg(feature = "cluster")]
+    // cache::init_redis_cache(args.cache_url.split(",").collect::<Vec<_>>()).unwrap();
+    // #[cfg(feature = "standalone")]
+    // cache::init_share_cache().await.unwrap();
+
+    cache::init_local_cache(AppDir::cache_dir().join("console")).unwrap();
 
     // 初始化定时任务
     task::start().await.unwrap();

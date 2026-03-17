@@ -1,9 +1,11 @@
+mod cleaner;
 mod ip_region_count;
 mod request_status_count;
 mod state;
 
 use crate::args::Args;
 use clap::Parser;
+pub use cleaner::API_KEY_CLEAN_INTERVAL;
 use std::sync::Arc;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
@@ -44,6 +46,12 @@ pub async fn start() -> anyhow::Result<()> {
         Box::pin(request_status_count::clean())
     })?;
     sched.add(request_status_count_clean).await?;
+
+    // ApiKey数据清理
+    let api_key_clean = Job::new_async("every 1 hours", move |_, _| {
+        Box::pin(cleaner::clean_api_key())
+    })?;
+    sched.add(api_key_clean).await?;
 
     sched.start().await?;
 

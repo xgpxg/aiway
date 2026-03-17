@@ -9,4 +9,8 @@ pub enum CacheKey {
     /// API Key
     #[strum(to_string = "aiway:api:key:{0}")]
     ApiKey(String),
+
+    /// 最后拉取API Key的时间，UTC时间戳，毫秒
+    #[strum(to_string = "aiway:last_pull_api_key_time")]
+    LastPullApiKeyTime,
 }

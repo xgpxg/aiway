@@ -55,7 +55,10 @@ pub trait Cache: Send + Sync {
 static CACHE: OnceLock<Box<dyn Cache>> = OnceLock::new();
 
 pub fn init_local_cache<P: AsRef<Path>>(dir: P) -> anyhow::Result<()> {
-    log::info!("init local cache");
+    log::info!("init local cache: {}", dir.as_ref().display());
+    if !Path::new(dir.as_ref()).exists() {
+        std::fs::create_dir_all(dir.as_ref())?;
+    }
     CACHE
         .set(Box::new(LocalCache::new(dir)?))
         .map_err(|_| anyhow::anyhow!("cache already initialized"))?;

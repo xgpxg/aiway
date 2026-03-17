@@ -1,7 +1,8 @@
 use crate::server::key::ApiKeyListReq;
 use derive_builder::Builder;
+use rbatis::executor::Executor;
 use rbatis::rbdc::DateTime;
-use rbatis::{crud, htmlsql_select_page};
+use rbatis::{crud, htmlsql, htmlsql_select_page};
 use rocket::serde::{Deserialize, Serialize};
 
 /// 路由配置
@@ -25,6 +26,9 @@ pub struct ApiKey {
     pub exp_time: Option<DateTime>,
     /// 来源
     pub source: Option<ApiKeySource>,
+    /// 密钥变更时间戳，UTC，毫秒级，用于数据同步。
+    /// 重要：密钥新增、修改、删除都需要更新该字段。
+    pub ts: Option<i64>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID
@@ -59,3 +63,4 @@ pub enum ApiKeySource {
 
 crud!(ApiKey {});
 htmlsql_select_page!(list_page(param: &ApiKeyListReq) -> ApiKey => "src/server/db/mapper/api_key.html");
+htmlsql!(list_by_update_time(rb: &dyn Executor,update_time: i64) -> Vec<ApiKey> => "src/server/db/mapper/api_key.html");

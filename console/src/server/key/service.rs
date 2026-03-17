@@ -1,14 +1,14 @@
 use crate::server::auth::UserPrincipal;
-use crate::server::db::models::api_key::{ApiKeySource, ApiKeyStatus};
+use crate::server::db::models::api_key::{ApiKeyBuilder, ApiKeySource, ApiKeyStatus};
 use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use crate::server::db::{Pool, models, tools};
 use crate::server::key::ApiKeyListReq;
 use crate::server::key::request::ApiKeyAddOrUpdateReq;
 use crate::server::key::response::ApiKeyListRes;
-use busi::req::{IdsReq, Pagination};
-use busi::res::{IntoPageRes, PageRes};
 use aiway_protocol::gateway::{ApiKey, Firewall};
 use anyhow::bail;
+use busi::req::{IdsReq, Pagination};
+use busi::res::{IntoPageRes, PageRes};
 use cache::caches::CacheKey;
 use common::id;
 use rbs::value;
@@ -22,7 +22,7 @@ pub async fn add(req: ApiKeyAddOrUpdateReq, user: UserPrincipal) -> anyhow::Resu
         None => ApiKey::new().encrypt(api_secret_encrypt_key),
         Some(principal) => ApiKey::new_with_principal(principal).encrypt(api_secret_encrypt_key),
     };
-    cache::set(CacheKey::ApiKey(ak.clone()).to_string(), &Value::Null, None).await?;
+    //cache::set(CacheKey::ApiKey(ak.clone()).to_string(), &Value::Null, None).await?;
 
     let api_key = models::api_key::ApiKeyBuilder::default()
         .id(Some(id::next()))
@@ -33,12 +33,13 @@ pub async fn add(req: ApiKeyAddOrUpdateReq, user: UserPrincipal) -> anyhow::Resu
         .eff_time(Some(tools::now()))
         .exp_time(req.exp_time)
         .source(Some(ApiKeySource::Console))
+        .ts(chrono::Local::now().timestamp_millis().into())
         .create_user_id(Some(user.id))
         .create_time(Some(tools::now()))
         .build()?;
 
     if let Err(e) = models::api_key::ApiKey::insert(Pool::get()?, &api_key).await {
-        cache::remove(&CacheKey::ApiKey(ak).to_string()).await?;
+        //cache::remove(&CacheKey::ApiKey(ak).to_string()).await?;
         bail!(e);
     }
 
@@ -50,12 +51,18 @@ pub async fn delete(req: IdsReq) -> anyhow::Result<()> {
         let api_key =
             models::api_key::ApiKey::select_by_map(Pool::get()?, value! {"id": id}).await?;
         if api_key.is_empty() {
-            continue;
+            bail!("api key not found")
         }
-        let api_key = api_key.first().unwrap();
-        let secret = api_key.secret.clone().unwrap();
-        cache::remove(&CacheKey::ApiKey(secret).to_string()).await?;
-        models::api_key::ApiKey::delete_by_map(Pool::get()?, value! {"id": id}).await?;
+
+        models::api_key::ApiKey::update_by_map(
+            Pool::get()?,
+            &ApiKeyBuilder::default()
+                .is_delete(1.into())
+                .ts(chrono::Local::now().timestamp_millis().into())
+                .build()?,
+            value! {"id": id},
+        )
+        .await?;
     }
     Ok(())
 }

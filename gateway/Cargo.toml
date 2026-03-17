@@ -10,8 +10,9 @@ context = { path = "../lib/context" }
 logging = { path = "../lib/logging", features = ["request-log"] }
 loadbalance = { path = "../lib/loadbalance" }
 aiway-plugin = { path = "../lib/aiway-plugin" }
-cache = { path = "../lib/cache", optional = true }
+cache = { path = "../lib/cache" }
 alert = { path = "../lib/alert" }
+common = { path = "../lib/common" }
 #pubsub = { path = "../lib/pubsub" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
 rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }
@@ -42,7 +43,7 @@ sse-stream = { version = "=0.2.1", optional = true }
 urlencoding = { version = "2.1.3", optional = true }
 [features]
 default = []
-standalone = ["cache/share-cache"]
-cluster = ["cache/redis-cache"]
+#standalone = ["cache/share-cache"]
+#cluster = ["cache/redis-cache"]
 model-proxy = ["fastrand", "aha-reqwest-eventsource", "aiway-model-protocol", "thiserror", "tokio-stream", "plugin-manager"]
 mcp-proxy = ["aiway-protocol/mcp", "urlencoding", "sse-stream", "http"]

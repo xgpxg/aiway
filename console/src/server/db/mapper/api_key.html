@@ -20,10 +20,18 @@
             <if test="param.status!=null">
                 ` and ak.status = #{param.status} `
             </if>
+            and ak.is_delete = 0
         </where>
         <if test="do_count == false">
             ` order by ak.id desc `
             ` limit ${page_no},${page_size} `
         </if>
+    </select>
+
+    <select id="list_by_update_time">
+        select ak.*
+        from api_key ak
+        where ak.ts >= #{update_time}
+           or ak.ts >= #{update_time}
     </select>
 </mapper>

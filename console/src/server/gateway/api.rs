@@ -8,9 +8,9 @@
 use crate::server;
 use crate::server::gateway;
 use crate::server::gateway::{alerter, ip_region, plugin, reporter, route, service};
-use busi::res::Res;
-use aiway_protocol::gateway::Config;
 use aiway_protocol::gateway::alert::AlertMessage;
+use aiway_protocol::gateway::{ApiKeySync, Config};
+use busi::res::Res;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
 
@@ -24,7 +24,8 @@ pub fn routes() -> Vec<rocket::Route> {
         report,
         alert,
         download_ip_region_file,
-        config
+        config,
+        pull_api_key
     ]
 }
 
@@ -104,6 +105,15 @@ async fn download_ip_region_file() -> Result<Vec<u8>, String> {
 #[get("/gateway/config")]
 async fn config() -> Res<Config> {
     match gateway::config::config().await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 拉取APIKey
+#[get("/gateway/pull-api-key?<last_pull_time>")]
+async fn pull_api_key(last_pull_time: Option<i64>) -> Res<Vec<ApiKeySync>> {
+    match gateway::data_sync::pull_api_key(last_pull_time).await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
     }
