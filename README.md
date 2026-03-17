@@ -9,14 +9,16 @@
 </div>
 
 
-**aiway** 是一个基于 Rust 开发的高性能 API + AI 网关，致力于提供稳定、高效、可扩展的请求转发与管理解决方案。
+**aiway** (API and AI Gateway) 是一个基于 Rust 开发的高性能 API + AI 网关，致力于提供稳定、高效、可扩展的请求转发与管理解决方案。
 
 凭借 Rust 的内存安全特性和零成本抽象优势，aiway 在保证高性能的同时，提供了卓越的安全性和稳定性。
 
 ## 平台支持
 
-- **Linux** (x86_64 / arm64)
-- **macOS** (arm64)
+- Linux (x86_64 / arm64)
+- macOS (arm64)
+- openEuler (x86_64)
+- UOS Server (x86_64)
 
 ## 协议支持
 
@@ -108,18 +110,50 @@ cargo run --bin aiway
 
 ## 性能
 
-| 请求数           | 并发数 | 成功率  | 吞吐量 (req/s) | 平均延迟 (ms) | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) | P99.9 (ms) | 最快 (ms) | 最慢 (ms) | 总耗时 (ms)  |
-|---------------|-----|------|-------------|-----------|----------|----------|----------|----------|------------|---------|---------|-----------|
-| **10,000**    | 300 | 100% | 42,381.22   | 6.89      | 5.00     | 11.95    | 19.27    | 41.22    | 47.52      | 0.47    | 55.69   | 235.95    |
-| **100,000**   | 300 | 100% | 61,150.17   | 4.89      | 4.65     | 7.23     | 8.22     | 10.72    | 23.58      | 0.25    | 31.33   | 1,635.32  |
-| **1,000,000** | 300 | 100% | 60,574.36   | 4.95      | 4.74     | 7.36     | 8.33     | 10.53    | 13.90      | 0.19    | 28.78   | 16,508.63 |
+- Ubuntu 24.04, Intel i7-12700K, 12 Cores, 16 GB RAM
 
-> 测试环境:
-> - 硬件：Ubuntu 24.04, Intel i7-12700K, 16 GB RAM
-> - 路由：10个
-> - 插件：2个
-> - 测试服务和网关在同一机器
+```shell
+wrk http://127.0.0.1:7001/hello -t 12 -c 100
 
+Running 10s test @ http://127.0.0.1:7001/hello
+  12 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.25ms  574.88us  10.34ms   82.29%
+    Req/Sec     6.54k   756.78    14.64k    86.22%
+  784402 requests in 10.10s, 222.18MB read
+Requests/sec:  77662.06
+Transfer/sec:     22.00MB
+```
+
+- openEuler 24.03 (LTS-SP3), Intel(R) Xeon(R) 6982P-C, 4 Cores, 8 GB RAM
+
+```shell
+wrk http://127.0.0.1:7001/hello -t 4 -c 100
+
+Running 10s test @ http://127.0.0.1:7001/hello
+  4 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     3.80ms    1.22ms  13.60ms   70.35%
+    Req/Sec     6.62k   380.06     7.43k    62.75%
+  263639 requests in 10.01s, 74.67MB read
+Requests/sec:  26332.11
+Transfer/sec:      7.46MB
+```
+
+- UOS Server 20, Intel(R) Xeon(R) Platinum, 4 Cores, 8 GB RAM
+
+```shell
+wrk http://127.0.0.1:7001/hello -t 4 -c 100
+
+Running 10s test @ http://127.0.0.1:7001/hello
+  8 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     3.61ms    2.48ms  84.71ms   93.78%
+    Req/Sec     3.47k   452.12    11.40k    83.88%
+  276965 requests in 10.06s, 78.45MB read
+Requests/sec:  27518.91
+Transfer/sec:      7.79MB
+```
 
 ## 贡献
 

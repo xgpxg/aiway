@@ -9,7 +9,7 @@
 </div>
 
 
-**aiway** is a high-performance API + AI gateway developed in Rust, dedicated to providing stable, efficient, and scalable request forwarding and management solutions.
+**aiway** (API and AI Gateway) is a high-performance API + AI gateway developed in Rust, dedicated to providing stable, efficient, and scalable request forwarding and management solutions.
 
 Leveraging Rust's memory safety features and zero-cost abstractions, aiway delivers exceptional security and stability while maintaining high performance.
 
@@ -106,21 +106,53 @@ If you need to develop custom plugins, please refer to the [Plugin Development D
 
 For detailed documentation, please visit: [https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
 
+
 ## Performance
 
-| Requests | Concurrency | Success Rate | Throughput (req/s) | Avg Latency (ms) | P50 (ms) | P90 (ms) | P95 (ms) | P99 (ms) | P99.9 (ms) | Fastest (ms) | Slowest (ms) | Total Time (ms) |
-|---------------|-----|------|-------------|-----------|----------|----------|----------|----------|------------|---------|---------|-----------|
-|---------------|-----|------|-------------|-----------|----------|----------|----------|----------|------------|---------|---------|-----------|
-| **10,000**    | 300 | 100% | 42,381.22   | 6.89      | 5.00     | 11.95    | 19.27    | 41.22    | 47.52      | 0.47    | 55.69   | 235.95    |
-| **100,000**   | 300 | 100% | 61,150.17   | 4.89      | 4.65     | 7.23     | 8.22     | 10.72    | 23.58      | 0.25    | 31.33   | 1,635.32  |
-| **1,000,000** | 300 | 100% | 60,574.36   | 4.95      | 4.74     | 7.36     | 8.33     | 10.53    | 13.90      | 0.19    | 28.78   | 16,508.63 |
+- Ubuntu 24.04, Intel i7-12700K, 12 Cores, 16 GB RAM
 
-> Test Environment:
-> - Hardware: Ubuntu 24.04, Intel i7-12700K, 16 GB RAM
-> - Routes: 10
-> - Plugins: 2
-> - Test service and gateway on the same machine
+```shell
+wrk http://127.0.0.1:7001/hello -t 12 -c 100
 
+Running 10s test @ http://127.0.0.1:7001/hello
+  12 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.25ms  574.88us  10.34ms   82.29%
+    Req/Sec     6.54k   756.78    14.64k    86.22%
+  784402 requests in 10.10s, 222.18MB read
+Requests/sec:  77662.06
+Transfer/sec:     22.00MB
+```
+
+- openEuler 24.03 (LTS-SP3), Intel(R) Xeon(R) 6982P-C, 4 Cores, 8 GB RAM
+
+```shell
+wrk http://127.0.0.1:7001/hello -t 4 -c 100
+
+Running 10s test @ http://127.0.0.1:7001/hello
+  4 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     3.80ms    1.22ms  13.60ms   70.35%
+    Req/Sec     6.62k   380.06     7.43k    62.75%
+  263639 requests in 10.01s, 74.67MB read
+Requests/sec:  26332.11
+Transfer/sec:      7.46MB
+```
+
+- UOS Server 20, Intel(R) Xeon(R) Platinum, 4 Cores, 8 GB RAM
+
+```shell
+wrk http://127.0.0.1:7001/hello -t 4 -c 100
+
+Running 10s test @ http://127.0.0.1:7001/hello
+  8 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     3.61ms    2.48ms  84.71ms   93.78%
+    Req/Sec     3.47k   452.12    11.40k    83.88%
+  276965 requests in 10.06s, 78.45MB read
+Requests/sec:  27518.91
+Transfer/sec:      7.79MB
+```
 
 ## Contributing
 
