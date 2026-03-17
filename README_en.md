@@ -47,10 +47,10 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 
 ```bash
 # Build Gateway (standalone mode)
-cargo build --bin gateway -F standalone
+cargo build --bin gateway -F model-proxy,mcp-proxy
 
 # Build Console (standalone mode)
-cargo build --bin console -F standalone
+cargo build --bin console
 
 # Build Logg
 cargo build --bin logg

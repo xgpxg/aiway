@@ -46,11 +46,11 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 ### 方式二：从源码构建
 
 ```bash
-# 构建 Gateway（单机模式）
-cargo build --bin gateway -F standalone
+# 构建 Gateway
+cargo build --bin gateway -F model-proxy,mcp-proxy
 
-# 构建 Console（单机模式）
-cargo build --bin console -F standalone
+# 构建 Console
+cargo build --bin console
 
 # 构建 Logg
 cargo build --bin logg
