@@ -66,9 +66,6 @@ pub struct McpToolAddReq {
     pub request_param: Option<serde_json::Value>,
 }
 
-fn default_mcp_tool_status() -> McpToolStatus {
-    McpToolStatus::Disable
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpToolUpdateReq {
@@ -113,11 +110,3 @@ pub struct UpdateMcpToolStatusReq {
     pub status: McpToolStatus,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyncProxyServerToolsReq {
-    pub mcp_server_id: i64,
-    /// 描述
-    pub url: Option<String>,
-    /// 输入参数 Schema
-    pub headers: Option<serde_json::Value>,
-}

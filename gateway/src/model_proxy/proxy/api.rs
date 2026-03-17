@@ -4,9 +4,8 @@ use crate::model_proxy::proxy::response::{ModelError, ModelResponse};
 use aiway_model_protocol::audio::AudioSpeechParameters;
 use aiway_model_protocol::chat::ChatCompletionParameters;
 use aiway_model_protocol::image::{CreateImageParameters, EditImageParameters};
-use context::{HttpContextOnce, HttpContextWrapper};
+use context::HttpContextWrapper;
 use rocket::post;
-use rocket::serde::json::Json;
 
 /// 对话补全
 #[post("/chat/completions")]

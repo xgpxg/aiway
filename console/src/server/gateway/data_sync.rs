@@ -4,7 +4,6 @@ use crate::server::db::models::api_key::ApiKey;
 use crate::server::task::API_KEY_CLEAN_INTERVAL;
 use aiway_protocol::gateway::{Action, ApiKeySync};
 use logging::log;
-use rbatis::rbdc::DateTime;
 
 /// 拉取APIKey，含逻辑删除的。
 ///

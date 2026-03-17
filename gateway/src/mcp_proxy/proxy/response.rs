@@ -1,9 +1,7 @@
 use aiway_protocol::rmcp::model::{JsonRpcVersion2_0, RequestId};
 use http::StatusCode;
-use reqwest::Body;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tokio_util::bytes::Bytes;
 
 ///JSON-RPC 响应
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,6 +27,7 @@ struct McpError {
 }
 
 /// 响应成功
+#[allow(unused)]
 const SUCCESS_CODE: i32 = 0;
 /// 系统错误
 const ERROR_CODE: i32 = 1;

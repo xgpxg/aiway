@@ -1,9 +1,8 @@
 use crate::mcp_proxy::components::McpFactory;
 use crate::mcp_proxy::proxy::response::McpRes;
-use aiway_protocol::mcp::mcp::McpServer;
 use aiway_protocol::rmcp::model::{
     ClientCapabilities, ClientInfo, ClientRequest, Implementation, InitializeRequestParams,
-    JsonRpcMessage, JsonRpcRequest, RequestId, ServerResult,
+    JsonRpcRequest, ServerResult,
 };
 use aiway_protocol::rmcp::service::RunningService;
 use aiway_protocol::rmcp::transport::StreamableHttpClientTransport;
@@ -11,11 +10,9 @@ use aiway_protocol::rmcp::transport::streamable_http_client::StreamableHttpClien
 use aiway_protocol::rmcp::{RoleClient, ServiceExt};
 use anyhow::bail;
 use dashmap::DashMap;
-use http::{HeaderMap, HeaderName, HeaderValue, Method};
-use serde_json::json;
+use http::{HeaderName, HeaderValue};
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::atomic::{AtomicI64, AtomicU64};
 use std::sync::{Arc, LazyLock};
 
 type ProxyClient = RunningService<RoleClient, InitializeRequestParams>;

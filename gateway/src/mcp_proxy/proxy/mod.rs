@@ -9,7 +9,8 @@ mod response;
 
 pub use proxy_pool::MCP_PROXY_POOL;
 
-pub async fn mcp_get(mcp_server: String, context: HttpContextWrapper) {
+#[allow(unused)]
+pub async fn mcp_get(_mcp_server: String, context: HttpContextWrapper) {
     println!("MCP GET");
     println!("MCP请求: {:?}", context);
 }

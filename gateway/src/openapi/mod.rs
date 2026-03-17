@@ -145,13 +145,3 @@ async fn handle(wrapper: HttpContextWrapper, _path: PathBuf) -> GatewayResponse 
     }
 }
 
-fn build_mock_response() -> reqwest::Response {
-    // 1. 构建 http::Response
-    let http_resp = http::Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "application/json")
-        .body(tokio_util::bytes::Bytes::from(r#"{"message": "hello"}"#))
-        .unwrap();
-
-    reqwest::Response::from(http_resp)
-}

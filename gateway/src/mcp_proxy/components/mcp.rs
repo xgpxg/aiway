@@ -1,10 +1,8 @@
 use crate::mcp_proxy::components::client::INNER_HTTP_CLIENT;
 use crate::mcp_proxy::proxy::MCP_PROXY_POOL;
-use aiway_protocol::mcp::mcp::{McpServer, McpServerType, McpTool};
-use anyhow::bail;
+use aiway_protocol::mcp::mcp::{McpServer, McpTool};
 use dashmap::DashMap;
 use logging::log;
-use reqwest::Proxy;
 use std::collections::HashMap;
 use std::process::exit;
 use std::sync::OnceLock;

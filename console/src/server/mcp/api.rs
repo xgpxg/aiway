@@ -1,7 +1,7 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::mcp::request::{
     McpServerAddReq, McpServerStatusUpdateReq, McpServerUpdateReq, McpToolAddReq, McpToolUpdateReq,
-    SyncProxyServerToolsReq, UpdateMcpToolStatusReq,
+    UpdateMcpToolStatusReq,
 };
 use crate::server::mcp::response::{McpServerListRes, McpToolListRes};
 use crate::server::mcp::{McpServerListReq, McpToolListReq, service};
@@ -113,10 +113,7 @@ async fn tool_update_status(req: Json<UpdateMcpToolStatusReq>, user: UserPrincip
 }
 
 #[post("/server/sync_proxy_server_tools", data = "<req>")]
-async fn sync_proxy_server_tools(
-    req: Json<IdReq>,
-    user: UserPrincipal,
-) -> Res<()> {
+async fn sync_proxy_server_tools(req: Json<IdReq>, user: UserPrincipal) -> Res<()> {
     match service::sync_proxy_server_tools(req.0, user).await {
         Ok(_) => Res::success(()),
         Err(e) => Res::error(&e.to_string()),

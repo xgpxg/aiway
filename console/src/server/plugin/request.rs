@@ -26,6 +26,7 @@ pub struct PluginAddReq<'a> {
     pub default_config: Option<String>,
     /// 插件的说明文档，Markdown格式
     #[deprecated(note = "考虑到插件不需要太多的文档，在default_config中提供配置说明即可")]
+    #[allow(unused)]
     pub document: Option<String>,
 }
 

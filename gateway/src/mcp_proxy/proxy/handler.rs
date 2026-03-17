@@ -1,4 +1,3 @@
-use crate::Args;
 use crate::components::Servicer;
 use crate::mcp_proxy::components::McpFactory;
 use crate::mcp_proxy::proxy::proxy_pool::MCP_PROXY_POOL;
@@ -6,14 +5,13 @@ use crate::mcp_proxy::proxy::response::McpRes;
 use aiway_protocol::mcp::mcp::{McpServerType, Route, RouteType};
 use aiway_protocol::rmcp::model::{
     CallToolRequestParams, CallToolResult, Content, JsonObject, JsonRpcRequest, ListToolsResult,
-    ServerCapabilities, ServerResult, ToolsCapability,
+    ServerCapabilities, ServerResult,
 };
 use aiway_protocol::rmcp::model::{InitializeResult, Tool};
 use http::{HeaderMap, HeaderName, HeaderValue};
 use reqwest::Client;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::fmt::format;
 use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;

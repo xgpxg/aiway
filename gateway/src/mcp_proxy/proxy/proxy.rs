@@ -1,16 +1,9 @@
-use crate::mcp_proxy::components::McpFactory;
 use crate::mcp_proxy::proxy::handler::McpServerHandler;
 use crate::mcp_proxy::proxy::response::{EmptyResponse, McpRes};
 use aiway_protocol::context::HttpContext;
 use aiway_protocol::rmcp::model::{
-    ErrorData, JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, ListToolsResult, Notification,
-    RequestId, ServerCapabilities, ServerResult, Tool, ToolsCapability,
+    JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, RequestId, ServerResult,
 };
-use context::HttpContextWrapper;
-use http::request;
-use rocket::response::stream::Event;
-use serde::Serialize;
-use serde_json::Value;
 
 /// MCP 服务实现
 ///
