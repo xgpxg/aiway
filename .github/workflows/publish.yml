@@ -12,9 +12,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
-            glibc: 2.28
             asset_name_standalone: aiway-linux-amd64-standalone.tar.gz
             asset_name_cluster: aiway-linux-amd64-cluster.tar.gz
           - os: macos-latest
@@ -23,7 +22,6 @@ jobs:
             asset_name_cluster: aiway-macos-arm64-cluster.tar.gz
           - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
-            glibc: 2.28
             asset_name_standalone: aiway-linux-arm64-standalone.tar.gz
             asset_name_cluster: aiway-linux-arm64-cluster.tar.gz
     runs-on: ${{ matrix.os }}
@@ -75,44 +73,29 @@ jobs:
       - name: Copy frontend dist to console/ui
         run: cp -r frontend/dist/* console/ui/
 
-      # 安装 cargo-zigbuild (仅 Linux)
-      - name: Install cargo-zigbuild
-        if: matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm'
-        run: |
-          pip install cargo-zigbuild
 
-      # 添加目标平台 (macOS)
-      - name: Add target (macOS)
-        if: matrix.os == 'macos-latest'
+      #      # 安装 musl 工具
+      #      - name: Install musl tools
+      #        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
+      #        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      # 添加目标平台
+      - name: Add target
         run: rustup target add ${{ matrix.target }}
 
       # 构建单机版
       - name: Build Standalone
         run: |
-          if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
-            cargo zigbuild --release --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}.${{matrix.glibc}}
-            cargo zigbuild --release --bin console --target ${{ matrix.target }}.${{matrix.glibc}}
-            cargo zigbuild --release --bin logg --target ${{ matrix.target }}.${{matrix.glibc}}
-            cargo zigbuild --release --bin aiway --target ${{ matrix.target }}.${{matrix.glibc}}
-          else
-            cargo build --release --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
-            cargo build --release --bin console --target ${{ matrix.target }}
-            cargo build --release --bin logg --target ${{ matrix.target }}
-            cargo build --release --bin aiway --target ${{ matrix.target }}
-          fi
-        shell: bash
+          cargo build -r --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
+          cargo build -r --bin console --target ${{ matrix.target }}
+          cargo build -r --bin logg --target ${{ matrix.target }}
+          cargo build -r --bin aiway --target ${{ matrix.target }}
 
       # 构建集群版
       - name: Build Cluster
         run: |
-          if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
-            cargo zigbuild --release --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
-            cargo zigbuild --release --bin console --target ${{ matrix.target }}
-          else
-            cargo build --release --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
-            cargo build --release --bin console --target ${{ matrix.target }}
-          fi
-        shell: bash
+          cargo build -r --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
+          cargo build -r --bin console --target ${{ matrix.target }}
 
       # 压缩单机版二进制文件
       - name: Compress standalone binary
