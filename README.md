@@ -27,7 +27,9 @@
 - WebSocket
 - MCP
 
-📑 [文档](https://aiway.coderbox.cn/doc.html)
+## 文档
+
+详细文档请访问：[https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
 
 ## 快速开始
 
@@ -61,34 +63,30 @@ cargo run --bin aiway
 
 ### 访问服务
 
-- **管理控制台**: http://127.0.0.1:7000
-- **网关入口**: http://127.0.0.1:7001
-- **默认账号**: `admin` / `admin`
+- 管理控制台: http://127.0.0.1:7000
+- 网关入口: http://127.0.0.1:7001
+- 默认账号: `admin` / `admin`
 
 ### 构建选项
 
-**Gateway 特性：**
+**Gateway Features：**
 
-- `standalone` - 单机模式
-- `cluster` - 集群模式
 - `model-proxy` - 启用模型代理功能
+- `mcp-proxy` - 启用MCP托管功能
 
-**Console 特性：**
-
-- `standalone` - 单机模式
-- `cluster` - 集群模式
+**Console Features：**
 
 ## 核心功能
 
-- **动态路由** - 灵活配置请求路由规则
-- **服务管理** - 统一管理后端服务实例
-- **插件系统** - 可扩展的插件架构
-- **安全防护** - 内置防火墙和安全验证机制
-- **API Key 管理** - 统一的 API 密钥管理
-- **日志监控** - 完整的日志存储和实时监控
-- **可视化面板** - 直观的管理控制台
-- **AI 模型代理** - 智能 AI 模型代理和请求转发
-- **MCP 集成** - Model Context Protocol 支持
+- 动态路由 - 灵活配置请求路由规则
+- 服务管理 - 统一管理后端服务实例
+- 插件系统 - 可扩展的插件架构
+- 安全防护 - 内置防火墙和安全验证机制
+- API Key 管理 - 统一的 API 密钥管理
+- 日志监控 - 完整的日志存储和实时监控
+- 可视化面板 - 直观的管理控制台
+- AI 模型代理 - 智能 AI 模型代理和请求转发
+- MCP 集成** - Model Context Protocol 支持
 
 ## 插件生态
 
@@ -103,10 +101,6 @@ cargo run --bin aiway
 ## 界面预览
 
 ![Dashboard](docs/images/screenshot.png)
-
-## 文档
-
-详细文档请访问：[https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
 
 ## 性能
 

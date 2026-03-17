@@ -27,7 +27,10 @@ Leveraging Rust's memory safety features and zero-cost abstractions, aiway deliv
 - WebSocket
 - MCP
 
-📑 [Documentation](https://aiway.coderbox.cn/doc.html)
+## Documentation
+
+For detailed documentation, please visit: [https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
+
 
 ## Quick Start
 
@@ -61,9 +64,9 @@ cargo run --bin aiway
 
 ### Accessing the Services
 
-- **Management Console**: http://127.0.0.1:7000
-- **Gateway Entry**: http://127.0.0.1:7001
-- **Default Credentials**: `admin` / `admin`
+- Management Console: http://127.0.0.1:7000
+- Gateway Entry: http://127.0.0.1:7001
+- Default Credentials: `admin` / `admin`
 
 ### Build Options
 
@@ -80,15 +83,15 @@ cargo run --bin aiway
 
 ## Core Features
 
-- **Dynamic Routing** - Flexibly configure request routing rules
-- **Service Management** - Unified management of backend service instances
-- **Plugin System** - Scalable plugin architecture
-- **Security Protection** - Built-in firewall and security verification mechanisms
-- **API Key Management** - Unified API key management
-- **Log Monitoring** - Complete log storage and real-time monitoring
-- **Visual Dashboard** - Intuitive management console
-- **AI Model Proxy** - Intelligent AI model proxy and request forwarding
-- **MCP Integration** - Model Context Protocol support
+- Dynamic Routing - Flexibly configure request routing rules
+- Service Management - Unified management of backend service instances
+- Plugin System - Scalable plugin architecture
+- Security Protection - Built-in firewall and security verification mechanisms
+- API Key Management - Unified API key management
+- Log Monitoring - Complete log storage and real-time monitoring
+- Visual Dashboard - Intuitive management console
+- AI Model Proxy - Intelligent AI model proxy and request forwarding
+- MCP Integration - Model Context Protocol support
 
 ## Plugin Ecosystem
 
@@ -103,10 +106,6 @@ If you need to develop custom plugins, please refer to the [Plugin Development D
 ## Interface Preview
 
 ![Dashboard](docs/images/screenshot.png)
-
-## Documentation
-
-For detailed documentation, please visit: [https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
 
 
 ## Performance
