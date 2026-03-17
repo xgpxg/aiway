@@ -15,8 +15,10 @@ Leveraging Rust's memory safety features and zero-cost abstractions, aiway deliv
 
 ## Platform Support
 
-- **Linux** (x86_64 / arm64)
-- **macOS** (arm64)
+- Linux (x86_64 / arm64)
+- macOS (arm64)
+- openEuler (x86_64)
+- UOS Server (x86_64)
 
 ## Protocol Support
 
