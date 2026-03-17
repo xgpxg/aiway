@@ -13,7 +13,8 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu.2.28
+            target: x86_64-unknown-linux-gnu
+            glibc: 2.28
             asset_name_standalone: aiway-linux-amd64-standalone.tar.gz
             asset_name_cluster: aiway-linux-amd64-cluster.tar.gz
           - os: macos-latest
@@ -21,7 +22,8 @@ jobs:
             asset_name_standalone: aiway-macos-arm64-standalone.tar.gz
             asset_name_cluster: aiway-macos-arm64-cluster.tar.gz
           - os: ubuntu-22.04-arm
-            target: aarch64-unknown-linux-gnu.2.28
+            target: aarch64-unknown-linux-gnu
+            glibc: 2.28
             asset_name_standalone: aiway-linux-arm64-standalone.tar.gz
             asset_name_cluster: aiway-linux-arm64-cluster.tar.gz
     runs-on: ${{ matrix.os }}
@@ -88,10 +90,10 @@ jobs:
       - name: Build Standalone
         run: |
           if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
-            cargo zigbuild --release --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
-            cargo zigbuild --release --bin console --target ${{ matrix.target }}
-            cargo zigbuild --release --bin logg --target ${{ matrix.target }}
-            cargo zigbuild --release --bin aiway --target ${{ matrix.target }}
+            cargo zigbuild --release --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}.${{matrix.glibc}}
+            cargo zigbuild --release --bin console --target ${{ matrix.target }}.${{matrix.glibc}}
+            cargo zigbuild --release --bin logg --target ${{ matrix.target }}.${{matrix.glibc}}
+            cargo zigbuild --release --bin aiway --target ${{ matrix.target }}.${{matrix.glibc}}
           else
             cargo build --release --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
             cargo build --release --bin console --target ${{ matrix.target }}
@@ -115,22 +117,14 @@ jobs:
       # 压缩单机版二进制文件
       - name: Compress standalone binary
         run: |
-          if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
-            cd target/cargo-zigbuild/${{ matrix.target }}/release
-          else
-            cd target/${{ matrix.target }}/release
-          fi
+          cd target/${{ matrix.target }}/release
           tar -czf ${{ matrix.asset_name_standalone }} aiway
         shell: bash
 
       # 压缩集群版二进制文件
       - name: Compress cluster binary
         run: |
-          if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
-            cd target/cargo-zigbuild/${{ matrix.target }}/release
-          else
-            cd target/${{ matrix.target }}/release
-          fi
+          cd target/${{ matrix.target }}/release
           tar -czf ${{ matrix.asset_name_cluster }} gateway console
         shell: bash
 
@@ -141,8 +135,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           files: |
-            target/cargo-zigbuild/${{ matrix.target }}/release/${{ matrix.asset_name_standalone }}
-            target/cargo-zigbuild/${{ matrix.target }}/release/${{ matrix.asset_name_cluster }}
             target/${{ matrix.target }}/release/${{ matrix.asset_name_standalone }}
             target/${{ matrix.target }}/release/${{ matrix.asset_name_cluster }}
         env:
