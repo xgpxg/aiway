@@ -115,14 +115,22 @@ jobs:
       # 压缩单机版二进制文件
       - name: Compress standalone binary
         run: |
-          cd target/${{ matrix.target }}/release
+          if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
+            cd target/cargo-zigbuild/${{ matrix.target }}/release
+          else
+            cd target/${{ matrix.target }}/release
+          fi
           tar -czf ${{ matrix.asset_name_standalone }} aiway
         shell: bash
 
       # 压缩集群版二进制文件
       - name: Compress cluster binary
         run: |
-          cd target/${{ matrix.target }}/release
+          if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
+            cd target/cargo-zigbuild/${{ matrix.target }}/release
+          else
+            cd target/${{ matrix.target }}/release
+          fi
           tar -czf ${{ matrix.asset_name_cluster }} gateway console
         shell: bash
 
@@ -133,6 +141,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           files: |
+            target/cargo-zigbuild/${{ matrix.target }}/release/${{ matrix.asset_name_standalone }}
+            target/cargo-zigbuild/${{ matrix.target }}/release/${{ matrix.asset_name_cluster }}
             target/${{ matrix.target }}/release/${{ matrix.asset_name_standalone }}
             target/${{ matrix.target }}/release/${{ matrix.asset_name_cluster }}
         env:
