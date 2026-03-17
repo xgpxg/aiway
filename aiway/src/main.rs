@@ -59,7 +59,16 @@ impl AiwayApp {
         let gateway = embed::EmbedApp::new(
             "gateway",
             &gateway.data,
-            &["--address", &args.address, "--log-server", "127.0.0.1:7281"],
+            &[
+                "--address",
+                &args.address,
+                "--port",
+                &args.gateway_port.to_string(),
+                "--console",
+                &format!("{}:{}", args.address, args.port),
+                "--log-server",
+                "127.0.0.1:7281",
+            ],
         )
         .unwrap();
         log::info!("gateway started");
@@ -91,6 +100,10 @@ struct Args {
     /// Port
     #[arg(short, long, default_value_t = 7000)]
     port: u16,
+
+    /// Gateway port
+    #[arg(long, default_value_t = 7001)]
+    gateway_port: u16,
 }
 
 #[tokio::main]
