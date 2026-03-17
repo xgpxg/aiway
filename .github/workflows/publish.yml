@@ -95,7 +95,7 @@ jobs:
       - name: Build Cluster
         run: |
           cargo build -r --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
-          cargo build -r --bin console -F --target ${{ matrix.target }}
+          cargo build -r --bin console --target ${{ matrix.target }}
 
       # 压缩单机版二进制文件
       - name: Compress standalone binary
