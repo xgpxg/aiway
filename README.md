@@ -43,7 +43,7 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 ./aiway
 ```
 
-> **注意**：预编译版本基于 glibc 2.35 构建，如果您的系统glibc版本低于 2.35，请从源码构建。
+> **注意**：预编译版本基于 glibc 2.34 构建，如果您的系统glibc版本低于 2.34，请从源码构建。
 
 ### 方式二：从源码构建
 
