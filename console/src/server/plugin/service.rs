@@ -6,12 +6,13 @@ use crate::server::file::file_util::{make_download_file, make_save_file};
 use crate::server::plugin::request::{PluginAddReq, PluginInfoReq, PluginListReq, PluginUpdateReq};
 use crate::server::plugin::response::{PluginInfoRes, PluginListRes};
 use anyhow::bail;
-use common::id;
 use busi::req::{IdsReq, Pagination};
 use busi::res::{IntoPageRes, PageRes};
+use common::id;
 use rbs::value;
 use rocket::fs::TempFile;
 use rocket::tokio::io;
+use std::path::Path;
 
 pub async fn info(req: PluginInfoReq<'_>, _user: UserPrincipal) -> anyhow::Result<PluginInfoRes> {
     let mut stream = req.file.open().await?;
@@ -70,7 +71,13 @@ async fn save_file_and_gen_plugin_url(file: &mut TempFile<'_>) -> anyhow::Result
         .as_str();
     // 保存的文件名和路径
     let (save_file_name, save_file_path) = make_save_file(file_name)?;
-    file.persist_to(&save_file_path).await?;
+
+    // 注意：不要使用 persist_to，避免跨文件系统错误
+    // 在openEuler上如果用persist_to，会报错：Invalid cross-device link (os error 18)
+    let mut dest = Path::new(&save_file_path);
+    std::fs::create_dir_all(dest.parent().unwrap())?;
+
+    file.copy_to(&mut dest).await?;
 
     let url = make_download_file(&save_file_name);
 
