@@ -57,9 +57,9 @@ async fn all_plugins() -> Res<Vec<aiway_protocol::gateway::Plugin>> {
 }
 
 /// 查询全局路由插件
-#[get("/gateway/global/filter")]
-async fn configuration() -> Res<aiway_protocol::gateway::GlobalFilter> {
-    match server::gateway::global_filter::config().await {
+#[get("/gateway/global/plugins")]
+async fn configuration() -> Res<aiway_protocol::gateway::GlobalPlugin> {
+    match server::gateway::global_plugin::plugins().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
     }

@@ -19,6 +19,7 @@ pub mod plugin;
 pub mod request_log;
 pub mod service;
 pub mod state;
+mod tls;
 
 #[cfg(feature = "api-key")]
 pub use api_key::ApiKey;
@@ -29,7 +30,8 @@ pub use api_key_sync::Action;
 pub use config::Config;
 pub use firewall::AllowDenyPolicy;
 pub use firewall::Firewall;
-pub use global_filter::GlobalFilter;
+pub use global_filter::GlobalPlugin;
 pub use plugin::ConfiguredPlugin;
 pub use plugin::Plugin;
 pub use service::Service;
+pub use tls::Cert;

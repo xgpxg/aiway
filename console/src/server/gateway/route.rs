@@ -16,8 +16,7 @@ pub(crate) async fn routes() -> anyhow::Result<Vec<aiway_protocol::context::Rout
             methods: route.methods.unwrap_or_default(),
             header: route.header.unwrap_or_default(),
             query: route.query.unwrap_or_default(),
-            pre_filters: route.pre_filters.unwrap_or_default(),
-            post_filters: route.post_filters.unwrap_or_default(),
+            plugins: route.plugins.unwrap_or_default(),
             is_auth: route.is_auth.unwrap_or_default(),
             auth_white_list: route.auth_white_list.unwrap_or_default(),
         });

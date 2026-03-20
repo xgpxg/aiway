@@ -37,13 +37,25 @@
 //!
 //!
 use crate::{Args, fairing, openapi};
+use http::HeaderName;
+use pingora::lb::LoadBalancer;
+use pingora::listeners::ServerAddress;
 use rocket::data::{ByteUnit, Limits};
 use rocket::fairing::AdHoc;
-use rocket::{Config, catchers, routes};
-use std::net::IpAddr;
+use rocket::{Config, async_trait, catchers, routes};
+use std::net::{IpAddr, SocketAddr};
+use std::os::unix::net::{UnixListener, UnixStream};
 use std::str::FromStr;
+use std::sync::Arc;
+use std::task::Context;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
+
+    let socket_path = "/tmp/rocket.sock";
+
+    // 2. 预处理：清理旧文件并创建监听器
+    let listener = UnixListener::bind(socket_path).expect("无法绑定 UDS 路径");
+
     let mut builder = rocket::build().configure(Config {
         address: IpAddr::from_str(args.address.as_str())?,
         port: args.port,
@@ -130,6 +142,25 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     Ok(())
 }
 
+// 1. 实现一个自定义监听器，将 Tokio 的 UnixListener 包装起来
+struct MyUdsListener {
+    path: String,
+    inner: UnixListener,
+}
+
+impl rocket::http::private::Listener for MyUdsListener {
+    type Connection = UnixStream;
+
+     fn poll_accept(&mut self, _cx: &mut Context<'_>) -> std::io::Result<Self::Connection> {
+        self.inner.accept().map(|(stream, _addr)| stream)
+    }
+
+    fn local_addr(&self) -> Option<SocketAddr> {
+        // UDS 没有常规的 IP SocketAddr，返回 None 即可
+        None
+    }
+}
+
 fn print_banner() {
     use clap::Parser;
     let args = Args::parse();
@@ -139,4 +170,65 @@ fn print_banner() {
         args.address,
         args.port
     );
+}
+
+use pingora::prelude::{HttpPeer, Opt, RoundRobin, Server, Session};
+use pingora::proxy::{ProxyHttp, http_proxy_service};
+use pingora::server::RunArgs;
+use pingora::server::configuration::ServerConf;
+use pingora::upstreams::peer::Peer;
+
+pub fn start_pingora(args: &Args) -> anyhow::Result<()> {
+    let port: u16 = args.port;
+    std::thread::spawn(move || {
+        let mut server = Server::new(None).unwrap();
+        server.bootstrap();
+
+        let mut backend = http_proxy_service(
+            &server.configuration,
+            Backend {
+                address: format!("127.0.0.1:{}", port),
+            },
+        );
+        backend.add_tcp("127.0.0.1:7002");
+        backend.threads = Some(12);
+
+        server.add_service(backend);
+
+        server.run_forever();
+    });
+
+    Ok(())
+}
+
+pub struct Backend {
+    address: String,
+}
+
+#[async_trait]
+impl ProxyHttp for Backend {
+    type CTX = ();
+    fn new_ctx(&self) -> () {
+        ()
+    }
+
+    async fn upstream_peer(
+        &self,
+        session: &mut Session,
+        _ctx: &mut (),
+    ) -> pingora::Result<Box<HttpPeer>> {
+        if session.get_keepalive().is_none() {
+            session.set_keepalive(Some(60));
+        }
+        let sni = session
+            .get_header(HeaderName::from_static("host"))
+            .and_then(|h| h.to_str().ok())
+            .unwrap_or("localhost");
+        let peer = Box::new(HttpPeer::new_uds(
+            "/tmp/rocket.sock",
+            false,
+            sni.to_string(),
+        )?);
+        Ok(peer)
+    }
 }

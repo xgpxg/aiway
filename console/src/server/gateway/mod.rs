@@ -2,7 +2,7 @@ mod alerter;
 pub mod api;
 mod config;
 mod firewall;
-mod global_filter;
+mod global_plugin;
 mod ip_region;
 mod plugin;
 mod reporter;

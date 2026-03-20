@@ -12,7 +12,7 @@ use anyhow::{Context, bail};
 use common::id;
 use busi::req::{IdsReq, Pagination};
 use busi::res::{IntoPageRes, PageRes};
-use aiway_protocol::gateway::GlobalFilter;
+use aiway_protocol::gateway::GlobalPlugin;
 use rbs::value;
 
 pub async fn add(req: RouteAddOrUpdateReq, user: UserPrincipal) -> anyhow::Result<()> {
@@ -124,10 +124,10 @@ pub async fn update_global_filter_config(
     req: UpdateGlobalFilterConfigReq,
     _user: UserPrincipal,
 ) -> anyhow::Result<()> {
-    SystemConfig::upsert(ConfigKey::GlobalFilter, &req.inner).await?;
+    SystemConfig::upsert(ConfigKey::GlobalPlugin, &req.inner).await?;
     Ok(())
 }
 
-pub(crate) async fn get_global_filter_config(_user: UserPrincipal) -> anyhow::Result<GlobalFilter> {
-    SystemConfig::get(ConfigKey::GlobalFilter).await
+pub(crate) async fn get_global_filter_config(_user: UserPrincipal) -> anyhow::Result<GlobalPlugin> {
+    SystemConfig::get(ConfigKey::GlobalPlugin).await
 }

@@ -130,8 +130,7 @@ pub(crate) async fn add_provider(req: ProviderAddReq, user: UserPrincipal) -> an
             .status(Some(ModelProviderStatus::Disable))
             .weight(req.weight)
             .target_model_name(req.target_model_name)
-            .request_converter(req.request_converter)
-            .response_converter(req.response_converter)
+            .plugins(req.plugins)
             .create_time(Some(tools::now()))
             .create_user_id(Some(user.id))
             .build()?,
@@ -186,8 +185,7 @@ pub(crate) async fn update_provider(
             .status(req.status)
             .weight(req.weight)
             .target_model_name(req.target_model_name)
-            .request_converter(req.request_converter.clone())
-            .response_converter(req.response_converter.clone())
+            .plugins(req.plugins.clone())
             .update_time(Some(tools::now()))
             .update_user_id(Some(user.id))
             .build()?,
@@ -201,8 +199,7 @@ pub(crate) async fn update_provider(
         tx,
         "model_provider",
         req.id,
-        request_converter = req.request_converter,
-        response_converter = req.response_converter
+        plugins = req.plugins
     );
 
     Ok(())

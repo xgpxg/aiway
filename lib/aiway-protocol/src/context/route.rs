@@ -34,16 +34,9 @@ pub struct Route {
     /// 不参与路由唯一性验证。
     #[serde(alias = "query_condition", alias = "query-condition")]
     pub query: BTreeMap<String, String>,
-    /// 前置过滤器插件，在请求阶段执行，多个按顺序串联执行
+    /// 插件
     #[serde(default = "Vec::default", alias = "pre_filters", alias = "pre-filters")]
-    pub pre_filters: Vec<ConfiguredPlugin>,
-    /// 后置过滤器插件，在响应阶段执行，多个按顺序串联执行
-    #[serde(
-        default = "Vec::default",
-        alias = "post_filters",
-        alias = "post-filters"
-    )]
-    pub post_filters: Vec<ConfiguredPlugin>,
+    pub plugins: Vec<ConfiguredPlugin>,
     /// 是否开启鉴权。
     /// 启用后，需要在控制台的“密钥管理”处创建API Key，
     /// 并通过请求头 `X-Aiway-Authorization` 传入，作为网关的鉴权凭证。

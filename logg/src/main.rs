@@ -10,7 +10,7 @@ mod server;
 #[command(version, about, long_about = None)]
 struct Args {
     /// 服务端口
-    #[arg(short, long, default_value_t = 7281)]
+    #[arg(short, long, default_value_t = 7280)]
     port: u16,
 }
 

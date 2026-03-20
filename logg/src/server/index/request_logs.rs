@@ -25,15 +25,20 @@ struct Fields {
     client_country: Field,
     client_province: Field,
     client_city: Field,
+    host: Field,
     method: Field,
     path: Field,
+    origin: Field,
+    user_agent: Field,
+    referer: Field,
+    request_parts: Field,
     request_time: Field,
     response_time: Field,
     elapsed: Field,
     status_code: Field,
+    content_type: Field,
     response_size: Field,
-    user_agent: Field,
-    referer: Field,
+    response_parts: Field,
     node_address: Field,
 }
 
@@ -45,15 +50,20 @@ impl Fields {
             client_country: schema.get_field("client_country").unwrap(),
             client_province: schema.get_field("client_province").unwrap(),
             client_city: schema.get_field("client_city").unwrap(),
+            host: schema.get_field("host").unwrap(),
             method: schema.get_field("method").unwrap(),
             path: schema.get_field("path").unwrap(),
+            origin: schema.get_field("origin").unwrap(),
+            user_agent: schema.get_field("user_agent").unwrap(),
+            referer: schema.get_field("referer").unwrap(),
+            request_parts: schema.get_field("request_parts").unwrap(),
             request_time: schema.get_field("request_time").unwrap(),
             response_time: schema.get_field("response_time").unwrap(),
             elapsed: schema.get_field("elapsed").unwrap(),
             status_code: schema.get_field("status_code").unwrap(),
+            content_type: schema.get_field("content_type").unwrap(),
             response_size: schema.get_field("response_size").unwrap(),
-            user_agent: schema.get_field("user_agent").unwrap(),
-            referer: schema.get_field("referer").unwrap(),
+            response_parts: schema.get_field("response_parts").unwrap(),
             node_address: schema.get_field("node_address").unwrap(),
         }
     }
@@ -89,14 +99,19 @@ impl Logg {
     fn open_or_create_index(dir: &str) -> Result<Index, TantivyError> {
         let mut sb = Schema::builder();
 
-        // 添加字段，注意不要改变顺序，否则Schema验证会失败
+        // 添加字段，注意不要改变顺序，否则 Schema 验证会失败
         sb.add_text_field("request_id", TEXT | STORED);
         sb.add_text_field("client_ip", TEXT | STORED | FAST);
         sb.add_text_field("client_country", TEXT | STORED | FAST);
         sb.add_text_field("client_province", TEXT | STORED | FAST);
         sb.add_text_field("client_city", TEXT | STORED | FAST);
+        sb.add_text_field("host", TEXT | STORED);
         sb.add_text_field("method", STORED);
         sb.add_text_field("path", TEXT | STORED);
+        sb.add_text_field("origin", TEXT | STORED);
+        sb.add_text_field("user_agent", TEXT | STORED);
+        sb.add_text_field("referer", TEXT | STORED);
+        sb.add_text_field("request_parts", TEXT | STORED);
         // 注意设置精度，否则虽然能够存储毫秒，但在排序时会默认以秒排序，毫秒精度将丢失，会导致同一秒内的毫秒顺序不正确
         sb.add_date_field(
             "request_time",
@@ -108,9 +123,9 @@ impl Logg {
         sb.add_date_field("response_time", STORED);
         sb.add_i64_field("elapsed", STORED);
         sb.add_u64_field("status_code", FAST | STORED);
+        sb.add_text_field("content_type", TEXT | STORED);
         sb.add_u64_field("response_size", STORED);
-        sb.add_text_field("user_agent", TEXT | STORED);
-        sb.add_text_field("referer", TEXT | STORED);
+        sb.add_text_field("response_parts", TEXT | STORED);
         sb.add_text_field("node_address", TEXT | STORED);
 
         let schema = sb.build();
@@ -150,8 +165,28 @@ impl Logg {
                 doc.add_text(self.fields.client_city, city);
             }
 
+            if let Some(host) = &entry.host {
+                doc.add_text(self.fields.host, host);
+            }
+
             doc.add_text(self.fields.method, &entry.method);
             doc.add_text(self.fields.path, &entry.path);
+
+            if let Some(origin) = &entry.origin {
+                doc.add_text(self.fields.origin, origin);
+            }
+
+            if let Some(ua) = &entry.user_agent {
+                doc.add_text(self.fields.user_agent, ua);
+            }
+
+            if let Some(referer) = &entry.referer {
+                doc.add_text(self.fields.referer, referer);
+            }
+
+            if let Some(request_parts) = &entry.request_parts {
+                doc.add_text(self.fields.request_parts, request_parts);
+            }
 
             doc.add_date(
                 self.fields.request_time,
@@ -164,19 +199,22 @@ impl Logg {
             );
 
             doc.add_i64(self.fields.elapsed, entry.elapsed);
-            doc.add_u64(self.fields.status_code, entry.status_code as u64);
+            if let Some(status_code) = entry.status_code {
+                doc.add_u64(self.fields.status_code, status_code as u64);
+            }
+
+            if let Some(content_type) = &entry.content_type {
+                doc.add_text(self.fields.content_type, content_type);
+            }
 
             if let Some(size) = entry.response_size {
                 doc.add_u64(self.fields.response_size, size as u64);
             }
 
-            if let Some(ua) = &entry.user_agent {
-                doc.add_text(self.fields.user_agent, ua);
+            if let Some(response_parts) = &entry.response_parts {
+                doc.add_text(self.fields.response_parts, response_parts);
             }
 
-            if let Some(referer) = &entry.referer {
-                doc.add_text(self.fields.referer, referer);
-            }
             doc.add_text(self.fields.node_address, &entry.node_address);
 
             let _ = index_writer.add_document(doc);
@@ -257,14 +295,6 @@ impl Logg {
             let mut log_entry = RequestLog::default();
             for (field, value) in retrieved_doc.iter_fields_and_values() {
                 match field.field_id() {
-                    fid if fid == self.fields.request_time.field_id() => {
-                        log_entry.request_time =
-                            value.as_datetime().unwrap().into_timestamp_millis();
-                    }
-                    fid if fid == self.fields.response_time.field_id() => {
-                        log_entry.response_time =
-                            value.as_datetime().unwrap().into_timestamp_millis();
-                    }
                     fid if fid == self.fields.request_id.field_id() => {
                         log_entry.request_id =
                             value.as_str().map(|s| s.to_string()).unwrap_or_default();
@@ -282,6 +312,9 @@ impl Logg {
                     fid if fid == self.fields.client_city.field_id() => {
                         log_entry.client_city = value.as_str().map(|s| s.to_string());
                     }
+                    fid if fid == self.fields.host.field_id() => {
+                        log_entry.host = value.as_str().map(|s| s.to_string());
+                    }
                     fid if fid == self.fields.method.field_id() => {
                         log_entry.method =
                             value.as_str().map(|s| s.to_string()).unwrap_or_default();
@@ -289,21 +322,40 @@ impl Logg {
                     fid if fid == self.fields.path.field_id() => {
                         log_entry.path = value.as_str().map(|s| s.to_string()).unwrap_or_default();
                     }
-                    fid if fid == self.fields.status_code.field_id() => {
-                        log_entry.status_code =
-                            value.as_u64().map(|v| v as u16).unwrap_or_default();
-                    }
-                    fid if fid == self.fields.elapsed.field_id() => {
-                        log_entry.elapsed = value.as_i64().unwrap_or_default();
-                    }
-                    fid if fid == self.fields.response_size.field_id() => {
-                        log_entry.response_size = value.as_u64().map(|v| v as usize);
+                    fid if fid == self.fields.origin.field_id() => {
+                        log_entry.origin = value.as_str().map(|s| s.to_string());
                     }
                     fid if fid == self.fields.user_agent.field_id() => {
                         log_entry.user_agent = value.as_str().map(|s| s.to_string());
                     }
                     fid if fid == self.fields.referer.field_id() => {
                         log_entry.referer = value.as_str().map(|s| s.to_string());
+                    }
+                    fid if fid == self.fields.request_parts.field_id() => {
+                        log_entry.request_parts = value.as_str().map(|s| s.to_string());
+                    }
+                    fid if fid == self.fields.request_time.field_id() => {
+                        log_entry.request_time =
+                            value.as_datetime().unwrap().into_timestamp_millis();
+                    }
+                    fid if fid == self.fields.response_time.field_id() => {
+                        log_entry.response_time =
+                            value.as_datetime().unwrap().into_timestamp_millis();
+                    }
+                    fid if fid == self.fields.elapsed.field_id() => {
+                        log_entry.elapsed = value.as_i64().unwrap_or_default();
+                    }
+                    fid if fid == self.fields.status_code.field_id() => {
+                        log_entry.status_code = value.as_u64().map(|v| v as u16);
+                    }
+                    fid if fid == self.fields.content_type.field_id() => {
+                        log_entry.content_type = value.as_str().map(|s| s.to_string());
+                    }
+                    fid if fid == self.fields.response_size.field_id() => {
+                        log_entry.response_size = value.as_u64().map(|v| v as usize);
+                    }
+                    fid if fid == self.fields.response_parts.field_id() => {
+                        log_entry.response_parts = value.as_str().map(|s| s.to_string());
                     }
                     fid if fid == self.fields.node_address.field_id() => {
                         log_entry.node_address =

@@ -59,6 +59,8 @@ async fn main() -> anyhow::Result<()> {
 
     init::init(&args).await;
 
+    server::start_pingora(&args)?;
+
     server::start_http_server(&args).await?;
     Ok(())
 }

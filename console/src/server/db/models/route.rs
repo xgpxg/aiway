@@ -29,10 +29,8 @@ pub struct Route {
     pub header: Option<BTreeMap<String, String>>,
     /// 按请求参数匹配
     pub query: Option<BTreeMap<String, String>>,
-    /// 请求阶段过滤器，JSON数组
-    pub pre_filters: Option<Vec<ConfiguredPlugin>>,
-    /// 响应阶段过滤器，JSON数组
-    pub post_filters: Option<Vec<ConfiguredPlugin>>,
+    /// 插件，JSON数组
+    pub plugins: Option<Vec<ConfiguredPlugin>>,
     /// 是否开启鉴权
     #[serde(deserialize_with = "crate::server::common::deserialize_bool_from_int")]
     pub is_auth: Option<bool>,

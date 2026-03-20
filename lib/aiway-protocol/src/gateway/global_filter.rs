@@ -6,9 +6,7 @@ use crate::gateway::plugin::ConfiguredPlugin;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct GlobalFilter {
-    /// 全局前置过滤器
-    pub pre_filters: Vec<ConfiguredPlugin>,
-    /// 全局后置过滤器
-    pub post_filters: Vec<ConfiguredPlugin>,
+pub struct GlobalPlugin {
+    /// 全局插件
+    pub plugins: Vec<ConfiguredPlugin>,
 }

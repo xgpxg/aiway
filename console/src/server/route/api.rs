@@ -6,7 +6,7 @@ use crate::server::route::response::RouteListRes;
 use crate::server::route::service;
 use busi::req::IdsReq;
 use busi::res::{PageRes, Res};
-use aiway_protocol::gateway::GlobalFilter;
+use aiway_protocol::gateway::GlobalPlugin;
 use rocket::serde::json::Json;
 use rocket::{post, routes};
 
@@ -77,7 +77,7 @@ pub async fn update_global_filter_config(
 }
 
 #[post("/global_filter")]
-pub async fn get_global_filter_config(user: UserPrincipal) -> Res<GlobalFilter> {
+pub async fn get_global_filter_config(user: UserPrincipal) -> Res<GlobalPlugin> {
     match service::get_global_filter_config(user).await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),

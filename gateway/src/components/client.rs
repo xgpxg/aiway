@@ -2,7 +2,7 @@
 //!
 use crate::Args;
 use aiway_protocol::context::Route;
-use aiway_protocol::gateway::{ApiKeySync, Config, Firewall, GlobalFilter, Plugin, Service};
+use aiway_protocol::gateway::{ApiKeySync, Cert, Config, Firewall, GlobalFilter, Plugin, Service};
 use anyhow::bail;
 use busi::res::Res;
 use clap::Parser;
@@ -149,7 +149,24 @@ impl InnerHttpClient {
                 }
             }
             Err(e) => {
-                bail!("fetch ip region file error: {}", e);
+                bail!("pull api key error: {}", e);
+            }
+        }
+    }
+
+    pub async fn fetch_cert_file(&self) -> anyhow::Result<Cert> {
+        let endpoint = format!("http://{}/api/v1/gateway/cert", self.args.console);
+        match self.get(endpoint, HashMap::new()).await {
+            Ok(response) => {
+                if let Err(e) = response.error_for_status_ref() {
+                    bail!("fetch cert file error: {}", e);
+                }
+                let res = response.bytes().await?;
+                let cert = serde_json::from_slice(&res)?;
+                Ok(cert)
+            }
+            Err(e) => {
+                bail!("fetch cert file error: {}", e);
             }
         }
     }
