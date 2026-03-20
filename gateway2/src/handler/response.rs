@@ -1,10 +1,20 @@
 //! # 响应处理
 //!
 
-pub struct ResponseData;
+use crate::handler::HttpResult;
+use crate::report::STATE;
+use aiway_protocol::context::{HttpContext, ResponseExt};
+use pingora::prelude::ResponseHeader;
+use pingora_proxy::Session;
 
-impl ResponseData {
-    pub fn new() -> Self {
-        Self
+pub async fn response_handle(
+    _session: &mut Session,
+    resp: &mut ResponseHeader,
+    _context: &mut HttpContext,
+) -> HttpResult<()> {
+    if resp.is_sse() {
+        STATE.inc_sse_connect_count(1);
     }
+
+    Ok(())
 }

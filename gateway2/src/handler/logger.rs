@@ -1,22 +1,22 @@
 //! # 日志记录
 //!
 use crate::components::IpRegion;
-use crate::get_header;
 use crate::handler::HttpResult;
-use aiway_protocol::context::HttpContext;
+use aiway_protocol::context::{HttpContext, SessionExt};
 use aiway_protocol::gateway::request_log::RequestLog;
-use context::Headers;
 use pingora::prelude::*;
+use aiway_protocol::common::header::Headers;
 
 pub async fn log_handle(session: &Session, resp: &mut ResponseHeader, context: &HttpContext) {
     // 记录请求日志
     let client_ip = session.client_addr().unwrap().to_string();
 
     // 请求ID
-    let request_id = get_header!(session, Headers::REQUEST_ID).unwrap();
+    let request_id = session.get_request_header(Headers::REQUEST_ID).unwrap();
 
     // 请求时间戳
-    let request_time = get_header!(session, Headers::REQUEST_TIME)
+    let request_time = session
+        .get_request_header(Headers::REQUEST_TIME)
         .unwrap()
         .parse::<i64>()
         .unwrap();
@@ -27,9 +27,8 @@ pub async fn log_handle(session: &Session, resp: &mut ResponseHeader, context: &
     let method = &session.req_header().method;
     let path = &session.req_header().uri.path();
     let status_code = &resp.status;
-    let ua = get_header!(session, Headers::USER_AGENT);
-    let refer = get_header!(session, Headers::REFERER);
-    //let response_size =resp.headers.get(Headers::CONTENT_LENGTH)
+    let ua = session.get_request_header(Headers::USER_AGENT);
+    let refer = session.get_request_header(Headers::REFERER);
 
     // 地理位置
     let region = IpRegion::search(&client_ip);

@@ -9,6 +9,7 @@ use pingora::Error;
 use pingora_core::prelude::HttpPeer;
 use pingora_proxy::{ProxyHttp, Session};
 use tokio_stream::StreamExt;
+use aiway_protocol::common::constants::{MCP_API_PREFIX, MODEL_API_PREFIX};
 
 pub struct Local {
     args: Args,
@@ -30,57 +31,12 @@ impl ProxyHttp for Local {
 
     async fn upstream_peer(
         &self,
-        session: &mut Session,
-        ctx: &mut Self::CTX,
+        _: &mut Session,
+        _: &mut Self::CTX,
     ) -> pingora::Result<Box<HttpPeer>, Box<Error>> {
-        log::info!("new_ctx");
-        let path = session.get_path();
-        match path {
-            p if p.starts_with("/v1/model/") => {
-                let provider = ctx.inner_state.get_model_provider().unwrap();
-                let api_url = &provider.api_url;
-
-                // 解析 URL 并提取 host 和 port
-                let uri: Uri = api_url
-                    .parse()
-                    .map_err(|_| Error::new_str("Failed to parse API URL"))?;
-
-                let host = uri
-                    .host()
-                    .ok_or_else(|| Error::new_str("API URL missing host"))?;
-
-                let port = uri.port_u16().unwrap_or_else(|| {
-                    if uri.scheme_str() == Some("https") {
-                        443
-                    } else {
-                        80
-                    }
-                });
-                log::info!(
-                    "Creating upstream peer: host={}, port={}, scheme={:?}",
-                    host,
-                    port,
-                    uri.scheme_str()
-                );
-                session.set_path("/v1/chat/completions");
-                session.set_request_header("Host", host);
-
-                if let Some(api_key) = provider.api_key {
-                    session.set_request_header("Authorization", &format!("Bearer {}", api_key));
-                    log::info!("Authorization: {}", api_key);
-                }
-
-                let peer = HttpPeer::new((host, port), true, host.to_string());
-
-                Ok(Box::new(peer))
-            }
-            _ => {
-                unreachable!()
-            }
-        }
+        unreachable!()
     }
 
-    /// 在向后端发送请求之前
     async fn request_filter(
         &self,
         session: &mut Session,
@@ -88,18 +44,26 @@ impl ProxyHttp for Local {
     ) -> pingora::Result<bool, Box<Error>> {
         let path = session.get_path();
         match path {
-            p if p.starts_with("/v1/mcp/") => {
+            // 处理MCP
+            p if p.starts_with(MCP_API_PREFIX) => {
                 let body = session.read_request_body().await?.unwrap_or_default();
                 let response = mcp_post_endpoint(&p, body).await.unwrap();
                 forward_reqwest_to_pingora(response, session).await?;
             }
-            p if p.starts_with("/v1/model/") => {
+            // 处理模型
+            p if p.starts_with(MODEL_API_PREFIX) => {
                 let body = session.read_request_body().await?.unwrap_or_default();
                 let response = match model_endpoint(&p, body).await {
                     Ok(response) => response,
                     Err(e) => {
-                        // TODO 修改错误类型
-                        return session.respond_error(502).await.map(|_| true);
+                        let (status, message) = e.into_status_message();
+                        return session
+                            .respond_error_with_body(
+                                status,
+                                Bytes::copy_from_slice(message.as_bytes()),
+                            )
+                            .await
+                            .map(|_| true);
                     }
                 };
                 forward_reqwest_to_pingora(response, session).await?;

@@ -5,15 +5,15 @@ use crate::handler::HttpResult;
 use aiway_protocol::context::{HttpContext, SessionExt};
 use aiway_protocol::gateway::ApiKey;
 use cache::caches::CacheKey;
-use context::Headers;
 use pingora::prelude::*;
+use aiway_protocol::common::header::Headers;
 
 const BEARER_PREFIX: &str = "Bearer ";
 
 pub async fn auth_handle(session: &mut Session, ctx: &HttpContext) -> HttpResult<()> {
     // 获取上下文
     // SAFE: 此时路由一定存在
-    let route = ctx.request.get_route().unwrap();
+    let route = ctx.get_route().unwrap();
 
     // 未开启权限验证的不用校验
     if !route.is_auth {

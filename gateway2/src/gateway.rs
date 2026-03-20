@@ -27,15 +27,14 @@ impl ProxyHttp for Gateway {
 
     async fn upstream_peer(
         &self,
-        session: &mut Session,
+        _session: &mut Session,
         ctx: &mut Self::CTX,
     ) -> pingora::Result<Box<HttpPeer>, Box<Error>> {
         let backend_addr = ctx
-            .request
             .get_routing_url()
             .ok_or_else(|| Error::new_str("Routing URL not found in context"))?;
 
-        // 本地处理
+        // 转发到本地处理
         if backend_addr.ends_with(".sock") {
             return Ok(Box::new(HttpPeer::new_uds(
                 backend_addr,
@@ -43,6 +42,7 @@ impl ProxyHttp for Gateway {
                 "".to_string(),
             )?));
         }
+
         let uri: Uri = backend_addr
             .parse()
             .map_err(|_| Error::new_str("Failed to parse backend URI"))?;
@@ -173,7 +173,12 @@ impl ProxyHttp for Gateway {
         }
         // 全局后置过滤器，可自由配置，串联执行，对整个网关生效
         if let Err(e) = crate::handler::global_post_filter(session, resp, ctx).await {
-            log::error!("Request handle error: {}", e);
+            log::error!("Global post filter handle error: {}", e);
+            return Ok(());
+        }
+
+        if let Err(e) = crate::handler::response_handle(session, resp, ctx).await {
+            log::error!("Response handle error: {}", e);
             return Ok(());
         }
 

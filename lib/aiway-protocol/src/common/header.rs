@@ -11,12 +11,3 @@ impl Headers {
     pub const USER_AGENT: &'static str = "user-agent";
     pub const CONTENT_TYPE: &'static str = "content-type";
 }
-
-// impl Headers {
-//     pub fn get_request_id(req: &Request) -> String {
-//         req.headers()
-//             .get_one(Headers::REQUEST_ID)
-//             .unwrap()
-//             .to_string()
-//     }
-// }

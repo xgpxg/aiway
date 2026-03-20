@@ -1,18 +1,22 @@
+use crate::context::Route;
 use bytes::Bytes;
-use crate::context::request_context::RequestContext;
-use crate::context::response_context::ResponseContext;
 use dashmap::DashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use std::sync::Arc;
 
-/// HTTP上下文
+/// 网关HTTP上下文
 #[derive(Debug, Default)]
 pub struct HttpContext {
-    /// 请求上下文，在请求阶段构建
-    pub request: RequestContext,
-    /// 响应上下文，在构建请求上下文时同步构建，在响应阶段更新
-    pub response: ResponseContext,
+    /// 匹配到路由配置信息
+    route: Option<Arc<Route>>,
+    /// 路由目标地址，可以是域名或IP(包含协议头)，由负载均衡器设置
+    routing_url: Option<String>,
+    /// 响应状态码
+    pub response_status: Option<u16>,
+    /// 响应时间戳
+    pub response_ts: Option<i64>,
     /// 内部扩展数据
     pub inner_state: InnerState,
     /// 自定义的扩展数据
@@ -20,6 +24,22 @@ pub struct HttpContext {
 }
 
 impl HttpContext {
+    pub fn set_route(&mut self, route: Arc<Route>) {
+        self.route = route.into();
+    }
+
+    pub fn get_route(&self) -> Option<Arc<Route>> {
+        self.route.clone()
+    }
+
+    pub fn set_routing_url(&mut self, url: String) {
+        self.routing_url = url.into();
+    }
+
+    pub fn get_routing_url(&self) -> Option<&String> {
+        self.routing_url.as_ref()
+    }
+
     pub fn insert_state<T: Serialize>(&self, key: &str, value: T) {
         self.state.insert(
             key.to_string(),
@@ -40,7 +60,6 @@ impl HttpContext {
     pub fn remove_state(&self, key: &str) {
         self.state.remove(key);
     }
-
 }
 
 #[derive(Debug, Default)]
@@ -65,10 +84,15 @@ impl InnerState {
     }
 
     pub fn set_temp_body(&self, body: Bytes) {
-        self.0.insert("temp_body".to_string(), serde_json::from_slice(body.as_ref()).unwrap());
+        self.0.insert(
+            "temp_body".to_string(),
+            serde_json::from_slice(body.as_ref()).unwrap(),
+        );
     }
 
     pub fn get_temp_body(&self) -> Option<Bytes> {
-        self.0.get("temp_body").map(|v| Bytes::copy_from_slice(serde_json::to_vec(&v.value().clone()).unwrap().as_slice()))
+        self.0.get("temp_body").map(|v| {
+            Bytes::copy_from_slice(serde_json::to_vec(&v.value().clone()).unwrap().as_slice())
+        })
     }
 }

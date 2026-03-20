@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 aiway-protocol = { path = "../lib/aiway-protocol", features = ["api-key", "alert"] }
 busi = { path = "../lib/busi" }
-context = { path = "../lib/context" }
 logging = { path = "../lib/logging", features = ["request-log"] }
 loadbalance = { path = "../lib/loadbalance" }
 aiway-plugin-v2 = { path = "../lib/aiway-plugin-v2" }

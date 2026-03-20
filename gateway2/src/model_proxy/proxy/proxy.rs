@@ -83,76 +83,41 @@ impl Proxy {
         Ok(response)
     }
 
-    /*    /// 文本转语音
+    /// 文本转语音
     pub async fn audio_speech(
         req: AudioSpeechParameters,
         provider: &Provider,
-        context: &HttpContext,
-    ) -> Result<ModelResponse, ModelError> {
+    ) -> Result<Response, ModelError> {
         let client = get_or_create_client!(req.model, provider);
         let req = Self::modify_model_name(req, provider);
-        Self::convert_request(&req, provider, context).await?;
-
-        let request_body = context.request.get_body().cloned().unwrap_or_default();
-        let response = client.post(&provider.api_url, request_body, None).await?;
-
-        Self::convert_response(response, provider, context).await?;
-
-        Ok(ModelResponse::AudioSpeechResponse(
-            context.response.get_status().unwrap_or_default(),
-            context.response.headers.clone(),
-            AudioSpeechResponse {
-                bytes: context.response.body.take().unwrap(),
-            },
-        ))
+        let response = client
+            .post(&provider.api_url, serde_json::to_vec(&req).unwrap(), None)
+            .await?;
+        Ok(response)
     }
 
     /// 创建图像(文生图)
     pub async fn create_image(
         req: CreateImageParameters,
         provider: &Provider,
-        context: &HttpContext,
-    ) -> Result<ModelResponse, ModelError> {
+    ) -> Result<Response, ModelError> {
         let client = get_or_create_client!(req.model.clone().unwrap_or_default(), provider);
         let req = Self::modify_model_name(req, provider);
-        Self::convert_request(&req, provider, context).await?;
-
-        let request_body = context.request.get_body().cloned().unwrap_or_default();
-
-        let response = client.post(&provider.api_url, request_body, None).await?;
-
-        Self::convert_response(response, provider, context).await?;
-
-        let body = context.response.body.take().unwrap_or_default();
-        let body = serde_json::from_slice(&body).map_err(|e| ModelError::Parse(e.to_string()))?;
-        Ok(ModelResponse::CreateImageResponse(
-            context.response.get_status().unwrap_or_default(),
-            context.response.headers.clone(),
-            body,
-        ))
+        let response = client
+            .post(&provider.api_url, serde_json::to_vec(&req).unwrap(), None)
+            .await?;
+        Ok(response)
     }
 
     pub(crate) async fn edit_image(
         req: EditImageParameters,
         provider: &Provider,
-        context: &HttpContext,
-    ) -> Result<ModelResponse, ModelError> {
+    ) -> Result<Response, ModelError> {
         let client = get_or_create_client!(req.model.clone().unwrap_or_default(), provider);
         let req = Self::modify_model_name(req, provider);
-        Self::convert_request(&req, provider, context).await?;
-
-        let request_body = context.request.get_body().cloned().unwrap_or_default();
-
-        let response = client.post(&provider.api_url, request_body, None).await?;
-
-        Self::convert_response(response, provider, context).await?;
-
-        let body = context.response.body.take().unwrap_or_default();
-        let body = serde_json::from_slice(&body).map_err(|e| ModelError::Parse(e.to_string()))?;
-        Ok(ModelResponse::EditImageResponse(
-            context.response.get_status().unwrap_or_default(),
-            context.response.headers.clone(),
-            body,
-        ))
-    }*/
+        let response = client
+            .post(&provider.api_url, serde_json::to_vec(&req).unwrap(), None)
+            .await?;
+        Ok(response)
+    }
 }

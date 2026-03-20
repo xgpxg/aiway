@@ -6,8 +6,8 @@ use anyhow::{Result, Context};
 use aiway_protocol::context::HttpContext;
 use crate::handler::HttpResult;
 
-pub async fn lb_handle(session: &mut Session, context: &HttpContext) -> HttpResult<()> {
-    let route = context.request.get_route();
+pub async fn lb_handle(session: &mut Session, context: &mut HttpContext) -> HttpResult<()> {
+    let route = context.get_route();
     if route.is_none() {
         return Ok(());
     }
@@ -21,7 +21,7 @@ pub async fn lb_handle(session: &mut Session, context: &HttpContext) -> HttpResu
         match Servicer::get_instance(service) {
             Some(instance) if !instance.is_empty() => {
                 // 设置最终需要转发的URL
-                context.request.set_routing_url(instance);
+                context.set_routing_url(instance);
                 return Ok(());
             }
             _ => {

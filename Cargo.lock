@@ -1110,17 +1110,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
-name = "context"
-version = "0.1.0"
-dependencies = [
- "aiway-protocol",
- "bytes",
- "chrono",
- "dashmap",
- "uuid",
-]
-
-[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2095,7 +2084,6 @@ dependencies = [
  "chrono",
  "clap",
  "common",
- "context",
  "dashmap",
  "fastrand",
  "http 1.4.0",
@@ -3230,33 +3218,6 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "model-proxy"
-version = "0.1.0"
-dependencies = [
- "aha-reqwest-eventsource",
- "aiway-model-protocol",
- "aiway-plugin",
- "aiway-protocol",
- "alert",
- "anyhow",
- "busi",
- "bytes",
- "clap",
- "context",
- "dashmap",
- "fastrand",
- "logging",
- "plugin-manager",
- "reqwest",
- "rocket 0.5.1 (git+https://github.com/xgpxg/Rocket.git?branch=v0.5)",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tokio-stream",
 ]
 
 [[package]]

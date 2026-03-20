@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::process::exit;
 use std::sync::OnceLock;
 use std::time::Duration;
-use crate::model_proxy::proxy::ModelError;
+use crate::model_proxy::proxy::{ModelError, Proxy};
 
 pub struct ModelFactory {
     /// 模型列表
@@ -73,7 +73,7 @@ impl ModelFactory {
                 old.models.retain(|_, item| {
                     if !new_models.contains_key(&item.name) {
                         log::info!("removed model: {}", item.name);
-                        //Proxy::remove_clients(&item.name);
+                        Proxy::remove_clients(&item.name);
                         return false;
                     }
                     true
@@ -93,7 +93,7 @@ impl ModelFactory {
                             log::info!("new model enabled: {}", name);
                         }
                         old.models.insert(name.clone(), new_model);
-                        //Proxy::remove_clients(&name);
+                        Proxy::remove_clients(&name);
                     }
                 });
             }

@@ -8,7 +8,7 @@ use pingora::prelude::*;
 
 pub async fn pre_filter(session: &mut Session, context: &mut HttpContext) -> HttpResult<()> {
     // SAFE：在routing时已经设置
-    let route = context.request.get_route().cloned().unwrap();
+    let route = context.get_route().unwrap();
     let pre_filters = &route.pre_filters.clone();
     for configured_plugin in pre_filters.iter() {
         log::debug!(
@@ -41,7 +41,7 @@ pub async fn post_filter(
     context: &mut HttpContext,
 ) -> HttpResult<()> {
     // SAFE：在routing时已经设置
-    let route = context.request.get_route().cloned().unwrap();
+    let route = context.get_route().unwrap();
     let plugins = &route.post_filters.clone();
 
     for configured_plugin in plugins.iter() {

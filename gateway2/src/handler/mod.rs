@@ -19,11 +19,12 @@ pub use cleanup::cleanup_handle;
 pub use filter::{post_filter, pre_filter};
 pub use global_filter::{global_post_filter, global_pre_filter};
 use http::header::ToStrError;
-use pingora::{BError, Error};
 pub use lb::lb_handle;
 pub use logger::log_handle;
+use pingora::{BError, Error};
 pub use pre::pre_handle;
 pub use request::request_handle;
+pub use response::response_handle;
 pub use routing::routing_handle;
 pub use security::security_check;
 
@@ -65,19 +66,4 @@ impl From<BError> for HttpError {
     fn from(value: BError) -> Self {
         HttpError(500, value.to_string())
     }
-}
-
-#[macro_export]
-macro_rules! get_header {
-    ($session:expr, $header_name:expr) => {
-        $session
-            .get_header($header_name)
-            .and_then(|v| v.to_str().ok())
-    };
-}
-#[macro_export]
-macro_rules! set_header {
-    ($session:expr, $header_name:expr, $header_value:expr) => {
-        $session.req_header_mut().insert_header($header_name, $header_value)
-    };
 }

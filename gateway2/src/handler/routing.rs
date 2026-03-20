@@ -1,4 +1,3 @@
-use http::HeaderMap;
 use crate::components::ROUTER;
 use crate::handler::{HttpError, HttpResult};
 use aiway_protocol::context::{HttpContext, SessionExt};
@@ -18,7 +17,7 @@ pub async fn routing_handle(
     let query_str = session.query();
     let query = query_str.as_ref().map(|q| q.as_str());
     let route = router.matches(&host,method,&path,query,&headers).ok_or(HttpError::new(404, "Not Found"))?;
-    context.request.route = SV::new(route.clone());
+    context.set_route(route.clone().into());
 
     Ok(())
 }

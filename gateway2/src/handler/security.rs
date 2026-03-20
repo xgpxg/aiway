@@ -6,6 +6,7 @@ use crate::report::STATE;
 use aiway_protocol::context::HttpContext;
 use pingora::prelude::*;
 use pingora_core::protocols::l4::socket::SocketAddr;
+use aiway_protocol::common::header::Headers;
 
 pub async fn security_check(session: &mut Session, _: &mut HttpContext) -> HttpResult<()> {
     let addr = session.client_addr();
@@ -20,14 +21,14 @@ pub async fn security_check(session: &mut Session, _: &mut HttpContext) -> HttpR
     let referer = session
         .req_header()
         .headers
-        .get(context::Headers::REFERER)
+        .get(Headers::REFERER)
         .map(|v| v.to_str().unwrap())
         .unwrap_or_default();
     // 调用防火墙校验请求
     if let Err(e) = Firewalld::check(&ip, referer).await {
         // 拦截请求后，无效请求数+1
         STATE.inc_request_invalid_count(1);
-        // 跳过后续的fairing处理
+
         return Err(HttpError::new(403, &e.to_string()));
     }
 
