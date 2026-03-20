@@ -37,6 +37,10 @@ pub struct Firewall {
         deserialize_with = "deserialize_encrypt_key"
     )]
     pub api_secret_encrypt_key: [u8; 32],
+    /// TLS证书
+    pub tls_cert: Option<Vec<u8>>,
+    /// TLS密钥
+    pub tls_key: Option<Vec<u8>>,
 }
 
 impl Default for Firewall {
@@ -50,6 +54,8 @@ impl Default for Firewall {
             allow_empty_referer: false,
             max_connections: Default::default(),
             api_secret_encrypt_key: *ENCRYPT_KEY,
+            tls_cert: Default::default(),
+            tls_key: Default::default(),
         }
     }
 }

@@ -2,7 +2,6 @@ mod embed;
 
 //use cache::start_share_cache_server;
 use clap::Parser;
-use common::dir::AppDir;
 use logging::{init_log, log};
 use rust_embed::Embed;
 use std::thread::sleep;

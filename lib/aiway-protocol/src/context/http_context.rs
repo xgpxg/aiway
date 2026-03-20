@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use crate::context::request_context::RequestContext;
 use crate::context::response_context::ResponseContext;
 use dashmap::DashMap;
@@ -39,6 +40,7 @@ impl HttpContext {
     pub fn remove_state(&self, key: &str) {
         self.state.remove(key);
     }
+
 }
 
 #[derive(Debug, Default)]
@@ -60,5 +62,13 @@ impl InnerState {
             Self::MODEL_PROVIDER.to_string(),
             serde_json::to_value(provider).expect("Failed to serialize model provider value"),
         );
+    }
+
+    pub fn set_temp_body(&self, body: Bytes) {
+        self.0.insert("temp_body".to_string(), serde_json::from_slice(body.as_ref()).unwrap());
+    }
+
+    pub fn get_temp_body(&self) -> Option<Bytes> {
+        self.0.get("temp_body").map(|v| Bytes::copy_from_slice(serde_json::to_vec(&v.value().clone()).unwrap().as_slice()))
     }
 }

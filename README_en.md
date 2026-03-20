@@ -9,9 +9,11 @@
 </div>
 
 
-**aiway** (API and AI Gateway) is a high-performance API + AI gateway developed in Rust, dedicated to providing stable, efficient, and scalable request forwarding and management solutions.
+**aiway** (API and AI Gateway) is a high-performance API + AI gateway developed in Rust, dedicated to providing stable,
+efficient, and scalable request forwarding and management solutions.
 
-Leveraging Rust's memory safety features and zero-cost abstractions, aiway delivers exceptional security and stability while maintaining high performance.
+Leveraging Rust's memory safety features and zero-cost abstractions, aiway delivers exceptional security and stability
+while maintaining high performance.
 
 ## Platform Support
 
@@ -19,10 +21,11 @@ Leveraging Rust's memory safety features and zero-cost abstractions, aiway deliv
 - macOS (arm64)
 - openEuler (x86_64)
 - UOS Server (x86_64)
+- KylinOS (x86_64)
 
 ## Protocol Support
 
-- HTTP/HTTPS
+- HTTP（IPv4/IPv6）
 - SSE
 - WebSocket
 - MCP
@@ -30,7 +33,6 @@ Leveraging Rust's memory safety features and zero-cost abstractions, aiway deliv
 ## Documentation
 
 For detailed documentation, please visit: [https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
-
 
 ## Quick Start
 
@@ -44,15 +46,16 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 ./aiway
 ```
 
-> **Note**: The pre-built binaries are built against glibc 2.35. If your system's glibc version is lower than 2.35, please build from source.
+> **Note**: The pre-built binaries are built against glibc 2.35. If your system's glibc version is lower than 2.35,
+> please build from source.
 
 ### Option 2: Building from Source
 
 ```bash
-# Build Gateway (standalone mode)
-cargo build --bin gateway -F model-proxy,mcp-proxy
+# Build Gateway
+cargo build --bin gateway
 
-# Build Console (standalone mode)
+# Build Console
 cargo build --bin console
 
 # Build Logg
@@ -97,16 +100,17 @@ cargo run --bin aiway
 
 ### Official Plugins
 
-We provide a series of commonly used plugins. Visit [aiway-plugins](https://github.com/xgpxg/aiway-plugins) for more information.
+We provide a series of commonly used plugins. Visit [aiway-plugins](https://github.com/xgpxg/aiway-plugins) for more
+information.
 
 ### Custom Plugins
 
-If you need to develop custom plugins, please refer to the [Plugin Development Documentation](https://aiway.coderbox.cn/doc.html?path=docs/plugins/introduction.md).
+If you need to develop custom plugins, please refer to
+the [Plugin Development Documentation](https://aiway.coderbox.cn/doc.html?path=docs/plugins/introduction.md).
 
 ## Interface Preview
 
 ![Dashboard](docs/images/screenshot.png)
-
 
 ## Performance
 

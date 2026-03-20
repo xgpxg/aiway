@@ -86,7 +86,7 @@ jobs:
       # 构建单机版
       - name: Build Standalone
         run: |
-          cargo build -r --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
+          cargo build -r --bin gateway --target ${{ matrix.target }}
           cargo build -r --bin console --target ${{ matrix.target }}
           cargo build -r --bin logg --target ${{ matrix.target }}
           cargo build -r --bin aiway --target ${{ matrix.target }}
@@ -94,7 +94,7 @@ jobs:
       # 构建集群版
       - name: Build Cluster
         run: |
-          cargo build -r --bin gateway -F model-proxy,mcp-proxy --target ${{ matrix.target }}
+          cargo build -r --bin gateway --target ${{ matrix.target }}
           cargo build -r --bin console --target ${{ matrix.target }}
 
       # 压缩单机版二进制文件

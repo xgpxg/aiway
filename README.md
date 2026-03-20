@@ -13,16 +13,17 @@
 
 凭借 Rust 的内存安全特性和零成本抽象优势，aiway 在保证高性能的同时，提供了卓越的安全性和稳定性。
 
-## 平台支持
+## 支持的系统
 
 - Linux (x86_64 / arm64)
 - macOS (arm64)
 - openEuler (x86_64)
 - UOS Server (x86_64)
+- KylinOS (x86_64)
 
-## 协议支持
+## 支持的协议
 
-- HTTP/HTTPS
+- HTTP（IPv4/IPv6）
 - SSE
 - WebSocket
 - MCP
@@ -49,7 +50,7 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 
 ```bash
 # 构建 Gateway
-cargo build --bin gateway -F model-proxy,mcp-proxy
+cargo build --bin gateway
 
 # 构建 Console
 cargo build --bin console
@@ -67,13 +68,6 @@ cargo run --bin aiway
 - 网关入口: http://127.0.0.1:7001
 - 默认账号: `admin` / `admin`
 
-### 构建选项
-
-**Gateway Features：**
-
-- `model-proxy` - 启用模型代理功能
-- `mcp-proxy` - 启用MCP托管功能
-
 **Console Features：**
 
 ## 核心功能
@@ -86,7 +80,7 @@ cargo run --bin aiway
 - 日志监控 - 完整的日志存储和实时监控
 - 可视化面板 - 直观的管理控制台
 - AI 模型代理 - 智能 AI 模型代理和请求转发
-- MCP 集成** - Model Context Protocol 支持
+- MCP 集成 - Model Context Protocol 支持
 
 ## 插件生态
 

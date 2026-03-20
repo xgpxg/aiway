@@ -25,3 +25,6 @@ pub static BAN_HEADERS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     .copied()
     .collect()
 });
+
+pub const GATEWAY_LOCAL_SOCK_PATH: &str = "/tmp/aiway.sock";
+
