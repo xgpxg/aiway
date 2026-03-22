@@ -1,15 +1,20 @@
 //! # 路由过滤器
 //!
-use crate::components::PLUGINS;
 use crate::handler::{HttpError, HttpResult};
 use aiway_protocol::context::HttpContext;
 use anyhow::{Result, bail};
+use bytes::Bytes;
 use pingora::prelude::*;
 
-pub async fn pre_filter(session: &mut Session, context: &mut HttpContext) -> HttpResult<()> {
+
+pub async fn run_plugins(
+    session: &mut Session,
+    context: &mut HttpContext,
+    body: &mut Option<Bytes>,
+) -> HttpResult<()> {
     // SAFE：在routing时已经设置
     let route = context.get_route().unwrap();
-    let pre_filters = &route.pre_filters.clone();
+    let pre_filters = &route.pre_filters;
     for configured_plugin in pre_filters.iter() {
         log::debug!(
             "execute route pre filter plugin: {}",
@@ -32,6 +37,8 @@ pub async fn pre_filter(session: &mut Session, context: &mut HttpContext) -> Htt
             }
         }
     }
+    // 处理模型提供商的插件
+
     Ok(())
 }
 

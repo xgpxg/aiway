@@ -5,8 +5,6 @@
 //! 网关 → model-proxy → 获取提供商 → 模型名称映射 → 请求参数转换 → 调用提供商 → 响应参数转换 → 返回结果
 //!
 use crate::model_proxy::proxy::client::Client;
-use crate::model_proxy::proxy::request::ModifyModelName;
-use crate::model_proxy::proxy::response::{ModelError, ModelResponse};
 use aiway_model_protocol::audio::{AudioSpeechParameters, AudioSpeechResponse};
 use aiway_model_protocol::chat::{ChatCompletionChunkResponse, ChatCompletionParameters};
 use aiway_model_protocol::image::{CreateImageParameters, EditImageParameters};
@@ -22,6 +20,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::sync::LazyLock;
 use tokio_stream::StreamExt;
+use crate::model_proxy::proxy::ModelError;
 
 pub struct Proxy {
     /// (模型名称, 提供商名称) -> Client实例
@@ -54,69 +53,16 @@ impl Proxy {
         PROXY.clients.retain(|(model, _), _| *model != model_name);
     }
 
-    fn modify_model_name<R: ModifyModelName>(req: R, provider: &Provider) -> R {
-        if let Some(target_model_name) = &provider.target_model_name
-            && !target_model_name.is_empty()
-        {
-            log::debug!(
-                "model name convert: {} -> {} ({})",
-                req.get_source_model_name(),
-                target_model_name,
-                provider.name
-            );
-            req.modify_model_name(target_model_name)
-        } else {
-            req
+    pub async fn call(body: Option<Bytes>, ctx: &mut HttpContext) -> Result<Response, ModelError> {
+        if body.is_none() {
+            return Err(ModelError::Parse("body is empty".to_string()));
         }
-    }
+        let model = ctx.state.get::<String>("model_proxy:model").unwrap();
+        let provider = ctx.state.get::<Provider>("model_proxy:provider").unwrap();
 
-    /// 对话补全
-    pub async fn chat_completions(
-        req: ChatCompletionParameters,
-        provider: &Provider,
-    ) -> Result<Response, ModelError> {
-        let client = get_or_create_client!(req.model, provider);
-        let req = Self::modify_model_name(req, provider);
+        let client = get_or_create_client!(model, &provider);
         let response = client
-            .post(&provider.api_url, serde_json::to_vec(&req).unwrap(), None)
-            .await?;
-        Ok(response)
-    }
-
-    /// 文本转语音
-    pub async fn audio_speech(
-        req: AudioSpeechParameters,
-        provider: &Provider,
-    ) -> Result<Response, ModelError> {
-        let client = get_or_create_client!(req.model, provider);
-        let req = Self::modify_model_name(req, provider);
-        let response = client
-            .post(&provider.api_url, serde_json::to_vec(&req).unwrap(), None)
-            .await?;
-        Ok(response)
-    }
-
-    /// 创建图像(文生图)
-    pub async fn create_image(
-        req: CreateImageParameters,
-        provider: &Provider,
-    ) -> Result<Response, ModelError> {
-        let client = get_or_create_client!(req.model.clone().unwrap_or_default(), provider);
-        let req = Self::modify_model_name(req, provider);
-        let response = client
-            .post(&provider.api_url, serde_json::to_vec(&req).unwrap(), None)
-            .await?;
-        Ok(response)
-    }
-
-    pub(crate) async fn edit_image(
-        req: EditImageParameters,
-        provider: &Provider,
-    ) -> Result<Response, ModelError> {
-        let client = get_or_create_client!(req.model.clone().unwrap_or_default(), provider);
-        let req = Self::modify_model_name(req, provider);
-        let response = client
-            .post(&provider.api_url, serde_json::to_vec(&req).unwrap(), None)
+            .post(&provider.api_url, body.unwrap_or_default(), None)
             .await?;
         Ok(response)
     }

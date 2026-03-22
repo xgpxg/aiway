@@ -1,12 +1,12 @@
 //! # 鉴权 - API Key 验证
 //!
 use crate::components::Firewalld;
-use crate::handler::HttpResult;
+use crate::handler::{HttpError, HttpResult};
+use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::{HttpContext, SessionExt};
 use aiway_protocol::gateway::ApiKey;
 use cache::caches::CacheKey;
 use pingora::prelude::*;
-use aiway_protocol::common::header::Headers;
 
 const BEARER_PREFIX: &str = "Bearer ";
 
@@ -36,29 +36,24 @@ pub async fn auth_handle(session: &mut Session, ctx: &HttpContext) -> HttpResult
         Some(api_key) => match api_key.to_str()?.strip_prefix(BEARER_PREFIX) {
             Some(api_key) => api_key,
             None => {
-                //set_error!(req, 401, "Unauthorized");
-                session.respond_error(401).await?;
-                return Ok(());
+                return Err(HttpError::new(401, "Unauthorized"));
             }
         },
         None => {
-            session.respond_error(401).await?;
-            return Ok(());
+            return Err(HttpError::new(401, "Unauthorized"));
         }
     };
 
     let decrypt_key = &Firewalld::get_api_secret_encrypt_key().await;
     if ApiKey::decrypt(decrypt_key, api_key).is_err() {
-        session.respond_error(401).await?;
-        return Ok(());
+        return Err(HttpError::new(401, "Unauthorized"));
     }
 
     let exists = cache::exists(&CacheKey::ApiKey(api_key.to_string()).to_string())
         .await
         .unwrap_or(false);
     if !exists {
-        session.respond_error(401).await?;
-        return Ok(());
+        return Err(HttpError::new(401, "Unauthorized"));
     }
     Ok(())
 }

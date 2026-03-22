@@ -1,10 +1,11 @@
 //! # 全局过滤器
 //!
-use crate::components::{GLOBAL_FILTER, PLUGINS};
+use crate::components::{GLOBAL_FILTER};
 use crate::handler::{HttpError, HttpResult};
 use aiway_protocol::context::HttpContext;
 use anyhow::{Result, bail};
 use pingora::prelude::*;
+use plugin_manager::PluginFactory;
 
 pub async fn global_pre_filter(session: &mut Session, context: &mut HttpContext) -> HttpResult<()> {
     let config = GLOBAL_FILTER
@@ -20,10 +21,7 @@ pub async fn global_pre_filter(session: &mut Session, context: &mut HttpContext)
             "execute global pre filter plugin: {}",
             configured_plugin.name
         );
-        let result = PLUGINS
-            .get()
-            .unwrap() // SAFE: 在启动时已经初始化
-            .run_on_request(configured_plugin, session, context)
+        let result = PluginFactory::on_request(configured_plugin, session.req_header_mut(), context)
             .await;
         match result {
             Ok(_) => {}
@@ -53,10 +51,7 @@ pub async fn global_post_filter(
             "execute global post filter plugin: {}",
             configured_plugin.name
         );
-        let result = PLUGINS
-            .get()
-            .unwrap() // SAFE: 在启动时已经初始化
-            .run_on_response(configured_plugin, session, response, context)
+        let result = PluginFactory::on_response(configured_plugin, response,  context)
             .await;
         match result {
             Ok(_) => {}

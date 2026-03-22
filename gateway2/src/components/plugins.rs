@@ -140,42 +140,4 @@ impl PluginFactory {
         });
     }
 
-    /// 调用插件
-    pub async fn run_on_request(
-        &self,
-        configured_plugin: &ConfiguredPlugin,
-        session: &mut Session,
-        context: &mut HttpContext,
-    ) -> anyhow::Result<()> {
-        match self.plugins.get(&configured_plugin.name) {
-            Some(plugin) => plugin
-                .1
-                .on_request(session, context, &configured_plugin.config)
-                .await
-                .map_err(|e| anyhow::anyhow!(e)),
-            None => bail!(
-                "plugin {} not found in plugin factory",
-                &configured_plugin.name
-            ),
-        }
-    }
-    pub async fn run_on_response(
-        &self,
-        configured_plugin: &ConfiguredPlugin,
-        session: &mut Session,
-        response: &mut ResponseHeader,
-        context: &mut HttpContext,
-    ) -> anyhow::Result<()> {
-        match self.plugins.get(&configured_plugin.name) {
-            Some(plugin) => plugin
-                .1
-                .on_response(session, response, context, &configured_plugin.config)
-                .await
-                .map_err(|e| anyhow::anyhow!(e)),
-            None => bail!(
-                "plugin {} not found in plugin factory",
-                &configured_plugin.name
-            ),
-        }
-    }
 }

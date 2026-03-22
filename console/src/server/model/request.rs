@@ -26,8 +26,7 @@ pub struct ProviderAddReq {
     pub api_key: Option<String>,
     pub weight: Option<u32>,
     pub target_model_name: Option<String>,
-    pub request_converter: Option<ConfiguredPlugin>,
-    pub response_converter: Option<ConfiguredPlugin>,
+    pub plugins: Option<ConfiguredPlugin>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -39,6 +38,5 @@ pub struct ProviderUpdateReq {
     pub status: Option<ModelProviderStatus>,
     pub weight: Option<u32>,
     pub target_model_name: Option<String>,
-    pub request_converter: Option<ConfiguredPlugin>,
-    pub response_converter: Option<ConfiguredPlugin>,
+    pub plugins: Option<ConfiguredPlugin>,
 }

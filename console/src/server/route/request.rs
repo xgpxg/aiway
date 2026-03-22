@@ -28,9 +28,9 @@ pub struct RouteAddOrUpdateReq {
     /// query匹配
     #[serde(default = "Default::default")]
     pub query: BTreeMap<String, String>,
-    /// 前置过滤器
+    /// 插件
     #[serde(default = "Default::default")]
-    pub pre_filters: Vec<ConfiguredPlugin>,
+    pub plugins: Vec<ConfiguredPlugin>,
     /// 后置过滤器
     #[serde(default = "Default::default")]
     pub post_filters: Vec<ConfiguredPlugin>,
@@ -57,8 +57,7 @@ impl From<RouteAddOrUpdateReq> for Route {
             methods: req.methods.into(),
             header: req.header.into(),
             query: req.query.into(),
-            pre_filters: req.pre_filters.into(),
-            post_filters: req.post_filters.into(),
+            plugins: req.plugins.into(),
             is_auth: req.is_auth,
             auth_white_list: req.auth_white_list,
             create_user_id: None,

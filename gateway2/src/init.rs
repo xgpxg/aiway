@@ -1,12 +1,13 @@
 //! # 初始化模块
 //!
-use crate::Args;
 use crate::components::{
-    ApiKeySyncer, ConfigFactory, Firewalld, GlobalFilterConfig, IpRegion, PluginFactory, Router,
+    ApiKeySyncer, ConfigFactory, Firewalld, GlobalFilterConfig, IpRegion, Router,
     Servicer,
 };
+use crate::context::GLOBAL_STATE;
 use crate::report;
 use crate::report::STATE;
+use crate::{Args, context};
 use alert::Alert;
 use logging::LogAppender;
 use std::path::PathBuf;
@@ -27,8 +28,11 @@ pub async fn init(args: &Args) {
     // 初始全局路由过滤器配置
     GlobalFilterConfig::init().await;
 
+    // 初始化插件管理器
+    plugin_manager::init(&args.console).await;
+
     // 初始化插件
-    PluginFactory::init().await;
+    //PluginFactory::init().await;
 
     // 初始化路由
     Router::init().await;
@@ -51,6 +55,8 @@ pub async fn init(args: &Args) {
     // 初始化告警
     alert::init(args.console.clone());
 
+    context::init();
+
     // 设置 panic hook
     set_panic_hook();
 
@@ -66,6 +72,7 @@ pub async fn init(args: &Args) {
     {
         crate::mcp_proxy::init(args).await;
     }
+
 }
 
 fn cache_dir(args: &Args) -> PathBuf {

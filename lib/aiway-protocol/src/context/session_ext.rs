@@ -1,8 +1,12 @@
+use crate::common::constants::MODEL_API_PREFIX;
+use crate::common::header::Headers;
+use crate::context::request_ext::RequestExt;
 use pingora_http::Method;
 use pingora_proxy::Session;
 use std::collections::HashMap;
 
 pub trait SessionExt {
+    fn get_request_id(&self) -> String;
     fn get_request_header(&self, key: &str) -> Option<String>;
     fn set_request_header(&mut self, key: &str, value: &str);
 
@@ -14,70 +18,63 @@ pub trait SessionExt {
     fn route_match_key(&self) -> String;
 
     fn query(&self) -> Option<String>;
+
+    fn is_model_request(&self) -> bool;
 }
 
 impl SessionExt for Session {
+    #[inline]
+    fn get_request_id(&self) -> String {
+        self.req_header().get_request_id()
+    }
+
+    #[inline]
     fn get_request_header(&self, key: &str) -> Option<String> {
-        self.get_header(key)
-            .map(|s| s.to_str().unwrap().to_string())
+        self.req_header().get_request_header(key)
     }
 
+    #[inline]
     fn set_request_header(&mut self, key: &str, value: &str) {
-        let _ = self
-            .req_header_mut()
-            .insert_header(key.to_string(), value.to_string());
+        self.req_header_mut().set_request_header(key, value);
     }
 
+    #[inline]
     fn all_request_headers(&self) -> HashMap<String, String> {
-        self.req_header()
-            .headers
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_str().unwrap().to_string()))
-            .collect()
+        self.req_header().all_request_headers()
     }
 
+    #[inline]
     fn get_path(&self) -> String {
-        self.req_header().uri.path().to_string()
+        self.req_header().get_path()
     }
 
+    #[inline]
     fn set_path(&mut self, path: &str) {
-        let old_uri = self.req_header().uri.clone();
-        let mut parts = old_uri.into_parts();
-
-        // 构建新的 path_and_query
-        let new_path = if let Some(pq) = parts.path_and_query {
-            match pq.query() {
-                Some(query) => format!("{}?{}", path, query),
-                None => path.to_string(),
-            }
-        } else {
-            path.to_string()
-        };
-
-        parts.path_and_query = Some(new_path.parse().unwrap());
-
-        if let Ok(new_uri) = http::Uri::from_parts(parts) {
-            self.req_header_mut().uri = new_uri;
-        }
+        self.req_header_mut().set_path(path);
     }
 
+    #[inline]
     fn get_method(&self) -> &Method {
         &self.req_header().method
     }
 
+    #[inline]
     fn get_host(&self) -> String {
-        if self.is_http2() {
-            self.get_request_header(":authority").unwrap()
-        } else {
-            self.get_request_header("host").unwrap()
-        }
+        self.req_header().get_host()
     }
 
+    #[inline]
     fn route_match_key(&self) -> String {
-        format!("{}{}", self.get_host(), self.get_path())
+        self.req_header().route_match_key()
     }
 
+    #[inline]
     fn query(&self) -> Option<String> {
-        self.req_header().uri.query().map(|s| s.to_string())
+        self.req_header().query()
+    }
+
+    #[inline]
+    fn is_model_request(&self) -> bool {
+        self.get_path().starts_with(MODEL_API_PREFIX)
     }
 }

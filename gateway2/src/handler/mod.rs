@@ -4,7 +4,7 @@
 
 pub mod auth;
 pub mod cleanup;
-pub mod filter;
+//pub mod filter;
 pub mod global_filter;
 pub mod lb;
 pub mod logger;
@@ -13,10 +13,10 @@ pub mod request;
 pub mod response;
 pub mod routing;
 pub mod security;
+pub mod plugin;
 
 pub use auth::auth_handle;
 pub use cleanup::cleanup_handle;
-pub use filter::{post_filter, pre_filter};
 pub use global_filter::{global_post_filter, global_pre_filter};
 use http::header::ToStrError;
 pub use lb::lb_handle;
@@ -27,7 +27,6 @@ pub use request::request_handle;
 pub use response::response_handle;
 pub use routing::routing_handle;
 pub use security::security_check;
-
 pub(crate) type HttpResult<T> = std::result::Result<T, HttpError>;
 #[derive(Debug)]
 pub struct HttpError(pub(crate) u16, pub(crate) String);

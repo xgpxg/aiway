@@ -14,7 +14,7 @@ alert = { path = "../lib/alert" }
 common = { path = "../lib/common" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes", "sync", "time"] }
 pingora = { version = "0.8.0", features = ["lb"] }
-pingora-core = {version = "0.8.0", features = ["s2n"]}
+pingora-core = { version = "0.8.0", features = ["s2n"] }
 pingora-proxy = "0.8.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

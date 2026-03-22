@@ -1,12 +1,12 @@
 //! # 负载均衡 - Pingora 实现
 //!
 use crate::components::Servicer;
-use pingora::prelude::*;
-use anyhow::{Result, Context};
-use aiway_protocol::context::HttpContext;
 use crate::handler::HttpResult;
+use aiway_protocol::context::HttpContext;
+use anyhow::{Context, Result};
+use pingora::prelude::*;
 
-pub async fn lb_handle(session: &mut Session, context: &mut HttpContext) -> HttpResult<()> {
+pub async fn lb_handle(_: &mut Session, context: &mut HttpContext) -> HttpResult<()> {
     let route = context.get_route();
     if route.is_none() {
         return Ok(());
@@ -29,6 +29,6 @@ pub async fn lb_handle(session: &mut Session, context: &mut HttpContext) -> Http
             }
         }
     }
-    
+
     Ok(())
 }

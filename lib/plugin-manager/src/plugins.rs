@@ -12,8 +12,8 @@
 
 use crate::CONSOLE;
 use crate::client::INNER_HTTP_CLIENT;
-use aiway_plugin::{AsyncTryInto, NetworkPlugin, Plugin};
-use aiway_protocol::context::HttpContext;
+use aiway_plugin_v2::{AsyncTryInto, Bytes, NetworkPlugin, Plugin, PluginError};
+use aiway_protocol::context::{HttpContext, RequestHeader, ResponseHeader};
 use aiway_protocol::gateway::Plugin as PluginConfig;
 use aiway_protocol::gateway::plugin::ConfiguredPlugin;
 use anyhow::bail;
@@ -137,24 +137,64 @@ impl PluginFactory {
         });
     }
 
-    /// 调用插件
-    pub async fn execute(
+    pub async fn on_request(
         configured_plugin: &ConfiguredPlugin,
-        context: &HttpContext,
-    ) -> anyhow::Result<Value> {
+        head: &mut RequestHeader,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
+            Some(plugin) => {
+                plugin
+                    .1
+                    .on_request(&configured_plugin.config, head, ctx)
+                    .await
+            }
+            None => Err(PluginError::NotFound(configured_plugin.name.clone())),
+        }
+    }
+
+    pub async fn on_request_body(
+        configured_plugin: &ConfiguredPlugin,
+        body: &mut Option<Bytes>,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
+            Some(plugin) => {
+                plugin
+                    .1
+                    .on_request_body(&configured_plugin.config, body, ctx)
+                    .await
+            }
+            None => Err(PluginError::NotFound(configured_plugin.name.clone())),
+        }
+    }
+
+    pub async fn on_response(
+        configured_plugin: &ConfiguredPlugin,
+        head: &mut ResponseHeader,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
+            Some(plugin) => {
+                plugin
+                    .1
+                    .on_response(&configured_plugin.config, head, ctx)
+                    .await
+            }
+            None => Err(PluginError::NotFound(configured_plugin.name.clone())),
+        }
+    }
+
+    pub fn on_response_body(
+        configured_plugin: &ConfiguredPlugin,
+        body: &mut Option<Bytes>,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => plugin
                 .1
-                .execute(context, &configured_plugin.config)
-                .await
-                .map_err(|e| {
-                    log::error!("plugin {} execute error: {}", &configured_plugin.name, e);
-                    anyhow::anyhow!(e)
-                }),
-            None => bail!(
-                "plugin {} not found in plugin factory",
-                &configured_plugin.name
-            ),
+                .on_response_body(&configured_plugin.config, body, ctx),
+            None => Err(PluginError::NotFound(configured_plugin.name.clone())),
         }
     }
 }

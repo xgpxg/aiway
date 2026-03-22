@@ -71,16 +71,17 @@
 //!
 
 mod macros;
-mod manager;
 mod network;
 
 use crate::network::NETWORK;
 #[cfg(feature = "model")]
 pub use aiway_model_protocol as model_protocol;
 pub use aiway_protocol as protocol;
+use aiway_protocol::context::RequestHeader;
+pub use aiway_protocol::context::{ResponseHeader, Session};
 pub use async_trait::async_trait;
+pub use bytes::Bytes;
 use libloading::Symbol;
-pub use manager::PluginManager;
 use protocol::context::HttpContext;
 pub use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -91,7 +92,6 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-pub use aiway_protocol::context::{ResponseHeader, Session};
 
 #[derive(Debug)]
 pub enum PluginError {
@@ -134,28 +134,53 @@ pub trait Plugin: Send + Sync {
     fn name(&self) -> &str;
     /// 插件信息
     fn info(&self) -> PluginInfo;
-    // /// 执行插件
-    // async fn execute(
-    //     &self,
-    //     session: &mut Session,
-    //     ctx: &mut HttpContext,
-    //     config: &Value,
-    // ) -> Result<Value, PluginError>;
-    async fn on_request(
+
+    /// 请求阶段，早于 `on_request`，可改写头部
+    async fn early_request(
         &self,
-        _session: &mut Session,
-        _ctx: &mut HttpContext,
         _config: &Value,
+        _head: &mut RequestHeader,
+        _ctx: &mut HttpContext,
     ) -> Result<(), PluginError> {
         Ok(())
     }
 
+    /// 请求阶段，可改写头部
+    async fn on_request(
+        &self,
+        _config: &Value,
+        _head: &mut RequestHeader,
+        _ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        Ok(())
+    }
+
+    /// 请求体阶段，可改写请求体
+    async fn on_request_body(
+        &self,
+        _config: &Value,
+        _body: &mut Option<Bytes>,
+        _ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        Ok(())
+    }
+
+    /// 响应阶段，可改写头部
     async fn on_response(
         &self,
-        _session: &mut Session,
-        _response: &mut ResponseHeader,
-        _ctx: &mut HttpContext,
         _config: &Value,
+        _head: &mut ResponseHeader,
+        _ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        Ok(())
+    }
+
+    /// 响应体阶段，可改写响应体
+    fn on_response_body(
+        &self,
+        _config: &Value,
+        _body: &mut Option<Bytes>,
+        _ctx: &mut HttpContext,
     ) -> Result<(), PluginError> {
         Ok(())
     }
@@ -219,22 +244,36 @@ impl Plugin for LibraryPluginWrapper {
 
     async fn on_request(
         &self,
-        session: &mut Session,
-        ctx: &mut HttpContext,
         config: &Value,
+        head: &mut RequestHeader,
+        ctx: &mut HttpContext,
     ) -> Result<(), PluginError> {
-        self.plugin.on_request(session, ctx, config).await
+        self.plugin.on_request(config, head, ctx).await
+    }
+
+    async fn on_request_body(
+        &self,
+        config: &Value,
+        body: &mut Option<Bytes>,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        self.plugin.on_request_body(config, body, ctx).await
     }
     async fn on_response(
         &self,
-        session: &mut Session,
-        response: &mut ResponseHeader,
-        ctx: &mut HttpContext,
         config: &Value,
+        head: &mut ResponseHeader,
+        ctx: &mut HttpContext,
     ) -> Result<(), PluginError> {
-        self.plugin
-            .on_response(session, response, ctx, config)
-            .await
+        self.plugin.on_response(config, head, ctx).await
+    }
+    fn on_response_body(
+        &self,
+        config: &Value,
+        body: &mut Option<Bytes>,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        self.plugin.on_response_body(config, body, ctx)
     }
 }
 

@@ -120,6 +120,7 @@ dependencies = [
  "aiway-model-protocol",
  "aiway-protocol",
  "async-trait",
+ "bytes",
  "dashmap",
  "libloading",
  "reqwest",
@@ -4148,7 +4149,7 @@ dependencies = [
 name = "plugin-manager"
 version = "0.1.0"
 dependencies = [
- "aiway-plugin",
+ "aiway-plugin-v2",
  "aiway-protocol",
  "anyhow",
  "busi",

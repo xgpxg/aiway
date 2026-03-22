@@ -1,98 +1,88 @@
 use crate::context::Route;
-use bytes::Bytes;
 use dashmap::DashMap;
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use serde_json::Value;
+use std::fmt::Debug;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 网关HTTP上下文
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct HttpContext {
+    /// 请求ID
+    request_id: String,
+    /// 请求时间戳, 毫秒
+    request_ts: i64,
     /// 匹配到路由配置信息
     route: Option<Arc<Route>>,
     /// 路由目标地址，可以是域名或IP(包含协议头)，由负载均衡器设置
-    routing_url: Option<String>,
+    routing: Option<String>,
     /// 响应状态码
     pub response_status: Option<u16>,
     /// 响应时间戳
     pub response_ts: Option<i64>,
-    /// 内部扩展数据
-    pub inner_state: InnerState,
-    /// 自定义的扩展数据
-    pub state: DashMap<String, Value>,
-}
-
-impl HttpContext {
-    pub fn set_route(&mut self, route: Arc<Route>) {
-        self.route = route.into();
-    }
-
-    pub fn get_route(&self) -> Option<Arc<Route>> {
-        self.route.clone()
-    }
-
-    pub fn set_routing_url(&mut self, url: String) {
-        self.routing_url = url.into();
-    }
-
-    pub fn get_routing_url(&self) -> Option<&String> {
-        self.routing_url.as_ref()
-    }
-
-    pub fn insert_state<T: Serialize>(&self, key: &str, value: T) {
-        self.state.insert(
-            key.to_string(),
-            serde_json::to_value(value).expect("Failed to serialize state value"),
-        );
-    }
-
-    pub fn get_state<T: DeserializeOwned>(
-        &self,
-        key: &str,
-    ) -> Result<Option<T>, serde_json::Error> {
-        self.state
-            .get(key)
-            .map(|v| serde_json::from_value(v.clone()))
-            .transpose()
-    }
-
-    pub fn remove_state(&self, key: &str) {
-        self.state.remove(key);
-    }
+    /// 扩展数据
+    pub state: State,
 }
 
 #[derive(Debug, Default)]
-pub struct InnerState(pub DashMap<String, Value>);
+pub struct State {
+    inner: DashMap<String, Value>,
+}
 
-impl InnerState {
-    #[cfg(feature = "model")]
-    const MODEL_PROVIDER: &'static str = "model_proxy:provider";
-    #[cfg(feature = "model")]
-    pub fn get_model_provider(&self) -> Option<crate::model::Provider> {
-        self.0.get(Self::MODEL_PROVIDER).and_then(|v| {
-            serde_json::from_value(v.value().clone())
-                .expect("Failed to deserialize model provider value")
-        })
-    }
-    #[cfg(feature = "model")]
-    pub fn set_model_provider(&self, provider: crate::model::Provider) {
-        self.0.insert(
-            Self::MODEL_PROVIDER.to_string(),
-            serde_json::to_value(provider).expect("Failed to serialize model provider value"),
-        );
+impl State {
+    pub fn insert<T: Serialize>(&self, key: &str, value: T) -> Option<Value> {
+        self.inner
+            .insert(key.to_string(), serde_json::to_value(value).unwrap())
     }
 
-    pub fn set_temp_body(&self, body: Bytes) {
-        self.0.insert(
-            "temp_body".to_string(),
-            serde_json::from_slice(body.as_ref()).unwrap(),
-        );
+    pub fn get<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
+        self.inner
+            .get(key)
+            .and_then(|v| serde_json::from_value::<T>(v.clone()).ok())
     }
 
-    pub fn get_temp_body(&self) -> Option<Bytes> {
-        self.0.get("temp_body").map(|v| {
-            Bytes::copy_from_slice(serde_json::to_vec(&v.value().clone()).unwrap().as_slice())
-        })
+    pub fn remove(&self, key: &str) -> Option<Value> {
+        self.inner.remove(key).map(|(_, v)| v)
+    }
+}
+
+impl Default for HttpContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl HttpContext {
+    pub fn new() -> Self {
+        Self {
+            request_id: uuid::Uuid::new_v4().to_string(),
+            request_ts: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as i64,
+            route: None,
+            routing: None,
+            response_status: None,
+            response_ts: None,
+            state: Default::default(),
+        }
+    }
+    #[inline]
+    pub fn set_route(&mut self, route: Arc<Route>) {
+        self.route = route.into();
+    }
+    #[inline]
+    pub fn get_route(&self) -> Option<Arc<Route>> {
+        self.route.clone()
+    }
+    #[inline]
+    pub fn set_routing_url(&mut self, url: String) {
+        self.routing = url.into();
+    }
+    #[inline]
+    pub fn get_routing_url(&self) -> Option<&String> {
+        self.routing.as_ref()
     }
 }

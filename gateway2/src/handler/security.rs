@@ -24,6 +24,7 @@ pub async fn security_check(session: &mut Session, _: &mut HttpContext) -> HttpR
         .get(Headers::REFERER)
         .map(|v| v.to_str().unwrap())
         .unwrap_or_default();
+
     // 调用防火墙校验请求
     if let Err(e) = Firewalld::check(&ip, referer).await {
         // 拦截请求后，无效请求数+1

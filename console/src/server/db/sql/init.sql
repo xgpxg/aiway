@@ -45,8 +45,7 @@ create table if not exists route
     service         varchar(100)  not null,           -- 目标服务名
     header          varchar(1000) not null,           -- 按请求头匹配
     query           varchar(1000) not null,           -- 按请求参数匹配
-    pre_filters     varchar(500)  not null,           -- 请求阶段过滤器，JSON数组
-    post_filters    varchar(500)  not null,           -- 响应阶段过滤器，JSON数组
+    plugins         varchar(1000) not null,           -- 插件，JSON数组
     is_auth         tinyint(1)    not null default 0, -- 是否需要认证
     auth_white_list varchar(1000),                    -- 认证白名单
     create_user_id  bigint,                           -- 创建人ID
@@ -226,8 +225,7 @@ create table if not exists model_provider
     api_key            varchar(500),                    -- 密钥
     status             varchar(20)  not null,           -- 状态：Disable | Ok
     weight             int          not null default 1, -- 权重
-    request_converter  text,                            -- 请求转换器
-    response_converter text,                            -- 响应转换器
+    plugins            text,                            -- 插件
     target_model_name  varchar(500),                    -- 目标模型名称
     create_user_id     bigint,                          -- 创建人ID
     update_user_id     bigint,                          -- 修改人ID
