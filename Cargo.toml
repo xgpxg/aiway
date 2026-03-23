@@ -18,6 +18,5 @@ members = [
     "logg",
     "lib/alert",
     "lib/plugin-manager",
-    "lib/busi",
-    "lib/aiway-model-protocol"
+    "lib/busi"
 ]

@@ -18,7 +18,6 @@ use aiway_protocol::gateway::Plugin as PluginConfig;
 use aiway_protocol::gateway::plugin::ConfiguredPlugin;
 use dashmap::DashMap;
 use logging::log;
-use serde_json::Value;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
