@@ -10,6 +10,7 @@ impl Headers {
     pub const REFERER: &'static str = "referer";
     pub const USER_AGENT: &'static str = "user-agent";
     pub const CONTENT_TYPE: &'static str = "content-type";
-
     pub const ORIGIN: &'static str = "origin";
+    pub const UPGRADE: &'static str = "upgrade";
+    pub const HOST: &'static str = "host";
 }

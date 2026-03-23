@@ -91,6 +91,10 @@ impl HttpContext {
     pub const RESPONSE_SERDE_PARTS: &'static str = ":resp:parts";
     /// 响应的Body大小
     pub const RESPONSE_BODY_SIZE: &'static str = ":resp:parts:body_size";
+    /// 是否sse
+    pub const IS_SSE: &'static str = ":resp:is_sse";
+    /// 是否websocket
+    pub const IS_WEBSOCKET: &'static str = ":resp:is_ws";
     /// 模型名称，仅适用于模型插件
     pub const MODEL_PROXY_MODEL: &'static str = ":model_proxy:model";
     /// 模型提供商，仅适用于模型插件
@@ -122,6 +126,20 @@ impl HttpContext {
         self.routing.target.as_ref()
     }
 
+    #[inline]
+    pub fn insert_state<T: Serialize>(&self, key: &str, value: T) {
+        self.state.insert(key, value);
+    }
+
+    #[inline]
+    pub fn get_state<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
+        self.state.get(key)
+    }
+
+    #[inline]
+    pub fn remove_state(&self, key: &str) {
+        self.state.remove(key);
+    }
     /// 获取请求ID
     pub fn request_id(&self) -> String {
         //SAFE
@@ -157,17 +175,12 @@ impl HttpContext {
     }
 
     #[inline]
-    pub fn insert_state<T: Serialize>(&self, key: &str, value: T) {
-        self.state.insert(key, value);
+    pub fn is_sse(&self) -> bool {
+        self.state.exists(Self::IS_SSE)
     }
 
     #[inline]
-    pub fn get_state<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
-        self.state.get(key)
-    }
-
-    #[inline]
-    pub fn remove_state(&self, key: &str) {
-        self.state.remove(key);
+    pub fn is_websocket(&self) -> bool {
+        self.state.exists(Self::IS_WEBSOCKET)
     }
 }

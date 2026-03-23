@@ -4,7 +4,6 @@ mod config;
 mod firewall;
 mod global_plugin;
 mod ip_region;
-//mod plugins;
 mod router;
 mod servicer;
 
