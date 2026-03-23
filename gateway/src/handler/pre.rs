@@ -2,7 +2,7 @@
 //!
 use crate::handler::HttpResult;
 use crate::report::STATE;
-use aiway_protocol::context::{HttpContext};
+use aiway_protocol::context::HttpContext;
 use pingora::prelude::*;
 
 pub async fn pre_handle(_: &mut Session, _: &mut HttpContext) -> HttpResult<()> {

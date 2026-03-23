@@ -33,21 +33,6 @@ impl std::fmt::Display for HttpError {
         write!(f, "{} {}", self.0, self.1)
     }
 }
-impl From<(u16, String)> for HttpError {
-    fn from(value: (u16, String)) -> Self {
-        HttpError(value.0, value.1)
-    }
-}
-impl From<(u16, &str)> for HttpError {
-    fn from(value: (u16, &str)) -> Self {
-        HttpError(value.0, value.1.to_string())
-    }
-}
-impl From<(isize, &str)> for HttpError {
-    fn from(value: (isize, &str)) -> Self {
-        HttpError(value.0 as u16, value.1.to_string())
-    }
-}
 
 impl From<ToStrError> for HttpError {
     fn from(e: ToStrError) -> Self {
