@@ -1,9 +1,9 @@
 use crate::model_proxy::components::client::INNER_HTTP_CLIENT;
 use crate::model_proxy::proxy::{ModelError, Proxy};
-use dashmap::DashMap;
-use logging::log;
 use aiway_protocol::model::Provider;
 use aiway_protocol::model::{LbStrategy, Model};
+use dashmap::DashMap;
+use logging::log;
 use std::collections::HashMap;
 use std::process::exit;
 use std::sync::OnceLock;
@@ -147,6 +147,28 @@ impl ModelFactory {
                 }
             }
             None => Err(ModelError::UnsupportedModel(model_name.to_string())),
+        }
+    }
+    pub fn get_special_provider(model_name: &str, provider_name: &str) -> Option<Provider> {
+        let factory = MODEL_FACTORY.get().unwrap();
+        let model = factory.models.get(model_name);
+        match model {
+            Some(model) => {
+                let model = model.value();
+                log::debug!(
+                    "get provider for model: {}, model detail: {:?}",
+                    model_name,
+                    model
+                );
+                let providers = &model.providers;
+                for provider in providers {
+                    if provider.name == provider_name {
+                        return Some(provider.clone());
+                    }
+                }
+                None
+            }
+            None => None,
         }
     }
 }

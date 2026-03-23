@@ -1,86 +1,17 @@
-//! # 插件
-//! 插件是网关实现功能扩展的核心组件。插件目前仅支持使用Rust开发，并导出为`.so`格式的动态库给网关使用。
-//!
-//! ## 插件分类
-//! 按照插件的执行范围，可以分为全局插件和路由插件。
-//!
-//! ### 全局插件
-//! 全局插件对整个网关的所有请求生效（不含控制台请求，因为控制台是独立的）。
-//!
-//! 执行阶段：
-//! - 请求阶段：在请求到达API处理端点前执行，可对请求改写、安全验证、限流、缓存等。
-//! - 响应阶段：在API处理完成，响应客户端前执行，可修改响应、记录日志等。
-//!
-//! ### 路由插件
-//! 对特定路由生效。
-//!
-//! 路由插件和全局插件实现方式相同，仅执行时机不同。
-//!
-//! 执行阶段：
-//! - 请求阶段：在全局插件执行后，到达API处理端点前执行。
-//! - 响应阶段：在API处理完成，全局插件执行前执行。
-//!
-//! 注意：全局插件的优先级高于路由插件。
-//!
-//! ### 错误处理
-//! 插件执行时可能发生错误，当某个插件返回`Err`时，插件执行流程会中断，整个请求将失败，网关将返回`502`错误码。
-//!
-//! ## 使用方式
-//! ```rust
-//! use aiway_plugin::protocol::gateway::HttpContext;
-//! use aiway_plugin::serde_json::Value;
-//! use aiway_plugin::{Plugin, PluginError, PluginInfo, Version, async_trait, export, plugin_version};
-//!
-//! // 示例插件
-//! pub struct DemoPlugin;
-//!
-//! impl DemoPlugin {
-//!     pub fn new() -> Self {
-//!         Self {}
-//!     }
-//! }
-//!
-//! #[async_trait]
-//! impl Plugin for DemoPlugin {
-//!     fn name(&self) -> &'static str {
-//!         "demo"
-//!     }
-//!
-//!     fn info(&self) -> PluginInfo {
-//!         PluginInfo {
-//!             version: plugin_version!(),
-//!             default_config: Default::default(),
-//!             description: "Demo Plugin".to_string(),
-//!         }
-//!     }
-//!
-//!     // 实现插件逻辑
-//!     async fn execute(&self, _context: &HttpContext, _config: &Value) -> Result<Value, PluginError> {
-//!         //println!("run demo plugin, context: {:?}", context);
-//!         //println!("config: {:?}", config);
-//!         Ok(Default::default())
-//!     }
-//! }
-//!
-//! // 导出插件
-//! export!(DemoPlugin);
-//! ```
-//!
-//! ## 插件仓库
-//! https://github.com/xgpxg/aiway-plugins
-//!
+#[doc = include_str!("../README.md")]
 
 mod macros;
-mod manager;
 mod network;
 
 use crate::network::NETWORK;
-#[cfg(feature = "model")]
-pub use aiway_model_protocol as model_protocol;
+// #[cfg(feature = "model")]
+// pub use aiway_model_protocol as model_protocol;
 pub use aiway_protocol as protocol;
+use aiway_protocol::context::http::{request, response};
 pub use async_trait::async_trait;
+pub use bytes::Bytes;
 use libloading::Symbol;
-pub use manager::PluginManager;
+pub use log;
 use protocol::context::HttpContext;
 pub use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -132,8 +63,56 @@ pub trait Plugin: Send + Sync {
     fn name(&self) -> &str;
     /// 插件信息
     fn info(&self) -> PluginInfo;
-    /// 执行插件
-    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<Value, PluginError>;
+
+    /// 请求阶段，早于 `on_request`，可改写头部
+    async fn early_request(
+        &self,
+        _config: &Value,
+        _head: &mut request::Parts,
+        _ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        Ok(())
+    }
+
+    /// 请求阶段，可改写头部
+    async fn on_request(
+        &self,
+        _config: &Value,
+        _head: &mut request::Parts,
+        _ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        Ok(())
+    }
+
+    /// 请求体阶段，可改写请求体
+    async fn on_request_body(
+        &self,
+        _config: &Value,
+        _body: &mut Option<Bytes>,
+        _ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        Ok(())
+    }
+
+    /// 响应阶段，可改写头部
+    async fn on_response(
+        &self,
+        _config: &Value,
+        _head: &mut response::Parts,
+        _ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        Ok(())
+    }
+
+    /// 响应体阶段，可改写响应体
+    fn on_response_body(
+        &self,
+        _config: &Value,
+        _body: &mut Option<Bytes>,
+        _ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        Ok(())
+    }
 }
 
 /// 插件信息
@@ -192,8 +171,38 @@ impl Plugin for LibraryPluginWrapper {
         self.plugin.info()
     }
 
-    async fn execute(&self, context: &HttpContext, config: &Value) -> Result<Value, PluginError> {
-        self.plugin.execute(context, config).await
+    async fn on_request(
+        &self,
+        config: &Value,
+        head: &mut request::Parts,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        self.plugin.on_request(config, head, ctx).await
+    }
+
+    async fn on_request_body(
+        &self,
+        config: &Value,
+        body: &mut Option<Bytes>,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        self.plugin.on_request_body(config, body, ctx).await
+    }
+    async fn on_response(
+        &self,
+        config: &Value,
+        head: &mut response::Parts,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        self.plugin.on_response(config, head, ctx).await
+    }
+    fn on_response_body(
+        &self,
+        config: &Value,
+        body: &mut Option<Bytes>,
+        ctx: &mut HttpContext,
+    ) -> Result<(), PluginError> {
+        self.plugin.on_response_body(config, body, ctx)
     }
 }
 
@@ -266,46 +275,5 @@ impl TryFrom<Vec<u8>> for Box<dyn Plugin> {
         let temp = temp_dir().join(format!("{}.so", uuid::Uuid::new_v4()));
         fs::write(&temp, from).map_err(|e| PluginError::LoadError(e.to_string()))?;
         temp.try_into()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::manager::PluginManager;
-    use std::io::Read;
-    #[tokio::test]
-    async fn test_network_plugin() {
-        let p = NetworkPlugin(
-            "http://192.168.1.242:10000/aiway/test/plugins/libdemo_plugin.so".to_string(),
-        );
-        let plugin: Box<dyn Plugin> = p.async_try_into().await.unwrap();
-        plugin
-            .execute(&HttpContext::default(), &Value::Null)
-            .await
-            .unwrap();
-    }
-    #[tokio::test]
-    async fn test_plugin_manager() {
-        let p = NetworkPlugin(
-            "http://192.168.1.242:10000/aiway/test/plugins/libdemo_plugin.so".to_string(),
-        );
-        let plugin: Box<dyn Plugin> = p.async_try_into().await.unwrap();
-        let mut manager = PluginManager::new();
-        manager.register(plugin);
-        manager
-            .run("demo", &HttpContext::default(), &Value::Null)
-            .await
-            .unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_plugin_from_bytes() {
-        let file =
-            File::open("../../target/release/libaha_model_request_wrapper_plugin.so").unwrap();
-        // 获取file的bytes
-        let bytes = file.bytes().collect::<Result<Vec<_>, _>>().unwrap();
-        let plugin: Box<dyn Plugin> = bytes.try_into().unwrap();
-        println!("{:?}", plugin.info());
     }
 }

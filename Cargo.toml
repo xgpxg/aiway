@@ -2,12 +2,10 @@
 resolver = "3"
 members = [
     "console",
-    #"gateway",
-    "gateway2",
+    "gateway",
     "message",
     "lib/logging",
     "lib/aiway-plugin",
-    "lib/aiway-plugin-v2",
     "lib/pubsub",
     "lib/security",
     "lib/aiway-protocol",

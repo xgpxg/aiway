@@ -12,8 +12,8 @@
 //!
 
 use crate::components::client::INNER_HTTP_CLIENT;
-use aiway_protocol::context::{HttpContext, Route};
-use dashmap::DashMap;
+use aiway_protocol::context::Route;
+use std::collections::HashMap;
 use std::process::exit;
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;
@@ -105,8 +105,7 @@ impl Router {
                 methods: vec![],
                 header: Default::default(),
                 query: Default::default(),
-                pre_filters: vec![],
-                post_filters: vec![],
+                plugins: vec![],
                 is_auth: true,
                 auth_white_list: vec![],
             },
@@ -119,8 +118,7 @@ impl Router {
                 methods: vec![],
                 header: Default::default(),
                 query: Default::default(),
-                pre_filters: vec![],
-                post_filters: vec![],
+                plugins: vec![],
                 is_auth: true,
                 auth_white_list: vec![],
             },
@@ -175,16 +173,24 @@ impl Router {
         });
     }
 
-    pub fn matches(&self, context: Arc<HttpContext>) -> Option<Arc<Route>> {
+    pub fn matches(
+        &self,
+        host: &str,
+        method: &str,
+        path: &str,
+        query: Option<&str>,
+        headers: &HashMap<String, String>,
+    ) -> Option<Arc<Route>> {
+        let route_match_key = format!("{}{}", host, path);
         if let Ok(router) = self.matcher.read()
-            && let Ok(result) = router.at(&context.request.route_match_key())
+            && let Ok(result) = router.at(&route_match_key)
         {
             let route = result.value;
             // 再依次匹配 Method/Header/Query
-            if Self::match_method(route, context.request.get_method())
-                && Self::match_host(route, &context.request.host)
-                && Self::match_header(route, &context)
-                && Self::match_query(route, &context.request.query)
+            if Self::match_method(route, method)
+                && Self::match_host(route, host)
+                && Self::match_header(route, headers)
+                && Self::match_query(route, query)
             {
                 return Some(route.clone());
             }
@@ -229,26 +235,37 @@ impl Router {
         false
     }
 
-    fn match_method(route: &Route, method: Option<&str>) -> bool {
+    fn match_method(route: &Route, method: &str) -> bool {
         route.methods.is_empty()
             || route
                 .methods
                 .iter()
-                .any(|route_method| Some(route_method.as_str()) == method)
+                .any(|route_method| route_method.as_str() == method)
     }
 
-    fn match_header(route: &Route, context: &HttpContext) -> bool {
+    fn match_header(route: &Route, headers: &HashMap<String, String>) -> bool {
         route
             .header
             .iter()
-            .all(|(key, value)| context.request.get_header(key).as_ref() == Some(value))
+            .all(|(key, value)| headers.get(key).as_ref().map(|v| *v) == Some(value))
     }
 
-    fn match_query(route: &Route, query: &DashMap<String, String>) -> bool {
-        route
-            .query
-            .iter()
-            .all(|(key, value)| query.get(key).map(|v| v.value() == value).unwrap_or(false))
+    fn match_query(route: &Route, query: Option<&str>) -> bool {
+        match query {
+            Some(query) => {
+                let mut query_map: HashMap<String, String> = HashMap::new();
+                for pair in query.split('&') {
+                    if let Some((key, value)) = pair.split_once('=') {
+                        query_map.insert(key.to_string(), value.to_string());
+                    }
+                }
+                route
+                    .query
+                    .iter()
+                    .all(|(key, value)| query_map.get(key).map(|v| v == value).unwrap_or(false))
+            }
+            None => route.query.is_empty(),
+        }
     }
 }
 

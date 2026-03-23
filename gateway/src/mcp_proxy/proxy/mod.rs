@@ -1,6 +1,4 @@
-use aiway_protocol::context::HttpContext;
-use context::HttpContextWrapper;
-
+use bytes::Bytes;
 mod handler;
 mod proxy;
 mod proxy_pool;
@@ -10,16 +8,13 @@ mod response;
 pub use proxy_pool::MCP_PROXY_POOL;
 
 #[allow(unused)]
-pub async fn mcp_get(_mcp_server: String, context: HttpContextWrapper) {
-    println!("MCP GET");
-    println!("MCP请求: {:?}", context);
+pub async fn mcp_get(_mcp_server: String) {
+
 }
 
-pub async fn mcp_post(context: &HttpContext) -> reqwest::Result<reqwest::Response> {
-    // 提取server
-    let path = context.request.get_path();
-    // /v1/mcp/<server>
+pub async fn mcp_post(path: &str, body: Bytes) -> reqwest::Result<reqwest::Response> {
+    // 提取server: /v1/mcp/<server>
     let mcp_server = path.split("/").nth(3).unwrap();
-    let response = proxy::mcp(mcp_server, context).await;
+    let response = proxy::mcp(mcp_server, body).await;
     Ok(reqwest::Response::from(response))
 }

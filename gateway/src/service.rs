@@ -1,13 +1,12 @@
 use crate::mcp_proxy::{handle_mcp_request};
 use crate::model_proxy::handle_model_request;
-use aiway_plugin_v2::async_trait;
+use aiway_plugin::async_trait;
 use aiway_protocol::common::constants::{MCP_API_PREFIX, MODEL_API_PREFIX};
 use aiway_protocol::context::{HttpContext, RequestExt};
 use bytes::Bytes;
 use pingora::Error;
 use pingora::http::ResponseHeader;
-use pingora_core::prelude::HttpPeer;
-use pingora_proxy::{ProxyHttp, Session};
+use pingora::prelude::{HttpPeer, ProxyHttp, Session};
 use tokio_stream::StreamExt;
 
 /// 本地服务

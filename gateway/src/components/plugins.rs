@@ -19,6 +19,8 @@ use aiway_protocol::gateway::plugin::ConfiguredPlugin;
 use anyhow::bail;
 use clap::Parser;
 use dashmap::DashMap;
+use pingora::prelude::ResponseHeader;
+use pingora_proxy::Session;
 use serde_json::Value;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
@@ -138,22 +140,4 @@ impl PluginFactory {
         });
     }
 
-    /// 调用插件
-    pub async fn execute(
-        &self,
-        configured_plugin: &ConfiguredPlugin,
-        context: &HttpContext,
-    ) -> anyhow::Result<Value> {
-        match self.plugins.get(&configured_plugin.name) {
-            Some(plugin) => plugin
-                .1
-                .execute(context, &configured_plugin.config)
-                .await
-                .map_err(|e| anyhow::anyhow!(e)),
-            None => bail!(
-                "plugin {} not found in plugin factory",
-                &configured_plugin.name
-            ),
-        }
-    }
 }

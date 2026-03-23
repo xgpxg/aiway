@@ -7,7 +7,7 @@ edition = "2024"
 aiway-protocol = { path = "../aiway-protocol" }
 busi = { path = "../busi" }
 logging = { path = "../logging" }
-aiway-plugin-v2 = { path = "../aiway-plugin-v2" }
+aiway-plugin = { path = "../aiway-plugin" }
 serde = "1.0"
 serde_json = "1.0"
 tokio = { version = "1", features = ["macros"] }

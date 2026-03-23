@@ -6,17 +6,14 @@ edition = "2024"
 [dependencies]
 aiway-protocol = { path = "../lib/aiway-protocol", features = ["api-key", "alert"] }
 busi = { path = "../lib/busi" }
-context = { path = "../lib/context" }
 logging = { path = "../lib/logging", features = ["request-log"] }
 loadbalance = { path = "../lib/loadbalance" }
 aiway-plugin = { path = "../lib/aiway-plugin" }
 cache = { path = "../lib/cache" }
 alert = { path = "../lib/alert" }
 common = { path = "../lib/common" }
-#pubsub = { path = "../lib/pubsub" }
-tokio = { version = "1", features = ["macros", "io-util", "bytes"] }
-rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }
-rocket_ws = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5" }
+tokio = { version = "1", features = ["macros", "io-util", "bytes", "sync", "time"] }
+pingora = { version = "0.8.0",features = ["pingora-proxy","proxy","lb","s2n"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
@@ -24,9 +21,9 @@ clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 dashmap = "6.1"
 uuid = { version = "1.18", features = ["v4"] }
-tokio-util = "0.7"
+num_cpus = "1.16"
+#tokio-util = "0.7"
 reqwest = { version = "0.13", features = ["stream", "json", "query"] }
-reqwest-websocket = { git = "https://github.com/jgraef/reqwest-websocket.git" }
 sysinfo = "0.38"
 md5 = "0.8"
 chrono = "0.4"
@@ -34,17 +31,15 @@ ip2region = { git = "https://github.com/lionsoul2014/ip2region.git", branch = "m
 matchit = "0.9.1"
 fastrand = { version = "2.3.0", optional = true }
 aha-reqwest-eventsource = { version = "0.1.0", optional = true }
-aiway-model-protocol = { path = "../lib/aiway-model-protocol", optional = true, features = ["stream"] }
+#aiway-model-protocol = { path = "../lib/aiway-model-protocol", optional = true, features = ["stream"] }
 thiserror = { version = "2.0", optional = true }
 tokio-stream = { version = "0.1", optional = true }
-plugin-manager = { path = "../lib/plugin-manager", optional = true }
-http = { version = "1.4", optional = true }
-sse-stream = { version = "=0.2.1", optional = true }
+plugin-manager = { path = "../lib/plugin-manager"}
+http = "1.4"
 urlencoding = { version = "2.1.3", optional = true }
-pingora = { version = "0.8.0", features = ["lb"] }
+bytes = "1.6"
+
 [features]
 default = ["model-proxy", "mcp-proxy"]
-#standalone = ["cache/share-cache"]
-#cluster = ["cache/redis-cache"]
-model-proxy = ["fastrand", "aha-reqwest-eventsource", "aiway-model-protocol", "thiserror", "tokio-stream", "plugin-manager"]
-mcp-proxy = ["aiway-protocol/mcp", "urlencoding", "sse-stream", "http"]
+model-proxy = ["fastrand", "aha-reqwest-eventsource", "thiserror", "tokio-stream"]
+mcp-proxy = ["aiway-protocol/mcp", "urlencoding"]

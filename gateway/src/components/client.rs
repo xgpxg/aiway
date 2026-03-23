@@ -2,7 +2,7 @@
 //!
 use crate::Args;
 use aiway_protocol::context::Route;
-use aiway_protocol::gateway::{ApiKeySync, Cert, Config, Firewall, GlobalFilter, Plugin, Service};
+use aiway_protocol::gateway::{ApiKeySync, Cert, Config, Firewall, GlobalPlugin, Plugin, Service};
 use anyhow::bail;
 use busi::res::Res;
 use clap::Parser;
@@ -85,9 +85,9 @@ impl InnerHttpClient {
         Ok(plugins)
     }
 
-    pub async fn fetch_global_filter(&self) -> anyhow::Result<GlobalFilter> {
-        let endpoint = format!("http://{}/api/v1/gateway/global/filter", self.args.console);
-        let global_filter = self.fetch_resource::<GlobalFilter>(endpoint).await?;
+    pub async fn fetch_global_plugins(&self) -> anyhow::Result<GlobalPlugin> {
+        let endpoint = format!("http://{}/api/v1/gateway/global/plugins", self.args.console);
+        let global_filter = self.fetch_resource::<GlobalPlugin>(endpoint).await?;
         Ok(global_filter)
     }
 

@@ -28,14 +28,7 @@ impl ApiKeySyncer {
         } else {
             log::info!("no last pull api key time in cache, Pull full keys");
         }
-        let list = INNER_HTTP_CLIENT.pull_api_key(last_pull_time).await;
-        let list = match list {
-            Ok(list) => list,
-            Err(e) => {
-                log::error!("{}", e);
-                exit(1);
-            }
-        };
+        let list = INNER_HTTP_CLIENT.pull_api_key(last_pull_time).await?;
 
         let len = list.len();
 

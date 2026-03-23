@@ -1,8 +1,7 @@
 use crate::handler::HttpResult;
 use crate::report::STATE;
 use aiway_protocol::context::{HttpContext, ResponseExt};
-use pingora::prelude::ResponseHeader;
-use pingora_proxy::Session;
+use pingora::prelude::{ResponseHeader, Session};
 
 pub async fn response_handle(
     _session: &mut Session,

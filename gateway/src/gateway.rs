@@ -1,7 +1,7 @@
 use crate::Args;
 use crate::handler::plugin;
 use crate::handler::plugin::PluginType;
-use aiway_plugin_v2::async_trait;
+use aiway_plugin::async_trait;
 use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::parts::SerdeParts;
 use aiway_protocol::context::{HttpContext, RequestExt};
@@ -9,11 +9,10 @@ use bytes::Bytes;
 use http::Uri;
 use pingora::Error;
 use pingora::http::{ ResponseHeader};
-use pingora_core::prelude::HttpPeer;
-use pingora_core::protocols::http::ServerSession;
-use pingora_proxy::{ProxyHttp, Session};
 use std::ops::{Deref, DerefMut};
 use std::time::Duration;
+use pingora::prelude::{HttpPeer, ProxyHttp, Session};
+use pingora::protocols::http::ServerSession;
 
 pub struct Gateway {
     args: Args,

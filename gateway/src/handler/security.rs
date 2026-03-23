@@ -3,7 +3,7 @@ use crate::handler::{HttpError, HttpResult};
 use crate::report::STATE;
 use aiway_protocol::context::HttpContext;
 use pingora::prelude::*;
-use pingora_core::protocols::l4::socket::SocketAddr;
+use pingora::protocols::l4::socket::SocketAddr;
 use aiway_protocol::common::header::Headers;
 
 pub async fn firewall_check(session: &mut Session, _: &mut HttpContext) -> HttpResult<()> {

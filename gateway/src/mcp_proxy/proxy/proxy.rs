@@ -1,6 +1,6 @@
+use bytes::Bytes;
 use crate::mcp_proxy::proxy::handler::McpServerHandler;
 use crate::mcp_proxy::proxy::response::{EmptyResponse, McpRes};
-use aiway_protocol::context::HttpContext;
 use aiway_protocol::rmcp::model::{
     JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, RequestId, ServerResult,
 };
@@ -12,7 +12,7 @@ use aiway_protocol::rmcp::model::{
 /// - 代理模式：直接将MCP客户端的请求转发到已有的MCP服务，仅支持 Streamable HTTP，不支持纯SSE。
 ///
 /// 返回 `reqwest::Response` ，走网关的标准处理流程
-pub async fn mcp(mcp_server: &str, context: &HttpContext) -> reqwest::Response {
+pub async fn mcp(mcp_server: &str, body: Bytes) -> reqwest::Response {
     // url解码
     let mcp_server = match urlencoding::decode(mcp_server) {
         Ok(s) => s.to_string(),
@@ -21,10 +21,9 @@ pub async fn mcp(mcp_server: &str, context: &HttpContext) -> reqwest::Response {
             return McpRes::<()>::error(&e.to_string(), RequestId::Number(0)).into();
         }
     };
-    log::info!("Request mcp server: {}", mcp_server);
-    let body = context.request.get_body();
+    log::debug!("Request mcp server: {}", mcp_server);
     // 解析请求体为JSON-RPC消息
-    let message = match serde_json::from_slice::<JsonRpcMessage>(body.unwrap().as_ref()) {
+    let message = match serde_json::from_slice::<JsonRpcMessage>(body.as_ref()) {
         Ok(message) => message,
         Err(e) => {
             log::error!("Parse mcp request error: {}", e);
@@ -32,7 +31,7 @@ pub async fn mcp(mcp_server: &str, context: &HttpContext) -> reqwest::Response {
         }
     };
 
-    log::info!("Receive mcp client message: {:?}", message);
+    log::debug!("Receive mcp client message: {:?}", message);
 
     match message {
         // 处理客户端请求

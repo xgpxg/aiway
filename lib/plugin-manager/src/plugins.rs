@@ -12,7 +12,7 @@
 
 use crate::CONSOLE;
 use crate::client::INNER_HTTP_CLIENT;
-use aiway_plugin_v2::{AsyncTryInto, Bytes, NetworkPlugin, Plugin, PluginError};
+use aiway_plugin::{AsyncTryInto, Bytes, NetworkPlugin, Plugin, PluginError};
 use aiway_protocol::context::HttpContext;
 use aiway_protocol::gateway::Plugin as PluginConfig;
 use aiway_protocol::gateway::plugin::ConfiguredPlugin;

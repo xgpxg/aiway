@@ -1,9 +1,11 @@
+//! # 初始化模块
+//!
+use crate::Args;
 use crate::components::{
-    ApiKeySyncer, ConfigFactory, Firewalld, GlobalFilterConfig, IpRegion, PluginFactory, Router,
-    Servicer,
+    ApiKeySyncer, ConfigFactory, Firewalld, GlobalPluginFactory, IpRegion, Router, Servicer,
 };
+use crate::report;
 use crate::report::STATE;
-use crate::{Args, mcp_proxy, model_proxy, report};
 use alert::Alert;
 use logging::LogAppender;
 use std::path::PathBuf;
@@ -18,25 +20,17 @@ pub async fn init(args: &Args) {
         },
     );
 
-    // 初始化conreg
-    //init_client(args).await;
-
     // 初始化缓存
-    // #[cfg(feature = "cluster")]
-    // cache::init_redis_cache(args.cache_url.split(",").collect::<Vec<_>>()).unwrap();
-    // #[cfg(feature = "standalone")]
-    // cache::init_share_cache().await.unwrap();
-
     cache::init_local_cache(cache_dir(args)).unwrap();
 
-    // 初始化发布订阅
-    //pubsub::init("127.0.0.1:4222").await.unwrap();
-
     // 初始全局路由过滤器配置
-    GlobalFilterConfig::init().await;
+    GlobalPluginFactory::init().await;
+
+    // 初始化插件管理器
+    plugin_manager::init(&args.console).await;
 
     // 初始化插件
-    PluginFactory::init().await;
+    //PluginFactory::init().await;
 
     // 初始化路由
     Router::init().await;
@@ -47,7 +41,7 @@ pub async fn init(args: &Args) {
     // 初始化防火墙
     Firewalld::init().await;
 
-    // 初始化IpRegion
+    // 初始化 IpRegion
     IpRegion::init().await;
 
     // 初始化配置
@@ -59,26 +53,26 @@ pub async fn init(args: &Args) {
     // 初始化告警
     alert::init(args.console.clone());
 
-    // 设置panic hook
+    // 设置 panic hook
     set_panic_hook();
 
-    // 同步APIKey
+    // 同步 APIKey
     ApiKeySyncer::init().await;
 
     #[cfg(feature = "model-proxy")]
     {
-        model_proxy::init(args).await;
+        crate::model_proxy::init(args).await;
     }
 
     #[cfg(feature = "mcp-proxy")]
     {
-        mcp_proxy::init(args).await;
+        crate::mcp_proxy::init(args).await;
     }
 }
 
 fn cache_dir(args: &Args) -> PathBuf {
     common::dir::AppDir::cache_dir()
-        .join("gateway")
+        .join("gateway2")
         .join(args.port.to_string())
 }
 
@@ -95,34 +89,3 @@ fn set_panic_hook() {
         hook(info);
     }));
 }
-
-// async fn init_client(args: &Args) {
-//     let config = ConRegConfigBuilder::default()
-//         .client(
-//             ClientConfigBuilder::default()
-//                 .port(args.port)
-//                 .build()
-//                 .unwrap(),
-//         )
-//         .config(
-//             ConfigConfigBuilder::default()
-//                 .server_addr("127.0.0.1:8000")
-//                 .config_ids(vec![
-//                     constants::ROUTES_CONFIG_ID.to_string(),
-//                     constants::SERVICES_CONFIG_ID.to_string(),
-//                     constants::PLUGINS_CONFIG_ID.to_string(),
-//                 ])
-//                 .build()
-//                 .unwrap(),
-//         )
-//         .discovery(
-//             DiscoveryConfigBuilder::default()
-//                 .server_addr("127.0.0.1:8000")
-//                 .build()
-//                 .unwrap(),
-//         )
-//         .build()
-//         .unwrap();
-//
-//     init_with(config).await;
-// }

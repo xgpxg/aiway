@@ -38,7 +38,6 @@ impl McpServerHandler {
         name: &str,
         request: JsonRpcRequest,
     ) -> anyhow::Result<McpRes<ServerResult>> {
-        log::info!("Initialize mcp server");
         let id = request.id;
         let exists = McpFactory::server_exists(name);
         if !exists {

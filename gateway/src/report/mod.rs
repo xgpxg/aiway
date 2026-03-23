@@ -63,22 +63,3 @@ pub fn init(args: &Args) {
     });
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_report() {
-        let args = Args {
-            address: "".to_string(),
-            port: 0,
-            console: "127.0.0.1:8080".to_string(),
-            log_server: "127.0.0.1:7281".to_string(),
-            cache_url: "".to_string(),
-            cache_username: "".to_string(),
-            cache_password: "".to_string(),
-        };
-        init(&args);
-        tokio::time::sleep(Duration::from_millis(200)).await;
-    }
-}

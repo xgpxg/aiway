@@ -11,17 +11,16 @@
 //! 服务定义：[`Servicer`]
 //!
 
-use crate::Args;
 use crate::components::client::INNER_HTTP_CLIENT;
 use aiway_protocol::gateway;
 use aiway_protocol::gateway::service::LbStrategy;
-use clap::Parser;
 use dashmap::DashMap;
 use loadbalance::LoadBalance;
 use std::process::exit;
 use std::sync::{Arc, LazyLock, OnceLock};
 use std::time::Duration;
 use tokio::sync::RwLock;
+use aiway_protocol::common::constants::GATEWAY_LOCAL_SOCK_PATH;
 
 pub struct Servicer {
     services: DashMap<String, Arc<LbService>>,
@@ -30,10 +29,9 @@ pub struct Servicer {
 
 pub static SERVICES: OnceLock<Servicer> = OnceLock::new();
 pub static LOCAL_SERVICE: LazyLock<gateway::Service> = LazyLock::new(|| {
-    let args = Args::parse();
     gateway::Service {
         name: "__local__".to_string(),
-        nodes: vec![format!("http://{}:{}", args.address, args.port)],
+        nodes: vec![GATEWAY_LOCAL_SOCK_PATH.to_string()],
         lb: LbStrategy::Random,
     }
 });
