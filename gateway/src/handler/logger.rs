@@ -26,8 +26,11 @@ pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContex
     let response_time = chrono::Local::now().timestamp_millis();
 
     STATE.inc_response_time((response_time - request_time) as usize);
-
-    // TODO 其他计数
+    if ctx.is_sse() {
+        STATE.inc_sse_connect_count(-1);
+    } else if ctx.is_websocket() {
+        STATE.inc_websocket_connect_count(-1);
+    }
 
     let request_parts = ctx.request_raw_parts().unwrap();
 
@@ -37,28 +40,31 @@ pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContex
         .map(|m| m.to_string())
         .unwrap_or_default();
 
-    let request_headers = request_parts.headers.as_ref().unwrap();
+    let request_headers = &request_parts.headers.as_ref();
 
     let host = request_headers
-        .get("host")
-        .or_else(|| request_headers.get(":authority"))
-        .map(|s| s.to_str().unwrap().to_string());
+        .and_then(|h| h.get("host").or_else(|| h.get(":authority")))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
 
-    let uri = request_parts.uri.as_ref().unwrap();
+    let uri = request_parts.uri.as_ref();
 
-    let path = uri.path().to_string();
+    let path = uri.map(|u| u.path().to_string()).unwrap_or_default();
 
     let ua = request_headers
-        .get(Headers::USER_AGENT)
-        .map(|s| s.to_str().unwrap().to_string());
+        .and_then(|h| h.get(Headers::USER_AGENT))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
 
     let refer = request_headers
-        .get(Headers::REFERER)
-        .map(|s| s.to_str().unwrap().to_string());
+        .and_then(|h| h.get(Headers::REFERER))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
 
     let origin = request_headers
-        .get(Headers::ORIGIN)
-        .map(|s| s.to_str().unwrap().to_string());
+        .and_then(|h| h.get(Headers::ORIGIN))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
 
     let response_parts = ctx.get_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS);
 
@@ -68,12 +74,12 @@ pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContex
 
     let body_size = ctx.get_state::<usize>(HttpContext::RESPONSE_BODY_SIZE);
 
-    let response_headers = response_parts.as_ref().and_then(|p| p.headers.as_ref());
-
-    let content_type = response_headers.and_then(|h| {
-        h.get(Headers::CONTENT_TYPE)
-            .map(|s| s.to_str().unwrap().to_string())
-    });
+    let content_type = response_parts
+        .as_ref()
+        .and_then(|p| p.headers.as_ref())
+        .and_then(|h| h.get(Headers::CONTENT_TYPE))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
 
     let region = IpRegion::search(&client_ip);
 

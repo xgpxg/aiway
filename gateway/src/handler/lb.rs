@@ -5,8 +5,8 @@ use crate::handler::HttpResult;
 use aiway_protocol::context::HttpContext;
 use pingora::prelude::*;
 
-pub async fn lb_handle(_: &mut Session, context: &mut HttpContext) -> HttpResult<()> {
-    let route = context.get_route();
+pub async fn lb_handle(_: &mut Session, ctx: &mut HttpContext) -> HttpResult<()> {
+    let route = ctx.get_route();
     if route.is_none() {
         return Ok(());
     }
@@ -20,7 +20,7 @@ pub async fn lb_handle(_: &mut Session, context: &mut HttpContext) -> HttpResult
         match Servicer::get_instance(service) {
             Some(instance) if !instance.is_empty() => {
                 // 设置最终需要转发的URL
-                context.set_routing_url(instance);
+                ctx.set_routing_url(instance);
                 return Ok(());
             }
             _ => {

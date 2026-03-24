@@ -181,19 +181,17 @@ impl Router {
         query: Option<&str>,
         headers: &HashMap<String, String>,
     ) -> Option<Arc<Route>> {
-        let route_match_key = format!("{}{}", host, path);
-        if let Ok(router) = self.matcher.read()
-            && let Ok(result) = router.at(&route_match_key)
+        let route_match_key = format!("{host}{path}");
+        let matcher_guard = self.matcher.read().ok()?;
+        let result = matcher_guard.at(&route_match_key).ok()?;
+        let route = result.value;
+
+        if Self::match_method(route, method)
+            && Self::match_host(route, host)
+            && Self::match_header(route, headers)
+            && Self::match_query(route, query)
         {
-            let route = result.value;
-            // 再依次匹配 Method/Header/Query
-            if Self::match_method(route, method)
-                && Self::match_host(route, host)
-                && Self::match_header(route, headers)
-                && Self::match_query(route, query)
-            {
-                return Some(route.clone());
-            }
+            return Some(Arc::clone(route));
         }
 
         None
