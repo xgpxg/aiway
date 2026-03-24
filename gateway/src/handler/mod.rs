@@ -57,10 +57,10 @@ pub fn error_resp_from_status_code(stats_code: u16) -> SerdeParts {
     }
 }
 
-/// 响应错误并结束处理
+/// 响应错误并结束处理。
+/// 仅适用于 `request_filter` 阶段
 #[macro_export]
 macro_rules! respond_error_end {
-    // 默认行为：记录状态并返回错误响应
     ($session:expr, $ctx:expr, $error:expr) => {
         respond_error!($session, $ctx, $error)?;
         return Ok(true);

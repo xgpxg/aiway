@@ -26,11 +26,6 @@ pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContex
     let response_time = chrono::Local::now().timestamp_millis();
 
     STATE.inc_response_time((response_time - request_time) as usize);
-    if ctx.is_sse() {
-        STATE.inc_sse_connect_count(-1);
-    } else if ctx.is_websocket() {
-        STATE.inc_websocket_connect_count(-1);
-    }
 
     let request_parts = ctx.request_raw_parts().unwrap();
 

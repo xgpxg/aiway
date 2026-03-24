@@ -8,7 +8,7 @@ use aiway_protocol::context::{HttpContext, RequestExt};
 use bytes::Bytes;
 use http::Uri;
 use pingora::Error;
-use pingora::http::ResponseHeader;
+use pingora::http::{RequestHeader, ResponseHeader};
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
 use pingora::protocols::http::ServerSession;
 use std::ops::{Deref, DerefMut};
