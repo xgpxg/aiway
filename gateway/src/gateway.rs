@@ -1,6 +1,6 @@
-use crate::handler::plugin;
+use crate::Args;
 use crate::handler::plugin::PluginType;
-use crate::{Args, respond_error, respond_error_end};
+use crate::handler::{plugin, respond_error, respond_error_end};
 use aiway_plugin::async_trait;
 use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::parts::SerdeParts;
@@ -8,9 +8,8 @@ use aiway_protocol::context::{HttpContext, RequestExt};
 use bytes::Bytes;
 use http::Uri;
 use pingora::Error;
-use pingora::http::{RequestHeader, ResponseHeader};
+use pingora::http::ResponseHeader;
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
-use pingora::protocols::http::ServerSession;
 use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
@@ -92,29 +91,29 @@ impl ProxyHttp for Gateway {
         if let Err(e) =
             plugin::run_on_request(PluginType::Global, session.req_header_mut(), ctx).await
         {
-            respond_error_end!(session, ctx, e);
+            return respond_error_end(session, ctx, e).await;
         }
 
         // 路由匹配
         if let Err(e) = crate::handler::routing_handle(session, ctx).await {
-            respond_error_end!(session, ctx, e);
+            return respond_error_end(session, ctx, e).await;
         }
 
         // 鉴权
         if let Err(e) = crate::handler::auth_handle(session, ctx).await {
-            respond_error_end!(session, ctx, e);
+            return respond_error_end(session, ctx, e).await;
         }
 
         // 执行路由请求阶段插件，可在此处修改http头部
         if let Err(e) =
             plugin::run_on_request(PluginType::Route, session.req_header_mut(), ctx).await
         {
-            respond_error_end!(session, ctx, e);
+            return respond_error_end(session, ctx, e).await;
         }
 
         // 负载均衡，查找服务实例
         if let Err(e) = crate::handler::lb_handle(session, ctx).await {
-            respond_error_end!(session, ctx, e);
+            return respond_error_end(session, ctx, e).await;
         }
 
         //session.set_keepalive(Some(60));
@@ -133,13 +132,13 @@ impl ProxyHttp for Gateway {
         // 预处理
         // 在这里进行连接计数等，不修改任何客户端原始数据
         if let Err(e) = crate::handler::pre_handle(session, ctx).await {
-            return respond_error!(session, ctx, e);
+            return respond_error(session, ctx, e).await;
         }
 
         // 防护墙安全校验
         // 被防护墙拦截的请求不会记录日志
         if let Err(e) = crate::handler::firewall_check(session, ctx).await {
-            return respond_error!(session, ctx, e);
+            return respond_error(session, ctx, e).await;
         }
 
         Ok(())
@@ -160,7 +159,7 @@ impl ProxyHttp for Gateway {
     {
         // 执行插件
         if let Err(e) = plugin::run_on_request_body(PluginType::Route, body, ctx).await {
-            return respond_error!(session, ctx, e);
+            return respond_error(session, ctx, e).await;
         }
 
         Ok(())
@@ -174,17 +173,17 @@ impl ProxyHttp for Gateway {
     ) -> pingora::Result<(), Box<Error>> {
         // 执行路由响应阶段插件
         if let Err(e) = plugin::run_on_response(PluginType::Route, resp, ctx).await {
-            return respond_error!(session, ctx, e);
+            return respond_error(session, ctx, e).await;
         }
 
         // 执行全局响应阶段插件
         if let Err(e) = plugin::run_on_response(PluginType::Global, resp, ctx).await {
-            return respond_error!(session, ctx, e);
+            return respond_error(session, ctx, e).await;
         }
 
         // 响应处理
         if let Err(e) = crate::handler::response_handle(session, resp, ctx).await {
-            return respond_error!(session, ctx, e);
+            return respond_error(session, ctx, e).await;
         }
 
         ctx.insert_state(
@@ -197,7 +196,7 @@ impl ProxyHttp for Gateway {
 
     fn upstream_response_body_filter(
         &self,
-        session: &mut Session,
+        _: &mut Session,
         body: &mut Option<Bytes>,
         _: bool,
         ctx: &mut Self::CTX,

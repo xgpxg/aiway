@@ -12,7 +12,7 @@ mod components;
 mod proxy;
 
 use crate::handler::plugin::PluginType;
-use crate::handler::{HttpError, plugin};
+use crate::handler::{HandlerError, plugin};
 use crate::model_proxy::proxy::Proxy;
 pub use components::ModelFactory;
 
@@ -102,18 +102,18 @@ pub(crate) async fn handle_model_request(
 }
 
 /// 解析模型信息
-fn parse_model_info(body: &mut Bytes) -> Result<(String, Provider), HttpError> {
+fn parse_model_info(body: &mut Bytes) -> Result<(String, Provider), HandlerError> {
     // 转为JSON，提取模型名称
     let mut body_json =
-        serde_json::from_slice::<Value>(body).map_err(|e| HttpError::new(400, &e.to_string()))?;
+        serde_json::from_slice::<Value>(body).map_err(|e| HandlerError::new(400, &e.to_string()))?;
     let model = body_json["model"]
         .as_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| HttpError::new(400, "Missing 'model' field"))?;
+        .ok_or_else(|| HandlerError::new(400, "Missing 'model' field"))?;
 
     // 从模型的可用提供商中获取一个
     let provider =
-        ModelFactory::get_provider(&model).map_err(|e| HttpError::new(400, &e.to_string()))?;
+        ModelFactory::get_provider(&model).map_err(|e| HandlerError::new(400, &e.to_string()))?;
 
     log::info!(
         "[ModelProxy] 解析模型信息 - 原始模型：{}, 提供商：{}",
@@ -145,7 +145,7 @@ async fn execute_request_plugins(
     session: &mut Session,
     plugin_type: &PluginType,
     ctx: &mut HttpContext,
-) -> Result<(), HttpError> {
+) -> Result<(), HandlerError> {
     plugin::run_on_request(plugin_type.clone(), session.req_header_mut(), ctx).await
 }
 
@@ -155,7 +155,7 @@ async fn execute_request_body_plugins(
     plugin_type: PluginType,
     body: &mut Option<Bytes>,
     ctx: &mut HttpContext,
-) -> Result<(), HttpError> {
+) -> Result<(), HandlerError> {
     plugin::run_on_request_body(plugin_type, body, ctx).await
 }
 

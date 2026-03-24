@@ -1,12 +1,12 @@
 use crate::components::Firewalld;
-use crate::handler::{HttpError, HttpResult};
+use crate::handler::{HandlerError, HandlerResult};
 use crate::report::STATE;
 use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::HttpContext;
 use pingora::prelude::*;
 use pingora::protocols::l4::socket::SocketAddr;
 
-pub async fn firewall_check(session: &mut Session, _: &mut HttpContext) -> HttpResult<()> {
+pub async fn firewall_check(session: &mut Session, _: &mut HttpContext) -> HandlerResult<()> {
     let addr = session.client_addr();
     let ip = addr
         .map(|addr| match addr {
@@ -28,7 +28,7 @@ pub async fn firewall_check(session: &mut Session, _: &mut HttpContext) -> HttpR
         // 拦截请求后，无效请求数+1
         STATE.inc_request_invalid_count(1);
 
-        return Err(HttpError::new(403, &e.to_string()));
+        return Err(HandlerError::new(403, &e.to_string()));
     }
 
     // http连接计数

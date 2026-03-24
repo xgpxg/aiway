@@ -20,28 +20,28 @@ pub use pre::pre_handle;
 pub use response::response_handle;
 pub use routing::routing_handle;
 pub use security::firewall_check;
-pub(crate) type HttpResult<T> = Result<T, HttpError>;
+pub(crate) type HandlerResult<T> = Result<T, HandlerError>;
 #[derive(Debug)]
-pub struct HttpError(pub(crate) u16, pub(crate) String);
-impl HttpError {
+pub struct HandlerError(pub(crate) u16, pub(crate) String);
+impl HandlerError {
     pub fn new(code: u16, message: &str) -> Self {
-        HttpError(code, message.to_string())
+        HandlerError(code, message.to_string())
     }
 }
-impl std::fmt::Display for HttpError {
+impl std::fmt::Display for HandlerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {}", self.0, self.1)
     }
 }
 
-impl From<ToStrError> for HttpError {
+impl From<ToStrError> for HandlerError {
     fn from(e: ToStrError) -> Self {
-        HttpError(500, e.to_string())
+        HandlerError(500, e.to_string())
     }
 }
-impl From<BError> for HttpError {
+impl From<BError> for HandlerError {
     fn from(value: BError) -> Self {
-        HttpError(500, value.to_string())
+        HandlerError(500, value.to_string())
     }
 }
 
@@ -56,27 +56,29 @@ pub fn error_resp_from_status_code(stats_code: u16) -> SerdeParts {
         authority: None,
     }
 }
-
 /// 响应错误并结束处理。
 /// 仅适用于 `request_filter` 阶段
-#[macro_export]
-macro_rules! respond_error_end {
-    ($session:expr, $ctx:expr, $error:expr) => {
-        respond_error!($session, $ctx, $error)?;
-        return Ok(true);
-    };
+pub async fn respond_error_end(
+    session: &mut ServerSession,
+    ctx: &mut aiway_protocol::context::HttpContext,
+    error: HandlerError,
+) -> pingora::Result<bool> {
+    respond_error(session, ctx, error).await?;
+    Ok(true)
 }
 
 /// 响应错误
-#[macro_export]
-macro_rules! respond_error {
-    ($session:expr, $ctx:expr, $error:expr) => {{
-        $ctx.insert_state(
-            aiway_protocol::context::HttpContext::RESPONSE_SERDE_PARTS,
-            crate::handler::error_resp_from_status_code($error.0),
-        );
-        $session
-            .respond_error_with_body($error.0, $error.1.into())
-            .await
-    }};
+pub async fn respond_error(
+    session: &mut ServerSession,
+    ctx: &mut aiway_protocol::context::HttpContext,
+    error: HandlerError,
+) -> pingora::Result<()> {
+    ctx.insert_state(
+        aiway_protocol::context::HttpContext::RESPONSE_SERDE_PARTS,
+        error_resp_from_status_code(error.0),
+    );
+    session
+        .respond_error_with_body(error.0, error.1.into())
+        .await?;
+    Ok(())
 }

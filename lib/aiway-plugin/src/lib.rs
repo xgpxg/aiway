@@ -1,5 +1,4 @@
 #[doc = include_str!("../README.md")]
-
 mod macros;
 mod network;
 
@@ -53,9 +52,6 @@ impl std::fmt::Display for PluginError {
 /// `execute`接收HttpContext参数，该HttpContext是可变的（内部可变性），可在插件逻辑内部修改请求和响应。
 /// 注意：当多个插件修改HttpContext的同一个属性时，后执行的插件会覆盖前一个插件的修改。
 /// 插件实现方应该自行决定插件运行阶段（请求阶段或者响应阶段），从而获取或修改request或response的数据。
-///
-/// - 返回值
-/// 返回[serde_json:Value]
 ///
 #[async_trait]
 pub trait Plugin: Send + Sync {
