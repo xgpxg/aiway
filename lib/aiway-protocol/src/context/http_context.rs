@@ -18,9 +18,6 @@ pub struct HttpContext {
     state: State,
 }
 
-#[derive(Debug, Default)]
-pub struct Meta(DashMap<String, Value>);
-
 #[derive(Debug)]
 pub struct State(DashMap<String, Value>);
 

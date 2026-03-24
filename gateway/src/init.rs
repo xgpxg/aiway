@@ -7,8 +7,10 @@ use crate::components::{
 use crate::report;
 use crate::report::STATE;
 use alert::Alert;
+use clap::Parser;
 use logging::LogAppender;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 pub async fn init(args: &Args) {
     // 初始化日志
@@ -28,9 +30,6 @@ pub async fn init(args: &Args) {
 
     // 初始化插件管理器
     plugin_manager::init(&args.console).await;
-
-    // 初始化插件
-    //PluginFactory::init().await;
 
     // 初始化路由
     Router::init().await;
@@ -84,8 +83,20 @@ fn set_panic_hook() {
         STATE.inc_status_request_count(500, 1);
         STATE.inc_http_connect_count(-1);
 
-        Alert::error("网关节点出现异常，请关注", &info.to_string());
+        alert_error("网关节点出现Panic，请关注！", &info.to_string());
 
         hook(info);
     }));
+}
+
+static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
+pub fn alert_error(title: &str, content: &str) {
+    let args = &*ARGS;
+    let full_content = format!("{}\n节点地址：{}:{}", content, args.address, args.port);
+    Alert::error(title, &full_content);
+}
+pub fn alert_warn(title: &str, content: &str) {
+    let args = &*ARGS;
+    let full_content = format!("{}\n节点地址：{}:{}", content, args.address, args.port);
+    Alert::warn(title, &full_content);
 }

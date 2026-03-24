@@ -1,5 +1,4 @@
 use crate::common::header::Headers;
-use http::HeaderName;
 use http::response::Parts;
 
 pub trait ResponseExt {

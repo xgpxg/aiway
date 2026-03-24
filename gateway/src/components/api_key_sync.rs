@@ -67,7 +67,7 @@ impl ApiKeySyncer {
                 interval.tick().await;
 
                 if let Err(e) = Self::load().await {
-                    log::error!("{}", e);
+                    log::error!("sync api key fail: {}", e);
                 }
             }
         });
