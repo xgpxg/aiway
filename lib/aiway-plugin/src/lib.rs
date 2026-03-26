@@ -1,4 +1,5 @@
-#[doc = include_str!("../README.md")]
+#![doc = include_str!("../README.md")]
+
 mod macros;
 mod network;
 
