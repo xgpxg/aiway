@@ -69,6 +69,7 @@ cargo run --bin aiway
 - 默认账号: `admin` / `admin`
 
 ### 启动参数
+
 ```shell
 ./aiway -h
 
@@ -113,17 +114,34 @@ Options:
 - Ubuntu 24.04, Intel i7-12700K, 12 Cores, 16 GB RAM
 
 ```shell
-wrk http://127.0.0.1:7001/hello -t 12 -c 100
+wrk http://127.0.0.1:7001/api/hello -t 12 -c 100
 
-Running 10s test @ http://127.0.0.1:7001/hello
+Running 10s test @ http://127.0.0.1:7001/api/hello
   12 threads and 100 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.25ms  574.88us  10.34ms   82.29%
-    Req/Sec     6.54k   756.78    14.64k    86.22%
-  784402 requests in 10.10s, 222.18MB read
-Requests/sec:  77662.06
-Transfer/sec:     22.00MB
+    Latency     0.89ms  780.09us  28.66ms   95.87%
+    Req/Sec     9.54k     1.12k   18.36k    93.70%
+  1144556 requests in 10.10s, 287.07MB read
+Requests/sec: 113330.59
+Transfer/sec:     28.43MB
 ```
+
+- Ubuntu 22.04, 4 Cores, 8 GB RAM
+
+```shell
+wrk http://127.0.0.1:7001/hello -t 4 -c 100
+
+Running 10s test @ http://127.0.0.1:7001/hello
+  4 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     6.70ms    3.05ms  36.85ms   73.84%
+    Req/Sec     7.61k   770.50     9.22k    64.50%
+  302860 requests in 10.01s, 75.96MB read
+Requests/sec:  30265.20
+Transfer/sec:      7.59MB
+```
+
+> 以下为在老版本上的测试数据（<0.2.2），新版本会快30%~40%
 
 - openEuler 24.03 (LTS-SP3), Intel(R) Xeon(R) 6982P-C, 4 Cores, 8 GB RAM
 
