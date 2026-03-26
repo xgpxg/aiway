@@ -2,10 +2,10 @@ use crate::context::Route;
 use crate::context::parts::SerdeParts;
 #[cfg(feature = "model")]
 use crate::model::Provider;
+use bincode;
 use dashmap::DashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use serde_json::Value;
 use std::any::Any;
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -31,41 +31,42 @@ pub struct Routing {
 }
 
 #[derive(Debug)]
-pub struct State(DashMap<String, Value>);
+pub struct State(DashMap<String, Vec<u8>>);
 
 impl Default for State {
     fn default() -> Self {
-        let data = DashMap::from_iter([
-            (
-                HttpContext::REQUEST_ID.to_string(),
-                uuid::Uuid::new_v4().to_string().into(),
-            ),
-            (
-                HttpContext::REQUEST_TS.to_string(),
-                (SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as i64)
-                    .into(),
-            ),
-        ]);
+        let data = DashMap::new();
+        
+        // 插入请求 ID
+        let request_id = uuid::Uuid::new_v4().to_string();
+        let encoded_id = bincode::serialize(&request_id).unwrap();
+        data.insert(HttpContext::REQUEST_ID.to_string(), encoded_id);
+        
+        // 插入请求时间戳
+        let request_ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+        let encoded_ts = bincode::serialize(&request_ts).unwrap();
+        data.insert(HttpContext::REQUEST_TS.to_string(), encoded_ts);
+        
         State(data)
     }
 }
 
 impl State {
-    pub fn insert<T: Serialize>(&self, key: &str, value: T) -> Option<Value> {
-        self.0
-            .insert(key.to_string(), serde_json::to_value(value).unwrap())
+    pub fn insert<T: Serialize>(&self, key: &str, value: T) -> Option<Vec<u8>> {
+        let encoded = bincode::serialize(&value).unwrap();
+        self.0.insert(key.to_string(), encoded)
     }
 
     pub fn get<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
         self.0
             .get(key)
-            .and_then(|v| serde_json::from_value::<T>(v.clone()).ok())
+            .and_then(|v| bincode::deserialize::<T>(v.value()).ok())
     }
 
-    pub fn remove(&self, key: &str) -> Option<Value> {
+    pub fn remove(&self, key: &str) -> Option<Vec<u8>> {
         self.0.remove(key).map(|(_, v)| v)
     }
 
