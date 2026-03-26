@@ -41,34 +41,12 @@ impl std::fmt::Display for PluginError {
     }
 }
 
-/// 插件定义
-///
-/// - name
-///
-/// 插件的名称，原则上不要重复。在`PluginManager`中，如果重复了，后添加的将被覆盖。
-///
-/// - execute
-///
-/// `execute`接收HttpContext参数，该HttpContext是可变的（内部可变性），可在插件逻辑内部修改请求和响应。
-/// 注意：当多个插件修改HttpContext的同一个属性时，后执行的插件会覆盖前一个插件的修改。
-/// 插件实现方应该自行决定插件运行阶段（请求阶段或者响应阶段），从而获取或修改request或response的数据。
-///
 #[async_trait]
 pub trait Plugin: Send + Sync {
     /// 插件名称
     fn name(&self) -> &str;
     /// 插件信息
     fn info(&self) -> PluginInfo;
-
-    /// 请求阶段，早于 `on_request`，可改写头部
-    async fn early_request(
-        &self,
-        _config: &Value,
-        _head: &mut request::Parts,
-        _ctx: &mut HttpContext,
-    ) -> Result<(), PluginError> {
-        Ok(())
-    }
 
     /// 请求阶段，可改写头部
     async fn on_request(
@@ -109,6 +87,8 @@ pub trait Plugin: Send + Sync {
     ) -> Result<(), PluginError> {
         Ok(())
     }
+
+    async fn on_logging(&self, _: &Value, _: &mut HttpContext) {}
 }
 
 /// 插件信息
@@ -200,6 +180,9 @@ impl Plugin for LibraryPluginWrapper {
     ) -> Result<(), PluginError> {
         self.plugin.on_response_body(config, body, ctx)
     }
+
+    async fn on_logging(&self, _: &Value, _: &mut HttpContext) {}
+
 }
 
 impl Drop for LibraryPluginWrapper {

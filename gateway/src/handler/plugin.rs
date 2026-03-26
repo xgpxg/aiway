@@ -21,9 +21,9 @@ pub enum PluginType {
 }
 /// 执行单个插件并处理错误（异步版本）
 macro_rules! execute_plugin_async {
-    ($plugin:expr, $method:ident, $($arg:expr),*) => {{
+    ($plugin:expr, $ctx:expr, $method:ident, $($arg:expr),*) => {{
         log::debug!("execute plugin: {}", $plugin.name);
-        PluginFactory::$method(&$plugin, $($arg),*).await.map_err(|e| {
+        PluginFactory::$method(&$plugin, $ctx, $($arg),*).await.map_err(|e| {
             log::error!("execute plugin {} error: {}", $plugin.name, e);
             HandlerError::new(502, "BadPlugin")
         })?;
@@ -32,9 +32,9 @@ macro_rules! execute_plugin_async {
 
 /// 执行单个插件并处理错误（同步版本）
 macro_rules! execute_plugin_sync {
-    ($plugin:expr, $method:ident, $($arg:expr),*) => {{
+    ($plugin:expr,$ctx:expr, $method:ident, $($arg:expr),*) => {{
         log::debug!("execute plugin: {}", $plugin.name);
-        PluginFactory::$method(&$plugin, $($arg),*).map_err(|e| {
+        PluginFactory::$method(&$plugin, $ctx, $($arg),*).map_err(|e| {
             log::error!("execute plugin {} error: {}", $plugin.name, e);
             HandlerError::new(502, "BadPlugin")
         })?;
@@ -51,7 +51,7 @@ pub async fn run_on_request(
         PluginType::Global => {
             let plugins = GlobalPluginFactory::get_plugins();
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, on_request, head, ctx);
+                execute_plugin_async!(plugin, ctx, on_request, head);
             }
         }
         PluginType::Route => {
@@ -59,7 +59,7 @@ pub async fn run_on_request(
             let route = ctx.get_route().unwrap();
             let plugins = &route.plugins;
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, on_request, head, ctx);
+                execute_plugin_async!(plugin, ctx, on_request, head);
             }
         }
         PluginType::Model {
@@ -72,7 +72,7 @@ pub async fn run_on_request(
                     "execute model provider request converter plugin: {}",
                     plugin.name
                 );
-                execute_plugin_async!(plugin, on_request,head, ctx);
+                execute_plugin_async!(plugin, ctx, on_request, head);
             }
         }
     }
@@ -89,7 +89,7 @@ pub async fn run_on_request_body(
         PluginType::Global => {
             let plugins = GlobalPluginFactory::get_plugins();
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, on_request_body,body, ctx);
+                execute_plugin_async!(plugin, ctx, on_request_body, body);
             }
         }
         PluginType::Route => {
@@ -97,7 +97,7 @@ pub async fn run_on_request_body(
             let route = ctx.get_route().unwrap();
             let plugins = &route.plugins;
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, on_request_body, body, ctx);
+                execute_plugin_async!(plugin, ctx, on_request_body, body);
             }
         }
         PluginType::Model {
@@ -110,7 +110,7 @@ pub async fn run_on_request_body(
                     "execute model provider request converter plugin: {}",
                     plugin.name
                 );
-                execute_plugin_async!(plugin, on_request_body,body,ctx);
+                execute_plugin_async!(plugin, ctx, on_request_body, body);
             }
         }
     }
@@ -126,7 +126,7 @@ pub async fn run_on_response(
         PluginType::Global => {
             let plugins = GlobalPluginFactory::get_plugins();
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, on_response,  head, ctx);
+                execute_plugin_async!(plugin, ctx, on_response, head);
             }
         }
         PluginType::Route => {
@@ -134,7 +134,7 @@ pub async fn run_on_response(
             let route = ctx.get_route().unwrap();
             let plugins = &route.plugins;
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, on_response, head, ctx);
+                execute_plugin_async!(plugin, ctx, on_response, head);
             }
         }
         PluginType::Model {
@@ -147,7 +147,7 @@ pub async fn run_on_response(
                     "execute model provider request converter plugin: {}",
                     plugin.name
                 );
-                execute_plugin_async!(plugin, on_response, head, ctx);
+                execute_plugin_async!(plugin, ctx, on_response, head);
             }
         }
     }
@@ -164,7 +164,7 @@ pub fn run_on_response_body(
         PluginType::Global => {
             let plugins = GlobalPluginFactory::get_plugins();
             for plugin in plugins.iter() {
-                execute_plugin_sync!(plugin, on_response_body, body, ctx);
+                execute_plugin_sync!(plugin, ctx, on_response_body, body);
             }
         }
         PluginType::Route => {
@@ -172,7 +172,7 @@ pub fn run_on_response_body(
             let route = ctx.get_route().unwrap();
             let plugins = &route.plugins;
             for plugin in plugins.iter() {
-                execute_plugin_sync!(plugin, on_response_body, body, ctx);
+                execute_plugin_sync!(plugin, ctx, on_response_body, body);
             }
         }
         PluginType::Model {
@@ -185,10 +185,39 @@ pub fn run_on_response_body(
                     "execute model provider request converter plugin: {}",
                     plugin.name
                 );
-                execute_plugin_sync!(plugin, on_response_body, body, ctx);
+                execute_plugin_sync!(plugin, ctx, on_response_body, body);
             }
         }
     }
 
     Ok(())
+}
+
+pub async fn run_on_logging(ctx: &mut HttpContext) {
+    // 执行路由插件的logging
+    let route = ctx.get_route().unwrap();
+    let plugins = &route.plugins;
+    for plugin in plugins.iter() {
+        PluginFactory::on_logging(plugin, ctx).await;
+    }
+
+    // 执行模型插件的logging
+    if let Some(model_name) = ctx.get_proxy_model_name() {
+        if let Some(provider) = ctx.get_proxy_model_provider() {
+            let provider = ModelFactory::get_special_provider(&model_name, &provider.name).unwrap();
+            if let Some(plugin) = provider.plugins {
+                log::info!(
+                    "execute model provider request converter plugin: {}",
+                    plugin.name
+                );
+                PluginFactory::on_logging(&plugin, ctx).await;
+            }
+        }
+    }
+
+    // 执行全局插件的logging
+    let plugins = GlobalPluginFactory::get_plugins();
+    for plugin in plugins.iter() {
+        PluginFactory::on_logging(plugin, ctx).await;
+    }
 }

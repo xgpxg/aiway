@@ -11,11 +11,6 @@ use alert::Alert;
 use pingora::prelude::*;
 
 pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContext, args: &Args) {
-    if let Some(e) = err {
-        log::error!("Gateway Proxy Error: {}", e);
-        Alert::error("Gateway Proxy Error", &e.to_string());
-    }
-
     // SAFE: client_ip不会为空
     let client_ip = session.client_addr().unwrap().to_string();
 
@@ -27,7 +22,15 @@ pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContex
 
     STATE.inc_response_time((response_time - request_time) as usize);
 
-    let request_parts = ctx.request_raw_parts().unwrap();
+    let request_parts = ctx.request_raw_parts();
+
+    // request_parts 为空的，表明early_request_filter拦截了或者处理失败
+    // 此时不记录日志
+    if request_parts.is_none() {
+        return;
+    }
+
+    let request_parts = request_parts.unwrap();
 
     let method = request_parts
         .method

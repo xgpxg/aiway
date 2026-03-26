@@ -7,7 +7,7 @@ pub async fn response_handle(
     _session: &mut Session,
     resp: &mut ResponseHeader,
     ctx: &mut HttpContext,
-) -> HandlerResult<()> {
+) {
     if resp.is_sse() {
         STATE.inc_sse_connect_count(1);
         STATE.inc_http_connect_count(-1);
@@ -18,6 +18,4 @@ pub async fn response_handle(
         STATE.inc_http_connect_count(-1);
         ctx.insert_state(HttpContext::IS_WEBSOCKET, true);
     }
-
-    Ok(())
 }

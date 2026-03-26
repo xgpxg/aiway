@@ -1,10 +1,12 @@
 use crate::context::Route;
 use crate::context::parts::SerdeParts;
+#[cfg(feature = "model")]
 use crate::model::Provider;
 use dashmap::DashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use std::any::Any;
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,20 +16,22 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub struct HttpContext {
     /// 路由信息
     routing: Routing,
-    /// 运行时数据
+    /// 运行时数据，必须是可序列化的。
     state: State,
+    /// 运行时数据，可以是任何数据，在请求生命周期内有效。
+    any_state: AnyState,
 }
-
-#[derive(Debug)]
-pub struct State(DashMap<String, Value>);
 
 #[derive(Debug, Default)]
 pub struct Routing {
     /// 匹配到的路由配置信息
     route: Option<Arc<Route>>,
-    /// 路由目标地址，可以是域名或IP(包含协议头)，由负载均衡器设置
+    /// 路由目标地址，可以是域名或IP(包含协议头)，由负载均衡器设置。
     target: Option<String>,
 }
+
+#[derive(Debug)]
+pub struct State(DashMap<String, Value>);
 
 impl Default for State {
     fn default() -> Self {
@@ -70,6 +74,37 @@ impl State {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct AnyState {
+    data: DashMap<String, Arc<dyn Any + Send + Sync>>,
+}
+
+impl AnyState {
+    pub fn insert<T: Any + Send + Sync>(
+        &self,
+        key: &str,
+        value: T,
+    ) -> Option<Arc<dyn Any + Send + Sync>> {
+        self.data.insert(key.to_string(), Arc::new(value))
+    }
+
+    pub fn get<T: Any + Send + Sync>(&self, key: &str) -> Option<Arc<T>> {
+        self.data
+            .get(key)
+            .and_then(|v| v.clone().downcast::<T>().ok())
+    }
+
+    pub fn remove<T: Any + Send + Sync>(&self, key: &str) -> Option<Arc<T>> {
+        self.data
+            .remove(key)
+            .and_then(|(_, v)| v.downcast::<T>().ok())
+    }
+
+    pub fn exists<T: Any + Send + Sync>(&self, key: &str) -> bool {
+        self.data.contains_key(key)
+    }
+}
+
 impl Default for HttpContext {
     fn default() -> Self {
         Self::new()
@@ -100,6 +135,7 @@ impl HttpContext {
         Self {
             routing: Default::default(),
             state: Default::default(),
+            any_state: Default::default(),
         }
     }
 
@@ -137,6 +173,27 @@ impl HttpContext {
     pub fn remove_state(&self, key: &str) {
         self.state.remove(key);
     }
+
+    #[inline]
+    pub fn insert_any_state<T: Any + Send + Sync>(&self, key: &str, value: T) {
+        self.any_state.insert(key, value);
+    }
+
+    #[inline]
+    pub fn get_any_state<T: Any + Send + Sync>(&self, key: &str) -> Option<Arc<T>> {
+        self.any_state.get(key)
+    }
+
+    #[inline]
+    pub fn remove_any_state<T: Any + Send + Sync>(&self, key: &str) {
+        self.any_state.remove::<T>(key);
+    }
+
+    #[inline]
+    pub fn exists_any_state<T: Any + Send + Sync>(&self, key: &str) -> bool {
+        self.any_state.exists::<T>(key)
+    }
+
     /// 获取请求ID
     pub fn request_id(&self) -> String {
         //SAFE

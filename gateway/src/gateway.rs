@@ -1,16 +1,23 @@
-use crate::Args;
-use crate::handler::plugin::PluginType;
-use crate::handler::{plugin, respond_error, respond_error_end};
+use crate::init::alert_error;
+use crate::{Args, handler};
 use aiway_plugin::async_trait;
 use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::parts::SerdeParts;
 use aiway_protocol::context::{HttpContext, RequestExt};
+use alert::Alert;
 use bytes::Bytes;
+use handler::plugin::PluginType;
+use handler::{
+    HandlerError, error_resp_from_status_code, plugin, respond_error, respond_error_end,
+};
 use http::Uri;
-use pingora::Error;
-use pingora::http::ResponseHeader;
+use pingora::http::{RequestHeader, ResponseHeader};
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
+use pingora::proxy::FailToProxy;
+use pingora::{Error, ErrorType};
 use std::ops::{Deref, DerefMut};
+use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 pub struct Gateway {
@@ -27,13 +34,15 @@ impl Gateway {
 impl ProxyHttp for Gateway {
     type CTX = HttpContext;
 
+    /// 初始化网关上下文
     fn new_ctx(&self) -> Self::CTX {
         HttpContext::default()
     }
 
+    /// 获取后端服务地址并连接
     async fn upstream_peer(
         &self,
-        session: &mut Session,
+        _: &mut Session,
         ctx: &mut Self::CTX,
     ) -> pingora::Result<Box<HttpPeer>, Box<Error>> {
         let backend_addr = ctx
@@ -66,9 +75,7 @@ impl ProxyHttp for Gateway {
 
         let peer = Box::new(HttpPeer::new((host, port), tls, host.to_string()));
 
-        let header_mut = session.req_header_mut();
-        header_mut.set_request_header(Headers::HOST, host);
-        header_mut.remove_header(Headers::AUTHORIZATION);
+        ctx.insert_any_state("host", host.to_string());
 
         log::debug!("Proxying to {}:{} with SNI {}", host, port, host);
 
@@ -88,39 +95,28 @@ impl ProxyHttp for Gateway {
         );
 
         // 执行全局请求阶段插件
-        if let Err(e) =
-            plugin::run_on_request(PluginType::Global, session.req_header_mut(), ctx).await
-        {
-            return respond_error_end(session, ctx, e).await;
-        }
+        plugin::run_on_request(PluginType::Global, session.req_header_mut(), ctx).await?;
 
         // 路由匹配
-        if let Err(e) = crate::handler::routing_handle(session, ctx).await {
-            return respond_error_end(session, ctx, e).await;
-        }
+        handler::routing_handle(session, ctx).await?;
 
         // 鉴权
-        if let Err(e) = crate::handler::auth_handle(session, ctx).await {
-            return respond_error_end(session, ctx, e).await;
-        }
+        handler::auth_handle(session, ctx).await?;
 
         // 执行路由请求阶段插件，可在此处修改http头部
-        if let Err(e) =
-            plugin::run_on_request(PluginType::Route, session.req_header_mut(), ctx).await
-        {
-            return respond_error_end(session, ctx, e).await;
-        }
+        plugin::run_on_request(PluginType::Route, session.req_header_mut(), ctx).await?;
 
         // 负载均衡，查找服务实例
-        if let Err(e) = crate::handler::lb_handle(session, ctx).await {
-            return respond_error_end(session, ctx, e).await;
-        }
+        handler::lb_handle(session, ctx).await?;
 
         //session.set_keepalive(Some(60));
 
         Ok(false)
     }
 
+    /// 最早的filter，在此执行初始化、基础安全校验等
+    ///
+    /// 这里失败的
     async fn early_request_filter(
         &self,
         session: &mut Session,
@@ -131,15 +127,11 @@ impl ProxyHttp for Gateway {
     {
         // 预处理
         // 在这里进行连接计数等，不修改任何客户端原始数据
-        if let Err(e) = crate::handler::pre_handle(session, ctx).await {
-            return respond_error(session, ctx, e).await;
-        }
+        handler::pre_handle(session, ctx);
 
-        // 防护墙安全校验
-        // 被防护墙拦截的请求不会记录日志
-        if let Err(e) = crate::handler::firewall_check(session, ctx).await {
-            return respond_error(session, ctx, e).await;
-        }
+        // 防火墙安全校验
+        // 被防火墙拦截的请求不会记录日志
+        handler::firewall_check(session, ctx).await?;
 
         Ok(())
     }
@@ -149,7 +141,7 @@ impl ProxyHttp for Gateway {
     /// 这里修改Header将不生效
     async fn request_body_filter(
         &self,
-        session: &mut Session,
+        _: &mut Session,
         body: &mut Option<Bytes>,
         _end_of_stream: bool,
         ctx: &mut Self::CTX,
@@ -158,10 +150,24 @@ impl ProxyHttp for Gateway {
         Self::CTX: Send + Sync,
     {
         // 执行插件
-        if let Err(e) = plugin::run_on_request_body(PluginType::Route, body, ctx).await {
-            return respond_error(session, ctx, e).await;
-        }
+        plugin::run_on_request_body(PluginType::Route, body, ctx).await?;
 
+        Ok(())
+    }
+
+    async fn upstream_request_filter(
+        &self,
+        _session: &mut Session,
+        head: &mut RequestHeader,
+        ctx: &mut Self::CTX,
+    ) -> pingora::Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        let host = ctx.get_any_state::<String>("host").unwrap();
+        head.set_request_header(Headers::HOST, &host);
+
+        head.remove_header(Headers::AUTHORIZATION);
         Ok(())
     }
 
@@ -171,29 +177,22 @@ impl ProxyHttp for Gateway {
         resp: &mut ResponseHeader,
         ctx: &mut Self::CTX,
     ) -> pingora::Result<(), Box<Error>> {
-        // 执行路由响应阶段插件
-        if let Err(e) = plugin::run_on_response(PluginType::Route, resp, ctx).await {
-            return respond_error(session, ctx, e).await;
-        }
-
-        // 执行全局响应阶段插件
-        if let Err(e) = plugin::run_on_response(PluginType::Global, resp, ctx).await {
-            return respond_error(session, ctx, e).await;
-        }
-
-        // 响应处理
-        if let Err(e) = crate::handler::response_handle(session, resp, ctx).await {
-            return respond_error(session, ctx, e).await;
-        }
-
         ctx.insert_state(
             HttpContext::RESPONSE_SERDE_PARTS,
             SerdeParts::from(&*resp.deref_mut()),
         );
 
+        // 响应处理
+        handler::response_handle(session, resp, ctx).await;
+
+        // 执行路由响应阶段插件
+        plugin::run_on_response(PluginType::Route, resp, ctx).await?;
+
+        // 执行全局响应阶段插件
+        plugin::run_on_response(PluginType::Global, resp, ctx).await?;
+
         Ok(())
     }
-
     fn upstream_response_body_filter(
         &self,
         _: &mut Session,
@@ -202,15 +201,10 @@ impl ProxyHttp for Gateway {
         ctx: &mut Self::CTX,
     ) -> pingora::Result<Option<Duration>> {
         // 执行路由响应体阶段插件，可在此处修改响应body
-        if let Err(e) = plugin::run_on_response_body(PluginType::Route, body, ctx) {
-            // TODO 错误处理
-            log::error!("Request handle error: {}", e);
-        }
+        plugin::run_on_response_body(PluginType::Route, body, ctx)?;
+
         // 执行全局响应体阶段插件，可在此处修改响应body
-        if let Err(e) = plugin::run_on_response_body(PluginType::Global, body, ctx) {
-            // TODO 错误处理
-            log::error!("Request handle error: {}", e);
-        }
+        plugin::run_on_response_body(PluginType::Global, body, ctx)?;
 
         ctx.insert_state(
             HttpContext::RESPONSE_BODY_SIZE,
@@ -225,8 +219,63 @@ impl ProxyHttp for Gateway {
         Self::CTX: Send + Sync,
     {
         // 日志记录
-        crate::handler::log_handle(session, err, ctx, &self.args).await;
+        handler::log_handle(session, err, ctx, &self.args).await;
         // 清理
-        crate::handler::cleanup_handle(session, ctx).await;
+        handler::cleanup_handle(session, ctx).await;
+
+        // 执行插件
+        plugin::run_on_logging(ctx).await;
+    }
+
+    fn suppress_error_log(&self, _session: &Session, _ctx: &Self::CTX, error: &Error) -> bool {
+        match error.etype {
+            ErrorType::HTTPStatus(_) => true,
+            _ => false,
+        }
+    }
+
+    /// 统一响应错误信息
+    async fn fail_to_proxy(
+        &self,
+        session: &mut Session,
+        e: &Error,
+        _ctx: &mut Self::CTX,
+    ) -> FailToProxy
+    where
+        Self::CTX: Send + Sync,
+    {
+        match e.etype {
+            ErrorType::HTTPStatus(status) => {
+                if let Some(handler_err) = e
+                    .cause
+                    .as_ref()
+                    .and_then(|cause| cause.downcast_ref::<HandlerError>())
+                {
+                    let _ = session
+                        .respond_error_with_body(handler_err.0, handler_err.1.clone().into())
+                        .await;
+
+                    // 如果是502，则为网关内部错误，需要告警
+                    if status == 502 {
+                        log::error!("Gateway Proxy Error: {}", handler_err.1);
+                        alert_error("Gateway Proxy Error", &handler_err.1);
+                    }
+                } else {
+                    // downcast失败的，可能是框架原生错误，也需要告警
+                    log::error!("Error: {:?}", e);
+                    alert_error("Gateway Proxy Error", &e.to_string());
+                }
+            }
+            _ => {
+                // 非HTTPStatus的，会由Pingora自动打印日志，这里无需重复打印
+                // 这里也需要告警
+                alert_error("Gateway Proxy Error", &e.to_string());
+            }
+        };
+
+        FailToProxy {
+            error_code: 0,
+            can_reuse_downstream: false,
+        }
     }
 }

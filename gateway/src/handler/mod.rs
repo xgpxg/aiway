@@ -10,24 +10,41 @@ pub mod security;
 
 use aiway_protocol::context::parts::SerdeParts;
 pub use auth::auth_handle;
+use bytes::Bytes;
 pub use cleanup::cleanup_handle;
 use http::header::ToStrError;
 pub use lb::lb_handle;
 pub use logger::log_handle;
-use pingora::BError;
 use pingora::protocols::http::ServerSession;
+use pingora::{BError, ErrorType};
 pub use pre::pre_handle;
 pub use response::response_handle;
 pub use routing::routing_handle;
 pub use security::firewall_check;
+use std::error::Error;
 pub(crate) type HandlerResult<T> = Result<T, HandlerError>;
 #[derive(Debug)]
-pub struct HandlerError(pub(crate) u16, pub(crate) String);
+pub(crate) struct HandlerError(pub u16, pub String);
+
 impl HandlerError {
     pub fn new(code: u16, message: &str) -> Self {
         HandlerError(code, message.to_string())
     }
+
+    pub fn code(&self) -> u16 {
+        self.0
+    }
+    pub fn message(&self) -> String {
+        self.1.clone()
+    }
 }
+
+impl Error for HandlerError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
 impl std::fmt::Display for HandlerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {}", self.0, self.1)
@@ -45,6 +62,12 @@ impl From<BError> for HandlerError {
     }
 }
 
+impl From<HandlerError> for BError {
+    fn from(value: HandlerError) -> Self {
+        pingora::Error::because(ErrorType::HTTPStatus(value.0), "", value)
+    }
+}
+
 /// 从状态码生成错误响应
 pub fn error_resp_from_status_code(stats_code: u16) -> SerdeParts {
     let resp = ServerSession::generate_error(stats_code);
@@ -56,14 +79,14 @@ pub fn error_resp_from_status_code(stats_code: u16) -> SerdeParts {
         authority: None,
     }
 }
-/// 响应错误并结束处理。
+/// 响应错误并结束后续处理。
 /// 仅适用于 `request_filter` 阶段
 pub async fn respond_error_end(
     session: &mut ServerSession,
     ctx: &mut aiway_protocol::context::HttpContext,
     error: HandlerError,
 ) -> pingora::Result<bool> {
-    respond_error(session, ctx, error).await?;
+    let _ = respond_error(session, ctx, error).await;
     Ok(true)
 }
 
@@ -80,5 +103,6 @@ pub async fn respond_error(
     session
         .respond_error_with_body(error.0, error.1.into())
         .await?;
-    Ok(())
+
+    Err(pingora::Error::new_in(ErrorType::HTTPStatus(error.0)))
 }

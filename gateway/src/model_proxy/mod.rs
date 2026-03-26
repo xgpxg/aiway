@@ -1,9 +1,9 @@
-use crate::Args;
+use crate::{Args};
 use aiway_protocol::context::HttpContext;
 use aiway_protocol::model::Provider;
 use bytes::Bytes;
-use pingora::{Error, ErrorType};
 use pingora::prelude::Session;
+use pingora::{Error, ErrorType};
 use reqwest::Response;
 use serde_json::Value;
 use tokio_stream::StreamExt;
@@ -104,8 +104,8 @@ pub(crate) async fn handle_model_request(
 /// 解析模型信息
 fn parse_model_info(body: &mut Bytes) -> Result<(String, Provider), HandlerError> {
     // 转为JSON，提取模型名称
-    let mut body_json =
-        serde_json::from_slice::<Value>(body).map_err(|e| HandlerError::new(400, &e.to_string()))?;
+    let mut body_json = serde_json::from_slice::<Value>(body)
+        .map_err(|e| HandlerError::new(400, &e.to_string()))?;
     let model = body_json["model"]
         .as_str()
         .map(|s| s.to_string())

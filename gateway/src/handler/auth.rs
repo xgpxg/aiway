@@ -38,7 +38,7 @@ pub async fn auth_handle(session: &mut Session, ctx: &HttpContext) -> HandlerRes
             None => {
                 return Err(HandlerError::new(401, "Unauthorized"));
             }
-        },
+        }
         None => {
             return Err(HandlerError::new(401, "Unauthorized"));
         }

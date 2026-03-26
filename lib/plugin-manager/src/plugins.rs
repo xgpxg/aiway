@@ -14,6 +14,7 @@ use crate::CONSOLE;
 use crate::client::INNER_HTTP_CLIENT;
 use aiway_plugin::{AsyncTryInto, Bytes, NetworkPlugin, Plugin, PluginError};
 use aiway_protocol::context::HttpContext;
+use aiway_protocol::context::http::{request, response};
 use aiway_protocol::gateway::Plugin as PluginConfig;
 use aiway_protocol::gateway::plugin::ConfiguredPlugin;
 use dashmap::DashMap;
@@ -22,7 +23,6 @@ use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tokio::sync::RwLock;
-use aiway_protocol::context::http::{request, response};
 
 pub struct PluginFactory {
     pub plugins: DashMap<String, (PluginConfig, Box<dyn Plugin>)>,
@@ -138,8 +138,8 @@ impl PluginFactory {
 
     pub async fn on_request(
         configured_plugin: &ConfiguredPlugin,
-        head: &mut request::Parts,
         ctx: &mut HttpContext,
+        head: &mut request::Parts,
     ) -> Result<(), PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
@@ -154,8 +154,8 @@ impl PluginFactory {
 
     pub async fn on_request_body(
         configured_plugin: &ConfiguredPlugin,
-        body: &mut Option<Bytes>,
         ctx: &mut HttpContext,
+        body: &mut Option<Bytes>,
     ) -> Result<(), PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
@@ -170,8 +170,8 @@ impl PluginFactory {
 
     pub async fn on_response(
         configured_plugin: &ConfiguredPlugin,
-        head: &mut response::Parts,
         ctx: &mut HttpContext,
+        head: &mut response::Parts,
     ) -> Result<(), PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
@@ -186,14 +186,20 @@ impl PluginFactory {
 
     pub fn on_response_body(
         configured_plugin: &ConfiguredPlugin,
-        body: &mut Option<Bytes>,
         ctx: &mut HttpContext,
+        body: &mut Option<Bytes>,
     ) -> Result<(), PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => plugin
                 .1
                 .on_response_body(&configured_plugin.config, body, ctx),
             None => Err(PluginError::NotFound(configured_plugin.name.clone())),
+        }
+    }
+
+    pub async fn on_logging(configured_plugin: &ConfiguredPlugin, ctx: &mut HttpContext) {
+        if let Some(plugin) = PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
+            let _ = plugin.1.on_logging(&configured_plugin.config, ctx).await;
         }
     }
 }
