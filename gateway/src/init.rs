@@ -71,7 +71,7 @@ pub async fn init(args: &Args) {
 
 fn cache_dir(args: &Args) -> PathBuf {
     common::dir::AppDir::cache_dir()
-        .join("gateway2")
+        .join("gateway")
         .join(args.port.to_string())
 }
 
