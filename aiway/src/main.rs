@@ -45,7 +45,7 @@ impl AiwayApp {
                 "--port",
                 &args.port.to_string(),
                 "--log-server",
-                "127.0.0.1:7281",
+                "127.0.0.1:7280",
             ],
         )
         .unwrap();
@@ -66,7 +66,7 @@ impl AiwayApp {
                 "--console",
                 &format!("{}:{}", args.address, args.port),
                 "--log-server",
-                "127.0.0.1:7281",
+                "127.0.0.1:7280",
             ],
         )
         .unwrap();
