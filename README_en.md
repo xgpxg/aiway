@@ -71,18 +71,20 @@ cargo run --bin aiway
 - Gateway Entry: http://127.0.0.1:7001
 - Default Credentials: `admin` / `admin`
 
-### Build Options
+### Startup Parameters
 
-**Gateway Features:**
+```shell
+./aiway -h
 
-- `standalone` - Standalone mode
-- `cluster` - Cluster mode
-- `model-proxy` - Enable model proxy functionality
+Usage: aiway [OPTIONS]
 
-**Console Features:**
-
-- `standalone` - Standalone mode
-- `cluster` - Cluster mode
+Options:
+  -a, --address <ADDRESS>            Listen address, like 127.0.0.1 [default: 127.0.0.1]
+  -p, --port <PORT>                  Port [default: 7000]
+      --gateway-port <GATEWAY_PORT>  Gateway port [default: 7001]
+  -h, --help                         Print help
+  -V, --version                      Print version
+```
 
 ## Core Features
 

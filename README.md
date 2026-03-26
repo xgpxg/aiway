@@ -68,7 +68,19 @@ cargo run --bin aiway
 - 网关入口: http://127.0.0.1:7001
 - 默认账号: `admin` / `admin`
 
-**Console Features：**
+### 启动参数
+```shell
+./aiway -h
+
+Usage: aiway [OPTIONS]
+
+Options:
+  -a, --address <ADDRESS>            Listen address, like 127.0.0.1 [default: 127.0.0.1]
+  -p, --port <PORT>                  Port [default: 7000]
+      --gateway-port <GATEWAY_PORT>  Gateway port [default: 7001]
+  -h, --help                         Print help
+  -V, --version                      Print version
+```
 
 ## 核心功能
 
