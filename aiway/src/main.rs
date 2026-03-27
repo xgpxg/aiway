@@ -45,7 +45,7 @@ impl AiwayApp {
                 "--port",
                 &args.port.to_string(),
                 "--log-server",
-                "127.0.0.1:7280",
+                &args.log_server_port.to_string(),
             ],
         )
         .unwrap();
@@ -66,7 +66,7 @@ impl AiwayApp {
                 "--console",
                 &format!("{}:{}", args.address, args.port),
                 "--log-server",
-                "127.0.0.1:7280",
+                &args.log_server_port.to_string(),
             ],
         )
         .unwrap();
@@ -103,6 +103,10 @@ struct Args {
     /// Gateway port
     #[arg(long, default_value_t = 7001)]
     gateway_port: u16,
+
+    /// Log server port
+    #[arg(long, default_value_t = 7280)]
+    log_server_port: u16,
 }
 
 #[tokio::main]
