@@ -1,11 +1,12 @@
 use crate::args::Args;
 use crate::server::common::pool::HTTP_CLIENT;
-use crate::server::log::request::LogListReq;
-use chrono::TimeZone;
+use crate::server::log::request::{DeleteLogReq, LogListReq};
+use aiway_protocol::gateway::request_log::RequestLog;
+use aiway_protocol::logg::{LogDeleteReq, LogEntry, LogSearchReq, LogSearchRes};
 use busi::req::Pagination;
 use busi::res::PageRes;
-use aiway_protocol::gateway::request_log::RequestLog;
-use aiway_protocol::logg::{LogEntry, LogSearchReq, LogSearchRes};
+use chrono::TimeZone;
+use logging::log;
 use rocket::State;
 
 const AIWAY_LOG_INDEX: &str = "aiway-logs";
@@ -107,4 +108,30 @@ pub(crate) async fn request_log_list(
         list: res.hits,
         ext: None,
     })
+}
+
+pub(crate) async fn delete_log(
+    index: &str,
+    req: DeleteLogReq,
+    args: &State<Args>,
+) -> anyhow::Result<()> {
+    log::info!("delete log index: {}, req: {:?}", index, req);
+    let log_server = &args.log_server;
+    let url = format!("http://{}/api/v1/{}/delete", log_server, index);
+
+    let param = LogDeleteReq {
+        start_timestamp: req
+            .start_time
+            .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
+        end_timestamp: req
+            .end_time
+            .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
+    };
+    HTTP_CLIENT
+        .post(url)
+        .json(&param)
+        .send()
+        .await?
+        .error_for_status()?;
+    Ok(())
 }

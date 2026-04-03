@@ -1,5 +1,5 @@
 use aiway_protocol::gateway::request_log::RequestLog;
-use aiway_protocol::logg::{LogSearchReq, LogSearchRes};
+use aiway_protocol::logg::{LogDeleteReq, LogSearchReq, LogSearchRes};
 use rocket::data::{ByteUnit, FromData, Outcome};
 use rocket::serde::json::Json;
 use rocket::{Data, Request, State, async_trait, post, routes};
@@ -374,6 +374,42 @@ impl Logg {
             aggregations: Some(agg_json),
         })
     }
+
+    pub fn delete(&self, req: LogDeleteReq) -> anyhow::Result<()> {
+        let schema = self.index.schema();
+        let query_parser =
+            QueryParser::for_index(&self.index, schema.fields().map(|(f, _)| f).collect());
+
+        let mut query = vec![];
+
+        if let Some(start_timestamp) = req.start_timestamp {
+            query.push(format!(
+                "request_time:>={:?}",
+                DateTime::from_timestamp_secs(start_timestamp /* + Self::TIME_OFFSET*/)
+            ));
+        }
+
+        if let Some(end_timestamp) = req.end_timestamp {
+            query.push(format!(
+                "request_time:<{:?}",
+                DateTime::from_timestamp_secs(end_timestamp /* + Self::TIME_OFFSET*/)
+            ));
+        }
+
+        if query.is_empty() {
+            query.push("*".to_string());
+        }
+
+        let query = query_parser.parse_query(&query.join(" AND "))?;
+        println!("query: {:?}", query);
+
+        let mut index_writer = self.index_writer.lock().unwrap();
+
+        let _ = index_writer.delete_query(query);
+        index_writer.commit()?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -396,7 +432,7 @@ impl<'r> FromData<'r> for LogEntries {
     }
 }
 pub fn routes() -> Vec<rocket::Route> {
-    routes![ingest, search]
+    routes![ingest, search, delete]
 }
 
 /// 添加日志
@@ -413,6 +449,17 @@ fn search(req: Json<LogSearchReq>, logg: &State<Logg>) -> Json<LogSearchRes<Requ
         Err(e) => {
             println!("Error: {}", e);
             Json(LogSearchRes::default())
+        }
+    }
+}
+
+/// 删除日志
+#[post("/delete",data="<req>")]
+fn delete(req: Json<LogDeleteReq>, logg: &State<Logg>) {
+    match logg.delete(req.0) {
+        Ok(_) => (),
+        Err(e) => {
+            println!("Error: {}", e);
         }
     }
 }

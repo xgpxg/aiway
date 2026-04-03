@@ -1,6 +1,6 @@
-use chrono::NaiveDateTime;
-use busi::req::PageReq;
 use busi::impl_pagination;
+use busi::req::PageReq;
+use chrono::NaiveDateTime;
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,3 +16,9 @@ pub struct LogListReq {
     pub end_time: Option<NaiveDateTime>,
 }
 impl_pagination!(LogListReq);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeleteLogReq {
+    pub start_time: Option<NaiveDateTime>,
+    pub end_time: Option<NaiveDateTime>,
+}
