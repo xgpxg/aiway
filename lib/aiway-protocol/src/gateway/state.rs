@@ -6,12 +6,15 @@ pub struct State {
     pub timestamp: i64,
     /// 节点信息
     pub node_info: NodeInfo,
+    pub pid: u32,
     /// 系统状态
     pub system_state: SystemState,
     /// 计数器
     pub counter: Counter,
     /// 瞬时计数器
     pub moment_counter: MomentCounter,
+    /// 其他自定义数据
+    pub custom: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -24,20 +27,28 @@ pub struct NodeInfo {
 pub struct SystemState {
     /// 操作系统及版本，如: Ubuntu 22.04
     pub os: String,
-    /// CPU 架构
+    /// 系统架构
     pub arch: String,
     /// 主机名
     pub host_name: String,
     /// 运行时间，单位：秒
     pub uptime: u64,
-    /// cpu 使用率
-    pub cpu_usage: f32,
+    /// CPU 状态
+    pub cpu: Option<CpuState>,
     /// 内存状态
     pub mem_state: MemState,
     /// 磁盘状态
     pub disk_state: DiskState,
     /// 网络状态
     pub net_state: NetState,
+    /// GPU 状态
+    pub gpu_state: Option<GpuState>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CpuState {
+    pub name: String,
+    pub usage: f32,
 }
 
 /// 内存状态
@@ -67,8 +78,47 @@ pub struct NetState {
     pub rx: u64,
     /// 发送的字节数
     pub tx: u64,
-    /// TCP连接数
+    /// TCP 连接数
     pub tcp_conn_count: usize,
+}
+
+/// GPU 状态
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct GpuState {
+    /// GPU 厂商, 如: nvidia, apple
+    pub provider: GpuProvider,
+    /// GPU 列表
+    pub gpus: Vec<GpuInfo>,
+    /// 其他自定义数据
+    pub custom: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub enum GpuProvider {
+    Nvidia,
+    Apple,
+    Custom(String),
+    #[default]
+    Unknown,
+}
+
+/// 单个 GPU 信息
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct GpuInfo {
+    /// GPU 名称
+    pub name: String,
+    /// GPU 使用率 (0-100)
+    pub usage: f32,
+    /// 显存总量，单位：Bytes
+    pub memory_total: u64,
+    /// 显存已使用，单位：Bytes
+    pub memory_used: u64,
+    /// 显存空闲，单位：Bytes
+    pub memory_free: u64,
+    /// GPU 温度，单位：摄氏度
+    pub temperature: u32,
+    /// GPU 功率，单位：瓦特
+    pub power_usage: u32,
 }
 
 /// 计数器
