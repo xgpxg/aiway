@@ -81,16 +81,16 @@ pub async fn send_error_response(
         .await
 }
 
-/// 发送错误响应（字节数组）
-pub async fn send_error_response_with_bytes(
-    session: &mut Session,
-    status: u16,
-    message: &[u8],
-) -> pingora::Result<()> {
-    session
-        .respond_error_with_body(status, Bytes::copy_from_slice(message))
-        .await
-}
+// /// 发送错误响应（字节数组）
+// pub async fn send_error_response_with_bytes(
+//     session: &mut Session,
+//     status: u16,
+//     message: &[u8],
+// ) -> pingora::Result<()> {
+//     session
+//         .respond_error_with_body(status, Bytes::copy_from_slice(message))
+//         .await
+// }
 
 /// 转发 reqwest 响应到 Pingora
 #[allow(dead_code)]

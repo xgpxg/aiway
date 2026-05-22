@@ -6,6 +6,7 @@ pub struct State {
     pub timestamp: i64,
     /// 节点信息
     pub node_info: NodeInfo,
+    /// 进程ID
     pub pid: u32,
     /// 系统状态
     pub system_state: SystemState,
@@ -34,15 +35,15 @@ pub struct SystemState {
     /// 运行时间，单位：秒
     pub uptime: u64,
     /// CPU 状态
-    pub cpu: Option<CpuState>,
+    pub cpu: CpuState,
     /// 内存状态
-    pub mem_state: MemState,
+    pub mem: MemState,
     /// 磁盘状态
-    pub disk_state: DiskState,
+    pub disk: DiskState,
     /// 网络状态
-    pub net_state: NetState,
+    pub net: NetState,
     /// GPU 状态
-    pub gpu_state: Option<GpuState>,
+    pub gpu: Option<GpuState>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

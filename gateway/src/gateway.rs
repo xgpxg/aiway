@@ -4,20 +4,15 @@ use aiway_plugin::async_trait;
 use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::parts::SerdeParts;
 use aiway_protocol::context::{HttpContext, RequestExt};
-use alert::Alert;
 use bytes::Bytes;
 use handler::plugin::PluginType;
-use handler::{
-    HandlerError, error_resp_from_status_code, plugin, respond_error, respond_error_end,
-};
+use handler::{HandlerError, plugin};
 use http::Uri;
 use pingora::http::{RequestHeader, ResponseHeader};
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
 use pingora::proxy::FailToProxy;
 use pingora::{Error, ErrorType};
 use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
-use std::sync::Arc;
 use std::time::Duration;
 
 pub struct Gateway {

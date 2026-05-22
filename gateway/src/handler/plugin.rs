@@ -1,8 +1,7 @@
 use crate::components::GlobalPluginFactory;
-use crate::handler::{HandlerError, HandlerResult, respond_error, respond_error_end};
+use crate::handler::{HandlerError, HandlerResult};
 use crate::model_proxy::ModelFactory;
 use aiway_protocol::context::HttpContext;
-use aiway_protocol::gateway::ConfiguredPlugin;
 use bytes::Bytes;
 use pingora::prelude::*;
 use plugin_manager::PluginFactory;

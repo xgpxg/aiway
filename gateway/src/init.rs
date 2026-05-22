@@ -95,6 +95,8 @@ pub fn alert_error(title: &str, content: &str) {
     let full_content = format!("{}\n节点地址：{}:{}", content, args.address, args.port);
     Alert::error(title, &full_content);
 }
+
+#[allow(unused)]
 pub fn alert_warn(title: &str, content: &str) {
     let args = &*ARGS;
     let full_content = format!("{}\n节点地址：{}:{}", content, args.address, args.port);

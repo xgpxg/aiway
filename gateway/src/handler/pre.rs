@@ -1,6 +1,5 @@
 //! # 预处理
 //!
-use crate::handler::HandlerResult;
 use crate::report::STATE;
 use aiway_protocol::context::HttpContext;
 use pingora::prelude::*;

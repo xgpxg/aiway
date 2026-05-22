@@ -3,6 +3,7 @@ use rbatis::executor::Executor;
 use rbatis::rbdc::DateTime;
 use rbatis::{crud, htmlsql};
 use rocket::serde::{Deserialize, Serialize};
+use aiway_protocol::gateway::state::GpuState;
 
 /// 网关节点状态记录
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -33,8 +34,10 @@ pub struct GatewayNodeState {
     pub net_rx: u64,
     /// 网络发送字节数
     pub net_tx: u64,
-    /// TCP连接数
+    /// TCP 连接数
     pub net_tcp_conn_count: usize,
+    /// GPU 状态 (JSON 格式)
+    pub gpu_state: Option<GpuState>,
     /// HTTP连接数
     pub http_connect_count: isize,
     /// SSE连接数

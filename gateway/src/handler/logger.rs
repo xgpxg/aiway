@@ -7,10 +7,9 @@ use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::HttpContext;
 use aiway_protocol::context::parts::SerdeParts;
 use aiway_protocol::gateway::request_log::RequestLog;
-use alert::Alert;
 use pingora::prelude::*;
 
-pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContext, args: &Args) {
+pub async fn log_handle(session: &Session, _err: Option<&Error>, ctx: &HttpContext, args: &Args) {
     // SAFE: client_ip不会为空
     let client_ip = session.client_addr().unwrap().to_string();
 

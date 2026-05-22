@@ -2,7 +2,7 @@
 //!
 use crate::Args;
 use aiway_protocol::context::Route;
-use aiway_protocol::gateway::{ApiKeySync, Cert, Config, Firewall, GlobalPlugin, Plugin, Service};
+use aiway_protocol::gateway::{ApiKeySync, Cert, Config, Firewall, GlobalPlugin, Service};
 use anyhow::bail;
 use busi::res::Res;
 use clap::Parser;
@@ -78,12 +78,12 @@ impl InnerHttpClient {
         Ok(services)
     }
 
-    pub async fn fetch_plugins(&self) -> anyhow::Result<Vec<Plugin>> {
-        let endpoint = format!("http://{}/api/v1/gateway/plugins", self.args.console);
-        let mut plugins = self.fetch_resource::<Vec<Plugin>>(endpoint).await?;
-        plugins.sort_by(|a, b| a.name.cmp(&b.name));
-        Ok(plugins)
-    }
+    // pub async fn fetch_plugins(&self) -> anyhow::Result<Vec<Plugin>> {
+    //     let endpoint = format!("http://{}/api/v1/gateway/plugins", self.args.console);
+    //     let mut plugins = self.fetch_resource::<Vec<Plugin>>(endpoint).await?;
+    //     plugins.sort_by(|a, b| a.name.cmp(&b.name));
+    //     Ok(plugins)
+    // }
 
     pub async fn fetch_global_plugins(&self) -> anyhow::Result<GlobalPlugin> {
         let endpoint = format!("http://{}/api/v1/gateway/global/plugins", self.args.console);
@@ -154,6 +154,7 @@ impl InnerHttpClient {
         }
     }
 
+    #[allow(unused)]
     pub async fn fetch_cert_file(&self) -> anyhow::Result<Cert> {
         let endpoint = format!("http://{}/api/v1/gateway/cert", self.args.console);
         match self.get(endpoint, HashMap::new()).await {

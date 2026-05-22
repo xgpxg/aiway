@@ -1,4 +1,3 @@
-use crate::handler::HandlerResult;
 use crate::report::STATE;
 use aiway_protocol::context::{HttpContext, ResponseExt};
 use pingora::prelude::{ResponseHeader, Session};

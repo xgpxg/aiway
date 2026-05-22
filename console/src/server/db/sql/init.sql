@@ -144,8 +144,9 @@ create table if not exists gateway_node_state
     disk_free                      bigint       not null default 0, -- 磁盘状态 - 空闲空间，单位：Bytes
     net_rx                         bigint       not null default 0, -- 网络状态 - 接收的字节数
     net_tx                         bigint       not null default 0, -- 网络状态 - 发送的字节数
-    net_tcp_conn_count             bigint       not null default 0, -- 网络状态 - TCP连接数
-    avg_qps                        bigint       not null default 0, -- 平均QPS
+    net_tcp_conn_count             bigint       not null default 0, -- 网络状态 - TCP 连接数
+    gpu_state                      text,                            -- GPU 状态 (JSON 格式)
+    avg_qps                        bigint       not null default 0, -- 平均 QPS
     interval_request_count         bigint       not null default 0, -- 区间内请求数
     interval_request_invalid_count bigint       not null default 0, -- 区间内无效请求数
     interval_response_2xx_count    bigint       not null default 0, -- 区间内2xx响应数
@@ -218,21 +219,21 @@ create table if not exists model
 -- 模型提供商
 create table if not exists model_provider
 (
-    id                 bigint primary key,
-    model_id           bigint       not null,           -- 模型ID
-    name               varchar(500),                    -- 模型提供商名称
-    api_url            varchar(500) not null,           -- 接口地址
-    api_key            varchar(500),                    -- 密钥
-    status             varchar(20)  not null,           -- 状态：Disable | Ok
-    weight             int          not null default 1, -- 权重
-    plugins            text,                            -- 插件
-    target_model_name  varchar(500),                    -- 目标模型名称
-    create_user_id     bigint,                          -- 创建人ID
-    update_user_id     bigint,                          -- 修改人ID
-    create_time        datetime,                        -- 创建时间
-    update_time        datetime,                        -- 更新时间
-    remark             varchar(500),                    -- 备注
-    is_delete          tinyint(1)   not null default 0  -- 是否删除
+    id                bigint primary key,
+    model_id          bigint       not null,           -- 模型ID
+    name              varchar(500),                    -- 模型提供商名称
+    api_url           varchar(500) not null,           -- 接口地址
+    api_key           varchar(500),                    -- 密钥
+    status            varchar(20)  not null,           -- 状态：Disable | Ok
+    weight            int          not null default 1, -- 权重
+    plugins           text,                            -- 插件
+    target_model_name varchar(500),                    -- 目标模型名称
+    create_user_id    bigint,                          -- 创建人ID
+    update_user_id    bigint,                          -- 修改人ID
+    create_time       datetime,                        -- 创建时间
+    update_time       datetime,                        -- 更新时间
+    remark            varchar(500),                    -- 备注
+    is_delete         tinyint(1)   not null default 0  -- 是否删除
 );
 
 -- mcp服务

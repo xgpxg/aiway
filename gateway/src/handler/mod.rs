@@ -8,14 +8,11 @@ pub mod response;
 pub mod routing;
 pub mod security;
 
-use aiway_protocol::context::parts::SerdeParts;
 pub use auth::auth_handle;
-use bytes::Bytes;
 pub use cleanup::cleanup_handle;
 use http::header::ToStrError;
 pub use lb::lb_handle;
 pub use logger::log_handle;
-use pingora::protocols::http::ServerSession;
 use pingora::{BError, ErrorType};
 pub use pre::pre_handle;
 pub use response::response_handle;
@@ -31,9 +28,12 @@ impl HandlerError {
         HandlerError(code, message.to_string())
     }
 
+    #[allow(unused)]
     pub fn code(&self) -> u16 {
         self.0
     }
+
+    #[allow(unused)]
     pub fn message(&self) -> String {
         self.1.clone()
     }
@@ -68,41 +68,41 @@ impl From<HandlerError> for BError {
     }
 }
 
-/// 从状态码生成错误响应
-pub fn error_resp_from_status_code(stats_code: u16) -> SerdeParts {
-    let resp = ServerSession::generate_error(stats_code);
-    SerdeParts {
-        method: None,
-        status_code: Some(resp.status.clone()),
-        uri: None,
-        headers: Some(resp.headers.clone()),
-        authority: None,
-    }
-}
-/// 响应错误并结束后续处理。
-/// 仅适用于 `request_filter` 阶段
-pub async fn respond_error_end(
-    session: &mut ServerSession,
-    ctx: &mut aiway_protocol::context::HttpContext,
-    error: HandlerError,
-) -> pingora::Result<bool> {
-    let _ = respond_error(session, ctx, error).await;
-    Ok(true)
-}
+// /// 从状态码生成错误响应
+// pub fn error_resp_from_status_code(stats_code: u16) -> SerdeParts {
+//     let resp = ServerSession::generate_error(stats_code);
+//     SerdeParts {
+//         method: None,
+//         status_code: Some(resp.status.clone()),
+//         uri: None,
+//         headers: Some(resp.headers.clone()),
+//         authority: None,
+//     }
+// }
+// /// 响应错误并结束后续处理。
+// /// 仅适用于 `request_filter` 阶段
+// pub async fn respond_error_end(
+//     session: &mut ServerSession,
+//     ctx: &mut aiway_protocol::context::HttpContext,
+//     error: HandlerError,
+// ) -> pingora::Result<bool> {
+//     let _ = respond_error(session, ctx, error).await;
+//     Ok(true)
+// }
 
-/// 响应错误
-pub async fn respond_error(
-    session: &mut ServerSession,
-    ctx: &mut aiway_protocol::context::HttpContext,
-    error: HandlerError,
-) -> pingora::Result<()> {
-    ctx.insert_state(
-        aiway_protocol::context::HttpContext::RESPONSE_SERDE_PARTS,
-        error_resp_from_status_code(error.0),
-    );
-    session
-        .respond_error_with_body(error.0, error.1.into())
-        .await?;
-
-    Err(pingora::Error::new_in(ErrorType::HTTPStatus(error.0)))
-}
+// /// 响应错误
+// pub async fn respond_error(
+//     session: &mut ServerSession,
+//     ctx: &mut aiway_protocol::context::HttpContext,
+//     error: HandlerError,
+// ) -> pingora::Result<()> {
+//     ctx.insert_state(
+//         aiway_protocol::context::HttpContext::RESPONSE_SERDE_PARTS,
+//         error_resp_from_status_code(error.0),
+//     );
+//     session
+//         .respond_error_with_body(error.0, error.1.into())
+//         .await?;
+//
+//     Err(pingora::Error::new_in(ErrorType::HTTPStatus(error.0)))
+// }

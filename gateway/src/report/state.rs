@@ -1,4 +1,6 @@
-use aiway_protocol::gateway::state::{DiskState, MemState, NetState, NodeInfo, State, SystemState};
+use aiway_protocol::gateway::state::{
+    CpuState, DiskState, MemState, NetState, NodeInfo, State, SystemState,
+};
 use std::fs;
 use std::sync::{Arc, LazyLock, Mutex};
 use sysinfo::{Disks, Networks, System};
@@ -20,10 +22,12 @@ impl GatewayState {
         // 更新状态并重置计数器
         *state_guard = State {
             timestamp: chrono::Local::now().timestamp_millis(),
+            pid: std::process::id(),
             node_info,
             system_state,
             counter: Default::default(),
             moment_counter: old.moment_counter.clone(),
+            custom: None,
         };
 
         old
@@ -46,11 +50,19 @@ impl GatewayState {
         system_state.arch = System::cpu_arch();
         system_state.uptime = System::uptime();
 
+        if let Some(cpu) = sys.cpus().first() {
+            system_state.cpu = CpuState {
+                name: cpu.brand().to_string(),
+                usage: 0.0,
+            };
+        }
+
         // Wait a bit because CPU usage is based on diff.
         tokio::time::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL).await;
         sys.refresh_cpu_usage();
-        system_state.cpu_usage = sys.global_cpu_usage();
-        system_state.mem_state = MemState {
+        system_state.cpu.usage = sys.global_cpu_usage();
+
+        system_state.mem = MemState {
             total: sys.total_memory(),
             free: sys.free_memory(),
             used: sys.used_memory(),
@@ -62,7 +74,7 @@ impl GatewayState {
             .iter()
             .find(|d| d.mount_point().to_str() == Some("/"));
         if let Some(root_disk) = root_disk {
-            system_state.disk_state = DiskState {
+            system_state.disk = DiskState {
                 total: root_disk.total_space(),
                 free: root_disk.available_space(),
             };
@@ -71,7 +83,7 @@ impl GatewayState {
         let networks = Networks::new_with_refreshed_list();
         let net = networks.list().get("eth0");
         if let Some(net) = net {
-            system_state.net_state = NetState {
+            system_state.net = NetState {
                 rx: net.total_received(),
                 tx: net.total_transmitted(),
                 tcp_conn_count: Self::get_http_connections().unwrap_or(0),
