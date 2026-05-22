@@ -1,7 +1,11 @@
 use crate::components::client::INNER_HTTP_CLIENT;
 use aiway_protocol::gateway::{AllowDenyPolicy, Firewall};
 use anyhow::Context;
+use ipnet::IpNet;
+use std::collections::HashSet;
+use std::net::IpAddr;
 use std::process::exit;
+use std::str::FromStr;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -82,8 +86,8 @@ impl Firewalld {
     pub async fn check(ip: &str, referer: &str) -> Result<(), String> {
         let firewall = FIREWALLD.get().unwrap().config.read().await;
 
-        // 受信IP直接通过
-        if firewall.trust_ips.contains(ip) {
+        // 受信IP直接通过（支持IP段）
+        if Self::ip_matches(ip, &firewall.trust_ips) {
             return Ok(());
         }
 
@@ -100,12 +104,12 @@ impl Firewalld {
     fn check_ip_policy(firewall: &Firewall, ip: &str) -> Result<(), String> {
         match firewall.ip_policy_mode {
             AllowDenyPolicy::Allow => {
-                if !firewall.ip_policy.contains(ip) {
+                if !Self::ip_matches(ip, &firewall.ip_policy) {
                     return Err(format!("Your IP ({}) is not allowed", ip));
                 }
             }
             AllowDenyPolicy::Deny => {
-                if firewall.ip_policy.contains(ip) {
+                if Self::ip_matches(ip, &firewall.ip_policy) {
                     return Err(format!("Your IP ({}) is not allowed", ip));
                 }
             }
@@ -145,5 +149,34 @@ impl Firewalld {
             .read()
             .await
             .api_secret_encrypt_key
+    }
+
+    /// 检查给定的IP是否匹配IP列表（支持单个IP和CIDR网段）
+    ///
+    /// - `ip` - 要检查的IP地址
+    /// - `patterns` - IP模式列表，可以包含单个IP（如192.168.1.1）或CIDR网段（如192.168.1.0/24）
+    fn ip_matches(ip: &str, patterns: &HashSet<String>) -> bool {
+        let Ok(target_ip) = IpAddr::from_str(ip) else {
+            return false;
+        };
+
+        for pattern in patterns {
+            // 尝试作为单个IP匹配
+            if let Ok(pattern_ip) = IpAddr::from_str(pattern) {
+                if pattern_ip == target_ip {
+                    return true;
+                }
+                continue;
+            }
+
+            // 尝试作为CIDR网段匹配
+            if let Ok(net) = IpNet::from_str(pattern) {
+                if net.contains(&target_ip) {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 }

@@ -11,12 +11,13 @@ use std::fmt::{Debug, Display, Formatter};
 pub struct Firewall {
     /// IP策略模式，allow或deny
     pub ip_policy_mode: AllowDenyPolicy,
-    /// IP策略值，例如：192.168.1.1
-    /// TODO 暂不支持网段，后面再支持
+    /// IP策略值，支持单个IP和CIDR网段，例如：192.168.1.1, 192.168.1.0/24
+    /// 注意：IP匹配逻辑由调用方实现
     pub ip_policy: HashSet<String>,
     /// 受信IP
     ///
-    /// 受信IP将直接放行，不受访问策略的影响
+    /// 受信IP将直接放行，不受访问策略的影响，支持单个IP和CIDR网段
+    /// 注意：IP匹配逻辑由调用方实现
     pub trust_ips: HashSet<String>,
     /// Referer策略模式，allow或deny
     pub referer_policy_mode: AllowDenyPolicy,

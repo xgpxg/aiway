@@ -37,6 +37,7 @@ plugin-manager = { path = "../lib/plugin-manager"}
 http = "1.4"
 urlencoding = { version = "2.1.3", optional = true }
 bytes = "1.6"
+ipnet = "2"
 
 [features]
 default = ["model-proxy", "mcp-proxy"]

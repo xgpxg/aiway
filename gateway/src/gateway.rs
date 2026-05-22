@@ -110,8 +110,6 @@ impl ProxyHttp for Gateway {
     }
 
     /// 最早的filter，在此执行初始化、基础安全校验等
-    ///
-    /// 这里失败的
     async fn early_request_filter(
         &self,
         session: &mut Session,
