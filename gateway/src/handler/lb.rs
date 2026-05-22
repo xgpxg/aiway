@@ -1,7 +1,7 @@
 //! # 负载均衡 - Pingora 实现
 //!
 use crate::components::Servicer;
-use crate::handler::HandlerResult;
+use crate::handler::{HandlerError, HandlerResult};
 use aiway_protocol::context::HttpContext;
 use pingora::prelude::*;
 
@@ -16,6 +16,10 @@ pub async fn lb_handle(_: &mut Session, ctx: &mut HttpContext) -> HandlerResult<
     if service.is_empty() {
         // 没有匹配到service或service为空，修改uri，转发到502端点
         log::warn!("No valid service matched for route path: {}", route.path);
+        return Err(HandlerError(
+            502,
+            "No available service matched".to_string(),
+        ));
     } else {
         match Servicer::get_instance(service) {
             Some(instance) if !instance.is_empty() => {

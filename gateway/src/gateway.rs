@@ -157,7 +157,10 @@ impl ProxyHttp for Gateway {
     where
         Self::CTX: Send + Sync,
     {
-        let host = ctx.get_any_state::<String>("host").unwrap();
+        let host = ctx
+            .get_any_state::<String>("host")
+            .ok_or_else(|| Error::new_str("Host not found in context"))?;
+
         head.set_request_header(Headers::HOST, &host);
 
         head.remove_header(Headers::AUTHORIZATION);
@@ -172,7 +175,7 @@ impl ProxyHttp for Gateway {
     ) -> pingora::Result<(), Box<Error>> {
         ctx.insert_state(
             HttpContext::RESPONSE_SERDE_PARTS,
-            SerdeParts::from(&*resp.deref_mut()),
+            SerdeParts::from(resp.deref()),
         );
 
         // 响应处理
