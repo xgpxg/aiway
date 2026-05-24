@@ -89,6 +89,7 @@ jobs:
           cargo build -r --bin gateway --target ${{ matrix.target }}
           cargo build -r --bin console --target ${{ matrix.target }}
           cargo build -r --bin logg --target ${{ matrix.target }}
+          cargo build -r --bin access --target ${{ matrix.target }}
           cargo build -r --bin aiway --target ${{ matrix.target }}
 
       # 构建集群版
@@ -96,6 +97,7 @@ jobs:
         run: |
           cargo build -r --bin gateway --target ${{ matrix.target }}
           cargo build -r --bin console --target ${{ matrix.target }}
+          cargo build -r --bin access --target ${{ matrix.target }}
 
       # 压缩单机版二进制文件
       - name: Compress standalone binary
@@ -108,7 +110,7 @@ jobs:
       - name: Compress cluster binary
         run: |
           cd target/${{ matrix.target }}/release
-          tar -czf ${{ matrix.asset_name_cluster }} gateway console
+          tar -czf ${{ matrix.asset_name_cluster }} gateway console access
         shell: bash
 
       # 创建 Release
