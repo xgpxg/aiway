@@ -4,7 +4,6 @@ members = [
     "console",
     "gateway",
     "access",
-    "message",
     "lib/logging",
     "lib/aiway-plugin",
     "lib/pubsub",

@@ -16,9 +16,9 @@ anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 rbatis = { version = "=4.7.2", features = ["debug_mode"] }
 rbs = { version = "4.7" }
-rbdc-sqlite = { version = "4.7" }
+rbdc-sqlite = { version = "=4.7.2" }
 rbdc-pool-fast = "4.7"
-rbdc-mysql = { version = "4.7" }
+rbdc-mysql = { version = "=4.7.1" }
 strum = "0.28"
 strum_macros = "0.28"
 serde = "1"
