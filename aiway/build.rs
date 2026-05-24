@@ -8,12 +8,6 @@ fn main() {
     // 项目目录
     let project_dir = get_project_root().unwrap();
 
-    // 检测是否为 cargo check 模式（PROFILE 为 unchecked）
-    let profile = env::var("PROFILE").unwrap_or_default();
-    if profile == "unchecked" {
-        return;
-    }
-
     // 二进制文件目录，需要提前编译console、gateway和logg
     let out_dir = env::var("OUT_DIR").unwrap_or_default();
     let release_dir = Path::new(&out_dir)
@@ -23,6 +17,13 @@ fn main() {
         .unwrap()
         .parent()
         .unwrap();
+
+    // 检测目标二进制文件是否存在，不存在则跳过（如 cargo check 场景）
+    let gateway_bin = release_dir.join("gateway");
+    if !gateway_bin.exists() {
+        println!("cargo:warning=跳过二进制文件复制，目标文件尚未编译");
+        return;
+    }
 
     // 嵌入的二进制文件目录
     let bin_dir = project_dir.join("aiway/bin");
