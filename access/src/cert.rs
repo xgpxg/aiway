@@ -131,11 +131,6 @@ impl CertManager {
 
         None
     }
-
-    /// 是否有可用的证书
-    pub fn has_certs(&self) -> bool {
-        !self.certs.is_empty()
-    }
 }
 
 /// 解析 PEM 格式的证书和私钥

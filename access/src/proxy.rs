@@ -63,7 +63,7 @@ impl AccessPoint {
     }
 
     /// 处理单个连接：选择上游节点，建立连接，双向转发
-    pub async fn handle_connection<S>(&self, mut downstream: S, peer_addr: std::net::SocketAddr)
+    pub async fn handle_connection<S>(&self, downstream: S, peer_addr: std::net::SocketAddr)
     where
         S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
     {

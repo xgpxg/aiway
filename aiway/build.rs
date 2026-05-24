@@ -18,13 +18,6 @@ fn main() {
         .parent()
         .unwrap();
 
-    // 检测目标二进制文件是否存在，不存在则跳过（如 cargo check 场景）
-    let gateway_bin = release_dir.join("gateway");
-    if !gateway_bin.exists() {
-        println!("cargo:warning=跳过二进制文件复制，目标文件尚未编译");
-        return;
-    }
-
     // 嵌入的二进制文件目录
     let bin_dir = project_dir.join("aiway/bin");
     fs::create_dir_all(&bin_dir).unwrap();
