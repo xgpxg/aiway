@@ -8,6 +8,12 @@ fn main() {
     // 项目目录
     let project_dir = get_project_root().unwrap();
 
+    // 检测是否为 cargo check 模式（PROFILE 为 unchecked）
+    let profile = env::var("PROFILE").unwrap_or_default();
+    if profile == "unchecked" {
+        return;
+    }
+
     // 二进制文件目录，需要提前编译console、gateway和logg
     let out_dir = env::var("OUT_DIR").unwrap_or_default();
     let release_dir = Path::new(&out_dir)
@@ -29,7 +35,6 @@ fn main() {
     fs::copy(release_dir.join("access"), &bin_dir.join("access")).unwrap();
     //fs::copy(release_dir.join("model-proxy"), &bin_dir.join("model-proxy")).unwrap();
 
-    println!("cargo:rustc-env=PROJECT_DIR={}", project_dir.display());
     println!("cargo:rerun-if-changed=bin/");
 }
 
