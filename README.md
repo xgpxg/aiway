@@ -114,6 +114,24 @@ Options:
 
 ## 性能
 
+### 当前
+
+- 通过`access`接入点访问
+
+```shell
+wrk https://aiway-test-1.coderbox.cn:7443/api/hello -t 12 -c 100
+Running 10s test @ http://aiway-test-1.coderbox.cn:7080/api/hello
+  12 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     0.99ms  810.80us  34.97ms   96.17%
+    Req/Sec     8.43k     1.23k   16.35k    78.69%
+  1012287 requests in 10.10s, 253.90MB read
+Requests/sec: 100224.67
+Transfer/sec:     25.14MB
+```
+
+### 2026/05/24 前
+
 - Ubuntu 24.04, Intel i7-12700K, 12 Cores, 16 GB RAM
 
 ```shell
@@ -144,7 +162,7 @@ Requests/sec:  30265.20
 Transfer/sec:      7.59MB
 ```
 
-> 以下为在老版本上的测试数据（<0.2.2），新版本会快30%~40%
+### 2026/03/26 前
 
 - openEuler 24.03 (LTS-SP3), Intel(R) Xeon(R) 6982P-C, 4 Cores, 8 GB RAM
 

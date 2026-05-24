@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "console",
     "gateway",
+    "access",
     "message",
     "lib/logging",
     "lib/aiway-plugin",

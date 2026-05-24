@@ -82,6 +82,7 @@ use std::net::IpAddr;
 use std::str::FromStr;
 
 mod auth;
+mod domain;
 mod common;
 pub mod db;
 mod file;
@@ -132,6 +133,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/plugin", plugin::api::routes());
     builder = builder.mount("/api/metrics", metrics::api::routes());
     builder = builder.mount("/api/log", log::api::routes());
+    builder = builder.mount("/api/domain", domain::api::routes());
     builder = builder.mount("/api/firewall", firewall::api::routes());
     builder = builder.mount("/api/system", system::routes());
     builder = builder.mount("/api/message", message::api::routes());

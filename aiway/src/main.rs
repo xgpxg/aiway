@@ -24,6 +24,7 @@ struct AiwayApp {
     /* // 模型代理
     #[allow(unused)]
     model_proxy: embed::EmbedApp,*/
+    access: embed::EmbedApp,
 }
 
 impl AiwayApp {
@@ -31,6 +32,7 @@ impl AiwayApp {
         let console = Asset::get("console").unwrap();
         let gateway = Asset::get("gateway").unwrap();
         let logg = Asset::get("logg").unwrap();
+        let access = Asset::get("access").unwrap();
         //let model_proxy = Asset::get("model-proxy").unwrap();
 
         let logg = embed::EmbedApp::new("logg", &logg.data, &[]).unwrap();
@@ -41,9 +43,9 @@ impl AiwayApp {
             &console.data,
             &[
                 "--address",
-                &args.address,
+                &args.console_address,
                 "--port",
-                &args.port.to_string(),
+                &args.console_port.to_string(),
                 "--log-server",
                 &args.log_server,
             ],
@@ -60,11 +62,11 @@ impl AiwayApp {
             &gateway.data,
             &[
                 "--address",
-                &args.address,
+                &args.gateway_address,
                 "--port",
                 &args.gateway_port.to_string(),
                 "--console",
-                &format!("{}:{}", args.address, args.port),
+                &format!("{}:{}", args.console_address, args.console_port),
                 "--log-server",
                 &args.log_server.to_string(),
             ],
@@ -80,10 +82,27 @@ impl AiwayApp {
         .unwrap();
         log::info!("model-proxy started");*/
 
+        let access = embed::EmbedApp::new(
+            "access",
+            &access.data,
+            &[
+                "--address",
+                &args.access_address,
+                "--port",
+                &args.access_http_port.to_string(),
+                "--https-port",
+                &args.access_https_port.to_string(),
+                "--log-server",
+                &args.log_server,
+            ],
+        )
+        .unwrap();
+
         AiwayApp {
             logg,
             console,
             gateway,
+            access,
             //model_proxy,
         }
     }
@@ -92,21 +111,37 @@ impl AiwayApp {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Listen address, like 127.0.0.1
-    #[arg(short, long, default_value = "127.0.0.1")]
-    address: String,
+    /// Console listen address
+    #[arg(long, default_value = "127.0.0.1")]
+    console_address: String,
 
-    /// Port
-    #[arg(short, long, default_value_t = 7000)]
-    port: u16,
+    /// Console listen port
+    #[arg(long, default_value_t = 7000)]
+    console_port: u16,
 
-    /// Gateway port
+    /// Gateway listen address
+    #[arg(long, default_value = "127.0.0.1")]
+    gateway_address: String,
+
+    /// Gateway listen port
     #[arg(long, default_value_t = 7001)]
     gateway_port: u16,
 
-    /// Log server port
+    /// Log server address
     #[arg(long, default_value = "127.0.0.1:7280")]
     log_server: String,
+
+    /// Access listen address
+    #[arg(short, long, default_value = "0.0.0.0")]
+    access_address: String,
+
+    /// Access http listen port
+    #[arg(long, default_value_t = 7080)]
+    access_http_port: u16,
+
+    /// Access https listen port
+    #[arg(long, default_value_t = 7443)]
+    access_https_port: u16,
 }
 
 #[tokio::main]

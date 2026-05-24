@@ -1,4 +1,5 @@
 pub mod api_key;
+pub mod domain;
 pub mod gateway_node;
 pub mod gateway_node_state;
 pub mod message;

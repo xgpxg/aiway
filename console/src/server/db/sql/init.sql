@@ -277,6 +277,23 @@ create table if not exists mcp_tool
     is_delete      tinyint(1)   not null default 0 -- 是否删除
 );
 
+-- 域名证书管理
+create table if not exists domain
+(
+    id             bigint primary key,
+    domain         varchar(200)  not null,          -- 绑定域名，如 "example.com" 或 "*.example.com"
+    protocol       varchar(10)   not null default 'HTTP', -- 协议：HTTP | HTTPS
+    cert           text,                             -- PEM 格式证书内容（HTTPS 必填）
+    cert_key       text,                             -- PEM 格式私钥内容（HTTPS 必填）
+    status         varchar(20)   not null,          -- 状态：Disable | Ok
+    create_user_id bigint,                          -- 创建人ID
+    update_user_id bigint,                          -- 修改人ID
+    create_time    datetime,                        -- 创建时间
+    update_time    datetime,                        -- 更新时间
+    remark         varchar(500),                    -- 备注
+    is_delete      tinyint(1)    not null default 0 -- 是否删除
+);
+
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');

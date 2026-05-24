@@ -1,11 +1,13 @@
 mod alerter;
 pub mod api;
+mod domain;
 mod config;
+mod data_sync;
 mod firewall;
 mod global_plugin;
 mod ip_region;
+mod node;
 mod plugin;
 mod reporter;
 mod route;
 mod service;
-mod data_sync;

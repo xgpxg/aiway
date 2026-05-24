@@ -7,9 +7,9 @@
 
 use crate::server;
 use crate::server::gateway;
-use crate::server::gateway::{alerter, ip_region, plugin, reporter, route, service};
+use crate::server::gateway::{alerter, domain, ip_region, node, plugin, reporter, route, service};
 use aiway_protocol::gateway::alert::AlertMessage;
-use aiway_protocol::gateway::{ApiKeySync, Config};
+use aiway_protocol::gateway::{ApiKeySync, CertEntry, Config};
 use busi::res::Res;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
@@ -25,7 +25,9 @@ pub fn routes() -> Vec<rocket::Route> {
         alert,
         download_ip_region_file,
         config,
-        pull_api_key
+        pull_api_key,
+        all_domains,
+        online_nodes
     ]
 }
 
@@ -114,6 +116,24 @@ async fn config() -> Res<Config> {
 #[get("/gateway/pull-api-key?<last_pull_time>")]
 async fn pull_api_key(last_pull_time: Option<i64>) -> Res<Vec<ApiKeySync>> {
     match gateway::data_sync::pull_api_key(last_pull_time).await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 查询所有域名证书（供网关 SNI 动态匹配）
+#[get("/gateway/certs")]
+async fn all_domains() -> Res<Vec<CertEntry>> {
+    match domain::domains().await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+/// 查询在线网关节点（供接入层发现可用节点）
+#[get("/gateway/online-nodes")]
+async fn online_nodes() -> Res<Vec<aiway_protocol::gateway::GatewayNodeInfo>> {
+    match node::online_nodes().await {
         Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
     }
