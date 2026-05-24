@@ -9,7 +9,7 @@ pub async fn routing_handle(session: &mut Session, context: &mut HttpContext) ->
         .get()
         .ok_or(HandlerError::new(500, "Router not initialized"))?;
     let head = session.req_header();
-    let host = head.get_host();
+    let host = strip_port(&head.get_host());
     let method = head.get_method().as_str();
     let path = head.get_path();
     let headers = head.all_request_headers();
@@ -21,4 +21,12 @@ pub async fn routing_handle(session: &mut Session, context: &mut HttpContext) ->
     context.set_route(route.clone().into());
 
     Ok(())
+}
+
+/// 路由匹配时只匹配域名，忽略端口
+fn strip_port(host: &str) -> String {
+    match host.rfind(':') {
+        Some(idx) => host[..idx].to_string(),
+        None => host.to_string(),
+    }
 }

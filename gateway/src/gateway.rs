@@ -12,7 +12,7 @@ use pingora::http::{RequestHeader, ResponseHeader};
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
 use pingora::proxy::FailToProxy;
 use pingora::{Error, ErrorType};
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::time::Duration;
 
 pub struct Gateway {
@@ -175,7 +175,7 @@ impl ProxyHttp for Gateway {
     ) -> pingora::Result<(), Box<Error>> {
         ctx.insert_state(
             HttpContext::RESPONSE_SERDE_PARTS,
-            SerdeParts::from(resp.deref()),
+            SerdeParts::from(&**resp.deref()),
         );
 
         // 响应处理
