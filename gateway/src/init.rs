@@ -89,7 +89,7 @@ fn set_panic_hook() {
     }));
 }
 
-static ARGS: LazyLock<Args> = LazyLock::new(|| Args::parse());
+static ARGS: LazyLock<Args> = LazyLock::new(Args::parse);
 pub fn alert_error(title: &str, content: &str) {
     let args = &*ARGS;
     let full_content = format!("{}\n节点地址：{}:{}", content, args.address, args.port);

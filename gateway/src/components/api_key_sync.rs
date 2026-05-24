@@ -34,10 +34,9 @@ impl ApiKeySyncer {
 
         for ak in list {
             let key = CacheKey::ApiKey(ak.secret).to_string();
-            let expire = match ak.exp_time {
-                Some(exp_time) => Some(exp_time - chrono::Utc::now().timestamp()),
-                None => None,
-            };
+            let expire = ak
+                .exp_time
+                .map(|exp_time| exp_time - chrono::Utc::now().timestamp());
             let expire = expire.map(|expire| expire.max(0) as u64);
             match ak.action {
                 Action::Create | Action::Update => cache::set(key, &Value::Null, expire).await?,

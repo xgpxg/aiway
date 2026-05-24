@@ -47,10 +47,10 @@ impl PathPattern {
 
         // 如果有双星号，添加匹配空路径的
         // 例如：/aa/** -> /aa/, /** -> /
-        if let Some(pos) = double_star_pos {
-            if pos < self.0.len() {
-                result.push(self.0[..pos].to_string());
-            }
+        if let Some(pos) = double_star_pos
+            && pos < self.0.len()
+        {
+            result.push(self.0[..pos].to_string());
         }
 
         log::debug!("{} => {:?}", self.0, result);

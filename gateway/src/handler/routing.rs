@@ -14,11 +14,11 @@ pub async fn routing_handle(session: &mut Session, context: &mut HttpContext) ->
     let path = head.get_path();
     let headers = head.all_request_headers();
     let query_str = head.query();
-    let query = query_str.as_ref().map(|q| q.as_str());
+    let query = query_str.as_deref();
     let route = router
         .matches(&host, method, &path, query, &headers)
         .ok_or(HandlerError::new(404, "Not Found"))?;
-    context.set_route(route.clone().into());
+    context.set_route(route.clone());
 
     Ok(())
 }

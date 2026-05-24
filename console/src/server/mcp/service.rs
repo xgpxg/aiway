@@ -80,7 +80,7 @@ pub async fn server_update(req: McpServerUpdateReq, user: UserPrincipal) -> anyh
 
     let old = old.first().unwrap();
 
-    if check_server_exists(&old, Some(req.id)).await? {
+    if check_server_exists(old, Some(req.id)).await? {
         bail!(
             "MCP Server with name {} already exists",
             old.name.as_ref().unwrap()
@@ -141,7 +141,7 @@ pub async fn tool_add(req: McpToolAddReq, user: UserPrincipal) -> anyhow::Result
         .description(req.description)
         .input_schema(req.input_schema)
         .output_schema(req.output_schema)
-        .route_type(req.route_type.into())
+        .route_type(req.route_type)
         .service_name(req.service_name)
         .service_path(req.service_path)
         .url(req.url)
@@ -190,7 +190,7 @@ pub async fn tool_update(req: McpToolUpdateReq, user: UserPrincipal) -> anyhow::
     }
 
     let old = old.first().unwrap();
-    if check_tool_exists(&old, Some(req.id)).await? {
+    if check_tool_exists(old, Some(req.id)).await? {
         bail!(
             "MCP Tool with name {} already exists",
             old.name.as_ref().unwrap()

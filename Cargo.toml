@@ -6,8 +6,6 @@ members = [
     "access",
     "lib/logging",
     "lib/aiway-plugin",
-    "lib/pubsub",
-    "lib/security",
     "lib/aiway-protocol",
     "lib/sdk",
     "test-server",

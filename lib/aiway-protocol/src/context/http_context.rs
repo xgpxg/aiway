@@ -36,12 +36,12 @@ pub struct State(DashMap<String, Vec<u8>>);
 impl Default for State {
     fn default() -> Self {
         let data = DashMap::new();
-        
+
         // 插入请求 ID
         let request_id = uuid::Uuid::new_v4().to_string();
         let encoded_id = bincode::serialize(&request_id).unwrap();
         data.insert(HttpContext::REQUEST_ID.to_string(), encoded_id);
-        
+
         // 插入请求时间戳
         let request_ts = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -49,7 +49,7 @@ impl Default for State {
             .as_millis() as i64;
         let encoded_ts = bincode::serialize(&request_ts).unwrap();
         data.insert(HttpContext::REQUEST_TS.to_string(), encoded_ts);
-        
+
         State(data)
     }
 }
@@ -101,7 +101,7 @@ impl AnyState {
             .and_then(|(_, v)| v.downcast::<T>().ok())
     }
 
-    pub fn exists<T: Any + Send + Sync>(&self, key: &str) -> bool {
+    pub fn exists(&self, key: &str) -> bool {
         self.data.contains_key(key)
     }
 }
@@ -191,8 +191,8 @@ impl HttpContext {
     }
 
     #[inline]
-    pub fn exists_any_state<T: Any + Send + Sync>(&self, key: &str) -> bool {
-        self.any_state.exists::<T>(key)
+    pub fn exists_any_state(&self, key: &str) -> bool {
+        self.any_state.exists(key)
     }
 
     /// 获取请求ID

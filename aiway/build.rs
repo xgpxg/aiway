@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::fs::read_dir;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -23,23 +22,22 @@ fn main() {
     fs::create_dir_all(&bin_dir).unwrap();
 
     // 复制二进制文件
-    fs::copy(release_dir.join("gateway"), &bin_dir.join("gateway")).unwrap();
-    fs::copy(release_dir.join("console"), &bin_dir.join("console")).unwrap();
-    fs::copy(release_dir.join("logg"), &bin_dir.join("logg")).unwrap();
-    fs::copy(release_dir.join("access"), &bin_dir.join("access")).unwrap();
-    //fs::copy(release_dir.join("model-proxy"), &bin_dir.join("model-proxy")).unwrap();
+    fs::copy(release_dir.join("gateway"), bin_dir.join("gateway")).unwrap();
+    fs::copy(release_dir.join("console"), bin_dir.join("console")).unwrap();
+    fs::copy(release_dir.join("logg"), bin_dir.join("logg")).unwrap();
+    fs::copy(release_dir.join("access"), bin_dir.join("access")).unwrap();
 
     println!("cargo:rerun-if-changed=bin/");
 }
 
 fn get_project_root() -> io::Result<PathBuf> {
     let path = env::current_dir()?;
-    let mut path_ancestors = path.as_path().ancestors();
+    let path_ancestors = path.as_path().ancestors();
 
-    while let Some(p) = path_ancestors.next() {
+    for p in path_ancestors {
         let has_cargo = read_dir(p)?
             .into_iter()
-            .any(|p| p.unwrap().file_name() == OsString::from("Cargo.lock"));
+            .any(|p| p.unwrap().file_name() == "Cargo.lock");
         if has_cargo {
             return Ok(PathBuf::from(p));
         }

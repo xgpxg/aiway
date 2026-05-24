@@ -45,6 +45,7 @@ pub enum DomainStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Protocol {
     #[default]
     HTTP,

@@ -116,7 +116,7 @@ impl McpServerHandler {
                                     .as_ref()
                                     .map(|path| path.to_string())
                                     .unwrap_or_default();
-                                let url = Servicer::get_instance(&service_name)
+                                let url = Servicer::get_instance(service_name)
                                     .expect("No service instance found");
                                 format!("{}{}", url, path)
                             }
@@ -126,7 +126,7 @@ impl McpServerHandler {
                                 unimplemented!()
                             }
                         };
-                        let (query, body, header) = extract_parameters(&route, &arguments);
+                        let (query, body, header) = extract_parameters(&route, arguments);
                         let res = HTTP_CLIENT
                             .client
                             .request(http::Method::from_str(method)?, url)

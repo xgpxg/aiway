@@ -201,16 +201,16 @@ pub async fn run_on_logging(ctx: &mut HttpContext) {
     }
 
     // 执行模型插件的logging
-    if let Some(model_name) = ctx.get_proxy_model_name() {
-        if let Some(provider) = ctx.get_proxy_model_provider() {
-            let provider = ModelFactory::get_special_provider(&model_name, &provider.name).unwrap();
-            if let Some(plugin) = provider.plugins {
-                log::info!(
-                    "execute model provider request converter plugin: {}",
-                    plugin.name
-                );
-                PluginFactory::on_logging(&plugin, ctx).await;
-            }
+    if let Some(model_name) = ctx.get_proxy_model_name()
+        && let Some(provider) = ctx.get_proxy_model_provider()
+    {
+        let provider = ModelFactory::get_special_provider(&model_name, &provider.name).unwrap();
+        if let Some(plugin) = provider.plugins {
+            log::info!(
+                "execute model provider request converter plugin: {}",
+                plugin.name
+            );
+            PluginFactory::on_logging(&plugin, ctx).await;
         }
     }
 

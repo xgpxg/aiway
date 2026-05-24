@@ -1,9 +1,9 @@
 use crate::mcp::mcp::McpTool;
+use rmcp::model::{Tool, object};
 use serde_json::{Value, json};
 use std::sync::{Arc, LazyLock};
-use rmcp::model::{object, Tool};
 
-const EMPTY_INPUT_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
+static EMPTY_INPUT_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
     json!({
       "type": "object",
       "properties": {}

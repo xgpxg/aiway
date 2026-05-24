@@ -53,7 +53,7 @@ pub(crate) async fn handle_model_request(
     log::info!("[ModelProxy] 执行请求阶段插件");
     if let Err(e) = execute_request_plugins(session, &plugin_type, ctx).await {
         log::error!("[ModelProxy] 请求阶段插件执行失败：{:?}", e);
-        return crate::service::send_error_response(session, e.0, e.1.into())
+        return crate::service::send_error_response(session, e.0, e.1)
             .await
             .map(|_| true);
     }
@@ -63,7 +63,7 @@ pub(crate) async fn handle_model_request(
     log::info!("[ModelProxy] 执行请求体阶段插件");
     if let Err(e) = execute_request_body_plugins(plugin_type.clone(), &mut body_opt, ctx).await {
         log::error!("[ModelProxy] 请求体阶段插件执行失败：{:?}", e);
-        return crate::service::send_error_response(session, e.0, e.1.into())
+        return crate::service::send_error_response(session, e.0, e.1)
             .await
             .map(|_| true);
     }
@@ -175,7 +175,7 @@ async fn execute_response_and_send(
     log::info!("[ModelProxy] 执行响应阶段插件");
     if let Err(e) = plugin::run_on_response(plugin_type.clone(), &mut response_header, ctx).await {
         log::error!("[ModelProxy] 响应阶段插件执行失败：{:?}", e);
-        return crate::service::send_error_response(session, e.0, e.1.into())
+        return crate::service::send_error_response(session, e.0, e.1)
             .await
             .map(|_| true);
     }
@@ -205,7 +205,7 @@ async fn stream_response_body(
         // 执行响应体阶段插件
         if let Err(e) = plugin::run_on_response_body(plugin_type.clone(), &mut body, ctx) {
             log::error!("[ModelProxy] 响应体阶段插件执行失败：{:?}", e);
-            return crate::service::send_error_response(session, e.0, e.1.into())
+            return crate::service::send_error_response(session, e.0, e.1)
                 .await
                 .map(|_| true);
         }

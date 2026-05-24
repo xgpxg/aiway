@@ -66,7 +66,7 @@ impl ProxyHttp for Gateway {
             .map(|s| s == "https" || s == "wss")
             .unwrap_or(false);
 
-        let port = uri.port_u16().unwrap_or_else(|| if tls { 443 } else { 80 });
+        let port = uri.port_u16().unwrap_or(if tls { 443 } else { 80 });
 
         let peer = Box::new(HttpPeer::new((host, port), tls, host.to_string()));
 
@@ -224,10 +224,7 @@ impl ProxyHttp for Gateway {
     }
 
     fn suppress_error_log(&self, _session: &Session, _ctx: &Self::CTX, error: &Error) -> bool {
-        match error.etype {
-            ErrorType::HTTPStatus(_) => true,
-            _ => false,
-        }
+        matches!(error.etype, ErrorType::HTTPStatus(_))
     }
 
     /// 统一响应错误信息

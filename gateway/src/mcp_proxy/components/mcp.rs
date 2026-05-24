@@ -118,6 +118,6 @@ impl McpFactory {
             .servers
             .get(name)
             .map(|s| s.clone())
-            .and_then(|s| s.tools.get(tool_name).map(|t| t.clone()))
+            .and_then(|s| s.tools.get(tool_name).cloned())
     }
 }

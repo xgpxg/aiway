@@ -1,6 +1,5 @@
 mod embed;
 
-//use cache::start_share_cache_server;
 use clap::Parser;
 use logging::{init_log, log};
 use rust_embed::Embed;
@@ -13,17 +12,12 @@ pub(crate) struct Asset;
 
 struct AiwayApp {
     // 日志服务
-    #[allow(unused)]
     logg: embed::EmbedApp,
     // 网关应用
-    #[allow(unused)]
     gateway: embed::EmbedApp,
     // 控制台应用
-    #[allow(unused)]
     console: embed::EmbedApp,
-    /* // 模型代理
-    #[allow(unused)]
-    model_proxy: embed::EmbedApp,*/
+    // 接入层
     access: embed::EmbedApp,
 }
 
@@ -33,7 +27,6 @@ impl AiwayApp {
         let gateway = Asset::get("gateway").unwrap();
         let logg = Asset::get("logg").unwrap();
         let access = Asset::get("access").unwrap();
-        //let model_proxy = Asset::get("model-proxy").unwrap();
 
         let logg = embed::EmbedApp::new("logg", &logg.data, &[]).unwrap();
         log::info!("log server started");
@@ -74,14 +67,6 @@ impl AiwayApp {
         .unwrap();
         log::info!("gateway started");
 
-        /*let model_proxy = embed::EmbedApp::new(
-            "model-proxy",
-            &model_proxy.data,
-            &["--log-server", "127.0.0.1:7281"],
-        )
-        .unwrap();
-        log::info!("model-proxy started");*/
-
         let access = embed::EmbedApp::new(
             "access",
             &access.data,
@@ -103,7 +88,6 @@ impl AiwayApp {
             console,
             gateway,
             access,
-            //model_proxy,
         }
     }
 }

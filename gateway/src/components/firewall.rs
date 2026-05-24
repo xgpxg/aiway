@@ -170,10 +170,10 @@ impl Firewalld {
             }
 
             // 尝试作为CIDR网段匹配
-            if let Ok(net) = IpNet::from_str(pattern) {
-                if net.contains(&target_ip) {
-                    return true;
-                }
+            if let Ok(net) = IpNet::from_str(pattern)
+                && net.contains(&target_ip)
+            {
+                return true;
             }
         }
 

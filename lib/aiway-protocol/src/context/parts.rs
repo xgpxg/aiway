@@ -25,7 +25,7 @@ impl From<&request::Parts> for SerdeParts {
             status_code: None,
             uri: parts.uri.clone().into(),
             headers: parts.headers.clone().into(),
-            authority: parts.uri.authority().clone().cloned(),
+            authority: parts.uri.authority().cloned(),
         }
     }
 }
@@ -34,7 +34,7 @@ impl From<&response::Parts> for SerdeParts {
     fn from(parts: &response::Parts) -> Self {
         Self {
             method: None,
-            status_code: parts.status.clone().into(),
+            status_code: parts.status.into(),
             uri: None,
             headers: parts.headers.clone().into(),
             authority: None,

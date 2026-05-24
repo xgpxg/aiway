@@ -27,11 +27,11 @@ impl McpProxyPool {
         }
     }
     pub async fn get_proxy_client(&self, server_name: &str) -> anyhow::Result<Arc<ProxyClient>> {
-        if let Some(client) = self.clients.get(server_name) {
-            if !client.is_closed() {
-                log::info!("Get proxy client from pool: {}", server_name);
-                return Ok(client.clone());
-            }
+        if let Some(client) = self.clients.get(server_name)
+            && !client.is_closed()
+        {
+            log::info!("Get proxy client from pool: {}", server_name);
+            return Ok(client.clone());
         }
 
         log::info!("Create new proxy client: {}", server_name);
