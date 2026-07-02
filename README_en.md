@@ -32,7 +32,7 @@ while maintaining high performance.
 
 ## Documentation
 
-For detailed documentation, please visit: [https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
+For detailed documentation, please visit: [https://aiway.coderbox.cn](https://aiway.coderbox.cn)
 
 ## Quick Start
 

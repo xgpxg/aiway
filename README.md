@@ -32,7 +32,7 @@
 
 ## 文档
 
-详细文档请访问：[https://aiway.coderbox.cn/doc.html](https://aiway.coderbox.cn/doc.html)
+详细文档请访问：[https://aiway.coderbox.cn](https://aiway.coderbox.cn)
 
 ## 快速开始
 
@@ -96,7 +96,7 @@ Options:
 - [x] 可视化面板
 - [x] AI 模型代理
 - [x] MCP 集成
-- [ ] 多域名支持
+- [x] 多域名支持
 
 ## 插件生态
 
