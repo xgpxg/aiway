@@ -6,6 +6,7 @@ use aiway_protocol::gateway::{ApiKeySync, Cert, Config, Firewall, GlobalPlugin, 
 use anyhow::bail;
 use busi::res::Res;
 use clap::Parser;
+use common::data_dir;
 use reqwest::{Client, ClientBuilder};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -109,7 +110,7 @@ impl InnerHttpClient {
                 }
                 let res = response.bytes().await?;
 
-                let temp_dir = std::env::temp_dir();
+                let temp_dir = data_dir!("temp");
                 let path = temp_dir.join("ip2region_v4.xdb");
                 std::fs::write(&path, res)?;
                 Ok(path)

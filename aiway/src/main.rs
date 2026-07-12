@@ -116,7 +116,7 @@ struct Args {
     log_server: String,
 
     /// Access listen address
-    #[arg(short, long, default_value = "0.0.0.0")]
+    #[arg(long, default_value = "0.0.0.0")]
     access_address: String,
 
     /// Access http listen port
