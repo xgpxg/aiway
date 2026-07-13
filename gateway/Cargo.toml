@@ -8,12 +8,11 @@ aiway-protocol = { path = "../lib/aiway-protocol", features = ["api-key", "alert
 busi = { path = "../lib/busi" }
 logging = { path = "../lib/logging", features = ["request-log"] }
 loadbalance = { path = "../lib/loadbalance" }
-aiway-plugin = { path = "../lib/aiway-plugin" }
 cache = { path = "../lib/cache" }
 alert = { path = "../lib/alert" }
 common = { path = "../lib/common" }
 tokio = { version = "1", features = ["macros", "io-util", "bytes", "sync", "time"] }
-pingora = { version = "0.8.0", features = ["pingora-proxy", "proxy", "lb"] }
+pingora = { version = "0.8.1", features = ["pingora-proxy", "proxy", "lb"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"

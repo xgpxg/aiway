@@ -1,6 +1,5 @@
 use crate::init::alert_error;
 use crate::{Args, handler};
-use aiway_plugin::async_trait;
 use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::parts::SerdeParts;
 use aiway_protocol::context::{HttpContext, RequestExt};
@@ -14,6 +13,7 @@ use pingora::proxy::FailToProxy;
 use pingora::{Error, ErrorType};
 use std::ops::Deref;
 use std::time::Duration;
+use plugin_manager::async_trait;
 
 pub struct Gateway {
     args: Args,

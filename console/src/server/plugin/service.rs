@@ -18,9 +18,8 @@ pub async fn info(req: PluginInfoReq<'_>, _user: UserPrincipal) -> anyhow::Resul
     let mut stream = req.file.open().await?;
     let mut buffer = Vec::new();
     io::copy(&mut stream, &mut buffer).await?;
-    let plugin: Box<dyn aiway_plugin::Plugin> = buffer
-        .try_into()
-        .map_err(|_| anyhow::anyhow!("Invalid plugin"))?;
+    let plugin = plugin_manager::plugin_from_bytes(&buffer)
+        .map_err(|e| anyhow::anyhow!("Invalid plugin: {e}"))?;
     let info = plugin.info().clone();
     let res = PluginInfoRes {
         name: plugin.name().to_string(),

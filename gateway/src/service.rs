@@ -1,6 +1,6 @@
 use crate::mcp_proxy::{handle_mcp_request};
 use crate::model_proxy::handle_model_request;
-use aiway_plugin::async_trait;
+use plugin_manager::async_trait;
 use aiway_protocol::common::constants::{MCP_API_PREFIX, MODEL_API_PREFIX};
 use aiway_protocol::context::{HttpContext, RequestExt};
 use bytes::Bytes;

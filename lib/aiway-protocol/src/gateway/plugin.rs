@@ -9,8 +9,8 @@ pub struct Plugin {
     /// 插件名称，全局唯一
     pub name: String,
     /// 下载地址
-    /// - 相对地址：从控制台下载，如`/file/download/xxx.so`
-    /// - 绝对地址：从给定的地址下载，如`https://xxx.com/xxx.so`
+    /// - 相对地址：从控制台下载，如`/file/download/xxx.wasm`
+    /// - 绝对地址：从给定的地址下载，如`https://xxx.com/xxx.wasm`
     pub url: String,
     /// 插件版本，只增不减的语义化版本号。
     pub version: String,
