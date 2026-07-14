@@ -149,11 +149,11 @@ macro_rules! export_wasm {
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
             let mut dummy_head = build_dummy_request_parts(input.head.as_ref().unwrap());
-            let mut dummy_ctx = aiway_plugin::protocol::context::HttpContext::new();
+            let mut ctx = aiway_plugin::WasmHttpContext;
 
             aiway_plugin::block_on(async {
                 plugin
-                    .on_request(&config, &mut dummy_head, &mut dummy_ctx)
+                    .on_request(&config, &mut dummy_head, &mut ctx)
                     .await
             })
             .map_err(|e| format!("{}", e))?;
@@ -174,11 +174,11 @@ macro_rules! export_wasm {
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
             let mut body = input.body.as_ref().map(|b| aiway_plugin::Bytes::from(b.clone()));
-            let mut dummy_ctx = aiway_plugin::protocol::context::HttpContext::new();
+            let mut ctx = aiway_plugin::WasmHttpContext;
 
             aiway_plugin::block_on(async {
                 plugin
-                    .on_request_body(&config, &mut body, &mut dummy_ctx)
+                    .on_request_body(&config, &mut body, &mut ctx)
                     .await
             })
             .map_err(|e| format!("{}", e))?;
@@ -196,11 +196,11 @@ macro_rules! export_wasm {
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
             let mut dummy_head = build_dummy_response_parts(input.head.as_ref().unwrap());
-            let mut dummy_ctx = aiway_plugin::protocol::context::HttpContext::new();
+            let mut ctx = aiway_plugin::WasmHttpContext;
 
             aiway_plugin::block_on(async {
                 plugin
-                    .on_response(&config, &mut dummy_head, &mut dummy_ctx)
+                    .on_response(&config, &mut dummy_head, &mut ctx)
                     .await
             })
             .map_err(|e| format!("{}", e))?;
@@ -222,10 +222,10 @@ macro_rules! export_wasm {
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
             let mut body = input.body.as_ref().map(|b| aiway_plugin::Bytes::from(b.clone()));
-            let mut dummy_ctx = aiway_plugin::protocol::context::HttpContext::new();
+            let mut ctx = aiway_plugin::WasmHttpContext;
 
             plugin
-                .on_response_body(&config, &mut body, &mut dummy_ctx)
+                .on_response_body(&config, &mut body, &mut ctx)
                 .map_err(|e| format!("{}", e))?;
 
             Ok(aiway_plugin::wasm_types::WasmOutput {
@@ -240,10 +240,10 @@ macro_rules! export_wasm {
             input: &aiway_plugin::wasm_types::WasmInput,
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
-            let mut dummy_ctx = aiway_plugin::protocol::context::HttpContext::new();
+            let mut ctx = aiway_plugin::WasmHttpContext;
 
             aiway_plugin::block_on(async {
-                plugin.on_logging(&config, &mut dummy_ctx).await;
+                plugin.on_logging(&config, &mut ctx).await;
             });
 
             Ok(aiway_plugin::wasm_types::WasmOutput {

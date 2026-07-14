@@ -23,6 +23,7 @@ semver = { version = "1.0", features = ["serde"] }
 bytes = "1"
 http = "1"
 crossbeam = "0.8"
+log = "0.4"
 
 [features]
-model = ["aiway-protocol/model"]
+model = ["aiway-protocol/model", "aiway-plugin/model"]

@@ -1,5 +1,6 @@
 //! WASM 插件运行环境实现。
 //!
+mod host_functions;
 mod network;
 
 use self::network::NETWORK;
@@ -10,6 +11,7 @@ use aiway_plugin::wasm_types::{
 pub use aiway_plugin::{Plugin, PluginError, PluginInfo};
 pub use aiway_protocol as protocol;
 use aiway_protocol::context::http::{request, response};
+use aiway_protocol::context::{HttpContext, PluginContext};
 pub use async_trait::async_trait;
 pub use bytes::Bytes;
 use crossbeam::queue::ArrayQueue;
@@ -17,7 +19,9 @@ pub use http;
 pub use semver::Version;
 pub use serde_json;
 use serde_json::Value;
+use std::cell::UnsafeCell;
 use std::fs;
+use std::ptr::NonNull;
 use std::sync::{Arc, LazyLock, OnceLock};
 use wasmtime::{
     Engine, Instance, InstanceAllocationStrategy, InstancePre, Linker, Memory, Module,
@@ -42,19 +46,47 @@ static ENGINE: LazyLock<Engine> = LazyLock::new(|| {
     Engine::new(&config).expect("failed to create wasmtime Engine with pooling allocator")
 });
 
+/// WASM Store 上下文
+///
+/// 在 WASI 上下文基础上附加 HttpContext 指针和插件名，供宿主函数访问真实的请求数据。
+pub(crate) struct WasmStoreCtx {
+    pub(crate) wasi: WasiP1Ctx,
+    /// 当前请求的 HttpContext 指针，每次 call_wasm 前设置，调用后清除
+    pub(crate) http_ctx: UnsafeCell<Option<NonNull<HttpContext>>>,
+    /// 当前插件名称指针，call_wasm 期间有效，WasmPlugin 生命周期内不变
+    pub(crate) plugin_name: UnsafeCell<Option<NonNull<str>>>,
+}
+
+impl WasmStoreCtx {
+    fn new(wasi: WasiP1Ctx) -> Self {
+        Self {
+            wasi,
+            http_ctx: UnsafeCell::new(None),
+            plugin_name: UnsafeCell::new(None),
+        }
+    }
+}
+
+// SAFETY: http_ctx 指针仅在 call_wasm 期间设置，
+// 且当前线程被阻塞或独占，不存在跨线程并发访问。
+unsafe impl Send for WasmStoreCtx {}
+
 /// 创建异步 Linker。
 /// 同步的会导致嵌套的异步运行时，会报错。
-fn create_linker() -> Result<Linker<WasiP1Ctx>, PluginError> {
+fn create_linker() -> Result<Linker<WasmStoreCtx>, PluginError> {
     let mut linker = Linker::new(&*ENGINE);
-    add_to_linker_async(&mut linker, |t| t)
+    // 保留 WASI，通过闭包从 WasmStoreCtx 提取 wasi 引用
+    add_to_linker_async(&mut linker, |t: &mut WasmStoreCtx| &mut t.wasi)
         .map_err(|e| PluginError::LoadError(format!("add wasi to linker failed: {}", e)))?;
+    // 注册 aiway 宿主函数
+    host_functions::register(&mut linker)?;
     Ok(linker)
 }
 
 /// 创建带 WASI 上下文的 Store（运行时使用）
-fn create_store() -> Store<WasiP1Ctx> {
+fn create_store() -> Store<WasmStoreCtx> {
     let wasi = WasiCtxBuilder::new().build_p1();
-    Store::new(&*ENGINE, wasi)
+    Store::new(&*ENGINE, WasmStoreCtx::new(wasi))
 }
 
 /// 创建加载插件信息用的 Linker
@@ -81,7 +113,7 @@ struct CachedFunc {
 
 impl CachedFunc {
     /// 从 Instance 一次性解析所有导出函数
-    fn resolve(store: &mut Store<WasiP1Ctx>, instance: &Instance) -> Result<Self, PluginError> {
+    fn resolve(store: &mut Store<WasmStoreCtx>, instance: &Instance) -> Result<Self, PluginError> {
         let memory = instance
             .get_memory(&mut *store, "memory")
             .ok_or_else(|| PluginError::ExecuteError("no 'memory' export".into()))?;
@@ -108,13 +140,13 @@ impl CachedFunc {
 /// 池为空时自动创建新实例，超过容量时丢弃归还的实例。
 struct WasmInstancePool {
     /// 实例池
-    pool: ArrayQueue<(Store<WasiP1Ctx>, Instance, CachedFunc)>,
+    pool: ArrayQueue<(Store<WasmStoreCtx>, Instance, CachedFunc)>,
     /// 预解析的实例
-    instance_pre: InstancePre<WasiP1Ctx>,
+    instance_pre: InstancePre<WasmStoreCtx>,
 }
 
 impl WasmInstancePool {
-    fn new(instance_pre: InstancePre<WasiP1Ctx>, max_size: usize) -> Self {
+    fn new(instance_pre: InstancePre<WasmStoreCtx>, max_size: usize) -> Self {
         Self {
             pool: ArrayQueue::new(max_size),
             instance_pre,
@@ -122,7 +154,7 @@ impl WasmInstancePool {
     }
 
     /// 从池中获取一个 (Store, Instance, CachedFunc)，池为空时创建新的
-    async fn acquire(&self) -> Result<(Store<WasiP1Ctx>, Instance, CachedFunc), PluginError> {
+    async fn acquire(&self) -> Result<(Store<WasmStoreCtx>, Instance, CachedFunc), PluginError> {
         // 尝试从池中获取
         if let Some((store, instance, func)) = self.pool.pop() {
             return Ok((store, instance, func));
@@ -140,7 +172,7 @@ impl WasmInstancePool {
         Ok((store, instance, func))
     }
 
-    fn release(&self, store: Store<WasiP1Ctx>, instance: Instance, func: CachedFunc) {
+    fn release(&self, store: Store<WasmStoreCtx>, instance: Instance, func: CachedFunc) {
         // 队列满则丢弃（ArrayQueue 满时返回 Err，自动清理）
         let _ = self.pool.push((store, instance, func));
     }
@@ -246,13 +278,30 @@ impl WasmPlugin {
     }
 
     /// 调用 WASM 插件的指定 Hook
-    async fn call_wasm(&self, hook_id: i32, input: &WasmInput) -> Result<WasmOutput, PluginError> {
+    ///
+    /// 调用前注入 HttpContext 指针，调用后清除，确保宿主函数可访问真实请求数据。
+    async fn call_wasm(
+        &self,
+        hook_id: i32,
+        input: &WasmInput,
+        ctx: &mut HttpContext,
+    ) -> Result<WasmOutput, PluginError> {
         let (mut store, instance, func) = self.pool.acquire().await?;
 
+        // 注入 HttpContext 指针和插件名
+        unsafe {
+            *store.data().http_ctx.get() = Some(NonNull::from(ctx));
+            *store.data().plugin_name.get() =
+                Some(NonNull::from(self.plugin_name.as_str()));
+        }
         let result = self.execute_wasm(hook_id, input, &mut store, &func).await;
+        // 清除指针
+        unsafe {
+            *store.data().http_ctx.get() = None;
+            *store.data().plugin_name.get() = None;
+        }
 
         // 无论成功失败，都归还到池
-        // 超过容
         self.pool.release(store, instance, func);
 
         result
@@ -263,7 +312,7 @@ impl WasmPlugin {
         &self,
         hook_id: i32,
         input: &WasmInput,
-        store: &mut Store<WasiP1Ctx>,
+        store: &mut Store<WasmStoreCtx>,
         func: &CachedFunc,
     ) -> Result<WasmOutput, PluginError> {
         // 序列化输入
@@ -338,8 +387,9 @@ impl Plugin for WasmPlugin {
         &self,
         config: &Value,
         head: &mut request::Parts,
-        _ctx: &mut aiway_protocol::context::HttpContext,
+        ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
+        let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
             config: self
                 .cached_config
@@ -351,7 +401,7 @@ impl Plugin for WasmPlugin {
             request_ts: None,
         };
 
-        let output = self.call_wasm(HOOK_ON_REQUEST, &input).await?;
+        let output = self.call_wasm(HOOK_ON_REQUEST, &input, http_ctx).await?;
 
         if let Some(modified_head) = output.head {
             modified_head.apply_to_request_parts(head);
@@ -364,8 +414,9 @@ impl Plugin for WasmPlugin {
         &self,
         config: &Value,
         body: &mut Option<Bytes>,
-        _ctx: &mut aiway_protocol::context::HttpContext,
+        ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
+        let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
             config: self
                 .cached_config
@@ -377,7 +428,7 @@ impl Plugin for WasmPlugin {
             request_ts: None,
         };
 
-        let output = self.call_wasm(HOOK_ON_REQUEST_BODY, &input).await?;
+        let output = self.call_wasm(HOOK_ON_REQUEST_BODY, &input, http_ctx).await?;
 
         if let Some(modified_body) = output.body {
             *body = Some(Bytes::from(modified_body));
@@ -390,8 +441,9 @@ impl Plugin for WasmPlugin {
         &self,
         config: &Value,
         head: &mut response::Parts,
-        _ctx: &mut aiway_protocol::context::HttpContext,
+        ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
+        let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
             config: self
                 .cached_config
@@ -403,7 +455,7 @@ impl Plugin for WasmPlugin {
             request_ts: None,
         };
 
-        let output = self.call_wasm(HOOK_ON_RESPONSE, &input).await?;
+        let output = self.call_wasm(HOOK_ON_RESPONSE, &input, http_ctx).await?;
 
         if let Some(modified_head) = output.head {
             modified_head.apply_to_response_parts(head);
@@ -416,8 +468,9 @@ impl Plugin for WasmPlugin {
         &self,
         config: &Value,
         body: &mut Option<Bytes>,
-        _ctx: &mut aiway_protocol::context::HttpContext,
+        ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
+        let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
             config: self
                 .cached_config
@@ -432,7 +485,7 @@ impl Plugin for WasmPlugin {
         // on_response_body 是同步方法，需要 block_in_place 在 tokio 多线程中安全地阻塞
         let output = tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current()
-                .block_on(self.call_wasm(HOOK_ON_RESPONSE_BODY, &input))
+                .block_on(self.call_wasm(HOOK_ON_RESPONSE_BODY, &input, http_ctx))
         })?;
 
         if let Some(modified_body) = output.body {
@@ -442,7 +495,8 @@ impl Plugin for WasmPlugin {
         Ok(())
     }
 
-    async fn on_logging(&self, config: &Value, ctx: &mut aiway_protocol::context::HttpContext) {
+    async fn on_logging(&self, config: &Value, ctx: &mut dyn PluginContext) {
+        let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
             config: self
                 .cached_config
@@ -450,11 +504,11 @@ impl Plugin for WasmPlugin {
                 .clone(),
             head: None,
             body: None,
-            request_id: Some(ctx.request_id()),
-            request_ts: Some(ctx.request_ts()),
+            request_id: Some(http_ctx.request_id()),
+            request_ts: Some(http_ctx.request_ts()),
         };
 
-        let _ = self.call_wasm(HOOK_ON_LOGGING, &input).await;
+        let _ = self.call_wasm(HOOK_ON_LOGGING, &input, http_ctx).await;
     }
 }
 

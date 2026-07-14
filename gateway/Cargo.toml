@@ -40,5 +40,5 @@ ipnet = "2"
 
 [features]
 default = ["model-proxy", "mcp-proxy"]
-model-proxy = ["fastrand", "aha-reqwest-eventsource", "thiserror", "tokio-stream"]
+model-proxy = ["fastrand", "aha-reqwest-eventsource", "thiserror", "tokio-stream", "aiway-protocol/model", "plugin-manager/model"]
 mcp-proxy = ["aiway-protocol/mcp", "urlencoding"]

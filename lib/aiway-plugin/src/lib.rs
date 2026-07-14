@@ -12,9 +12,10 @@
 pub mod wasm_types;
 
 mod macros;
+mod wasm_ctx;
 
 pub use aiway_protocol as protocol;
-use aiway_protocol::context::HttpContext;
+use aiway_protocol::context::PluginContext;
 use aiway_protocol::context::http::{request, response};
 pub use async_trait::async_trait;
 pub use bytes::Bytes;
@@ -22,6 +23,7 @@ pub use http;
 pub use semver::Version;
 pub use serde_json;
 use serde_json::Value;
+pub use wasm_ctx::WasmHttpContext;
 
 /// 插件错误类型
 #[derive(Debug)]
@@ -50,6 +52,7 @@ impl std::fmt::Display for PluginError {
 /// 插件接口 trait
 ///
 /// 插件开发者实现此 trait，宿主侧通过 `plugin-manager` 调用。
+/// 上下文参数使用 `&mut dyn PluginContext`，宿主侧和 WASM 侧分别有不同实现。
 #[async_trait]
 pub trait Plugin: Send + Sync {
     /// 插件名称
@@ -62,7 +65,7 @@ pub trait Plugin: Send + Sync {
         &self,
         _config: &Value,
         _head: &mut request::Parts,
-        _ctx: &mut HttpContext,
+        _ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
         Ok(())
     }
@@ -72,7 +75,7 @@ pub trait Plugin: Send + Sync {
         &self,
         _config: &Value,
         _body: &mut Option<Bytes>,
-        _ctx: &mut HttpContext,
+        _ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
         Ok(())
     }
@@ -82,7 +85,7 @@ pub trait Plugin: Send + Sync {
         &self,
         _config: &Value,
         _head: &mut response::Parts,
-        _ctx: &mut HttpContext,
+        _ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
         Ok(())
     }
@@ -92,13 +95,13 @@ pub trait Plugin: Send + Sync {
         &self,
         _config: &Value,
         _body: &mut Option<Bytes>,
-        _ctx: &mut HttpContext,
+        _ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
         Ok(())
     }
 
     /// 日志阶段
-    async fn on_logging(&self, _: &Value, _: &mut HttpContext) {}
+    async fn on_logging(&self, _: &Value, _: &mut dyn PluginContext) {}
 }
 
 /// 插件信息
