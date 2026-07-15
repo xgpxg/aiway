@@ -226,7 +226,7 @@ fn read_from_wasm(caller: &mut Caller<'_, WasmStoreCtx>, ptr: i32, len: i32) -> 
 
 /// 将数据写入 WASM 线性内存，返回数据实际长度（snprintf 语义）。
 ///
-/// 当 `buf_len < data.len()` 时仅写入 `buf_len` 字节，但返回值仍为完整数据长度，
+/// 当 `buf_len < data.len()` 时仅返回完整数据长度，
 /// 调用方可通过比较返回值与缓冲区大小来检测截断并重试。
 fn write_to_wasm(
     caller: &mut Caller<'_, WasmStoreCtx>,
