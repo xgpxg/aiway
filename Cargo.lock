@@ -980,7 +980,7 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "aiway-plugin",
  "aiway-protocol",
@@ -1893,7 +1893,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "aha-reqwest-eventsource",
  "aiway-plugin",
