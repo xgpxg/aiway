@@ -12,6 +12,7 @@ use pingora::http::{RequestHeader, ResponseHeader};
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
 use pingora::proxy::FailToProxy;
 use pingora::{Error, ErrorType};
+use plugin_manager::async_trait;
 use std::ops::Deref;
 use std::time::Duration;
 
@@ -37,7 +38,7 @@ impl ProxyHttp for Gateway {
     /// 获取后端服务地址并连接
     async fn upstream_peer(
         &self,
-        _: &mut Session,
+        session: &mut Session,
         ctx: &mut Self::CTX,
     ) -> pingora::Result<Box<HttpPeer>, Box<Error>> {
         let backend_addr = ctx
@@ -46,6 +47,9 @@ impl ProxyHttp for Gateway {
 
         // 转发到本地处理
         if backend_addr.ends_with(".sock") {
+            let host = session.req_header().get_host();
+            ctx.insert_any_state("host", host);
+
             return Ok(Box::new(HttpPeer::new_uds(
                 backend_addr,
                 false,
