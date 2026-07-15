@@ -238,9 +238,11 @@ fn write_to_wasm(
         .get_export("memory")
         .and_then(|e| e.into_memory())
         .expect("WASM module has no 'memory' export");
-    let write_len = std::cmp::min(data.len(), buf_len as usize);
+    if data.len() > buf_len as usize {
+        return data.len() as i32;
+    }
     memory
-        .write(&mut *caller, buf_ptr as usize, &data[..write_len])
+        .write(&mut *caller, buf_ptr as usize, data)
         .expect("write to WASM memory failed");
     data.len() as i32
 }
