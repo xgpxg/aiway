@@ -12,7 +12,6 @@ use pingora::http::{RequestHeader, ResponseHeader};
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
 use pingora::proxy::FailToProxy;
 use pingora::{Error, ErrorType};
-use plugin_manager::async_trait;
 use std::ops::Deref;
 use std::time::Duration;
 
