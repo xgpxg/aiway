@@ -28,6 +28,7 @@ use wasmtime::{
     PoolingAllocationConfig, Store, TypedFunc,
 };
 use wasmtime_wasi::WasiCtxBuilder;
+use wasmtime_wasi::filesystem::WasiFilesystemView;
 use wasmtime_wasi::p1::{WasiP1Ctx, add_to_linker_async};
 
 /// 全局共享 Engine
@@ -47,8 +48,6 @@ static ENGINE: LazyLock<Engine> = LazyLock::new(|| {
 });
 
 /// WASM Store 上下文
-///
-/// 在 WASI 上下文基础上附加 HttpContext 指针和插件名，供宿主函数访问真实的请求数据。
 pub(crate) struct WasmStoreCtx {
     pub(crate) wasi: WasiP1Ctx,
     /// 当前请求的 HttpContext 指针，每次 call_wasm 前设置，调用后清除
@@ -75,7 +74,6 @@ unsafe impl Send for WasmStoreCtx {}
 /// 同步的会导致嵌套的异步运行时，会报错。
 fn create_linker() -> Result<Linker<WasmStoreCtx>, PluginError> {
     let mut linker = Linker::new(&*ENGINE);
-    // 保留 WASI，通过闭包从 WasmStoreCtx 提取 wasi 引用
     add_to_linker_async(&mut linker, |t: &mut WasmStoreCtx| &mut t.wasi)
         .map_err(|e| PluginError::LoadError(format!("add wasi to linker failed: {}", e)))?;
     // 注册 aiway 宿主函数
@@ -256,6 +254,15 @@ impl WasmPlugin {
             PluginError::LoadError(format!("read plugin_info result failed: {}", e))
         })?;
 
+        // 释放 WASM 侧 plugin_info 分配的内存
+        if let Ok(dealloc_fn) =
+            instance.get_typed_func::<(i32, i32), ()>(&mut store, "aiway_dealloc")
+        {
+            let _ = dealloc_fn
+                .call_async(&mut store, (ptr as i32, len as i32))
+                .await;
+        }
+
         let wasm_info: WasmPluginInfo = bincode::deserialize(&buf).map_err(|e| {
             PluginError::LoadError(format!("deserialize plugin_info failed: {}", e))
         })?;
@@ -291,8 +298,7 @@ impl WasmPlugin {
         // 注入 HttpContext 指针和插件名
         unsafe {
             *store.data().http_ctx.get() = Some(NonNull::from(ctx));
-            *store.data().plugin_name.get() =
-                Some(NonNull::from(self.plugin_name.as_str()));
+            *store.data().plugin_name.get() = Some(NonNull::from(self.plugin_name.as_str()));
         }
         let result = self.execute_wasm(hook_id, input, &mut store, &func).await;
         // 清除指针
@@ -428,7 +434,9 @@ impl Plugin for WasmPlugin {
             request_ts: None,
         };
 
-        let output = self.call_wasm(HOOK_ON_REQUEST_BODY, &input, http_ctx).await?;
+        let output = self
+            .call_wasm(HOOK_ON_REQUEST_BODY, &input, http_ctx)
+            .await?;
 
         if let Some(modified_body) = output.body {
             *body = Some(Bytes::from(modified_body));
@@ -484,8 +492,11 @@ impl Plugin for WasmPlugin {
 
         // on_response_body 是同步方法，需要 block_in_place 在 tokio 多线程中安全地阻塞
         let output = tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current()
-                .block_on(self.call_wasm(HOOK_ON_RESPONSE_BODY, &input, http_ctx))
+            tokio::runtime::Handle::current().block_on(self.call_wasm(
+                HOOK_ON_RESPONSE_BODY,
+                &input,
+                http_ctx,
+            ))
         })?;
 
         if let Some(modified_body) = output.body {
