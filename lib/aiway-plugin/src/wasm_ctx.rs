@@ -3,11 +3,11 @@
 //! 通过宿主函数访问网关的真实请求数据，而非在 WASM 内部维护独立状态。
 //! 所有数据读取均委托给宿主侧的 `aiway::host_xxx` 函数。
 
-#[cfg(feature = "model")]
-use std::any::Any;
-use aiway_protocol::model::Provider;
-use crate::plugin_ctx::{HttpRequest, HttpResponse, PluginContext};
 use crate::PluginError;
+use crate::plugin_ctx::{HttpRequest, HttpResponse, PluginContext};
+#[cfg(feature = "model")]
+use aiway_protocol::model::Provider;
+use std::any::Any;
 // ---------------------------------------------------------------------------
 // 宿主函数 FFI 声明
 // ---------------------------------------------------------------------------
@@ -48,7 +48,10 @@ pub struct WasmHttpContext;
 ///
 /// `f` 为宿主函数，遵循 snprintf 语义：返回数据实际长度（可能大于 `buf_len`）。
 /// `initial_len` 为初始缓冲区大小，若数据超出则自动扩容重试。
-fn read_host_string(f: unsafe extern "C" fn(*mut u8, i32) -> i32, initial_len: i32) -> Option<String> {
+fn read_host_string(
+    f: unsafe extern "C" fn(*mut u8, i32) -> i32,
+    initial_len: i32,
+) -> Option<String> {
     let mut buf = vec![0u8; initial_len as usize];
     let needed = unsafe { f(buf.as_mut_ptr(), initial_len) };
     if needed <= 0 {
@@ -156,10 +159,14 @@ impl PluginContext for WasmHttpContext {
                 )
             };
             if needed < 0 {
-                return Err(PluginError::HttpError(format!("http_request failed with code {needed}")));
+                return Err(PluginError::HttpError(format!(
+                    "http_request failed with code {needed}"
+                )));
             }
             if needed == 0 {
-                return Err(PluginError::HttpError("http_request returned empty response".into()));
+                return Err(PluginError::HttpError(
+                    "http_request returned empty response".into(),
+                ));
             }
             let needed = needed as usize;
             if needed > buf.len() {
