@@ -32,7 +32,7 @@
 
 ## 文档
 
-详细文档请访问：[https://aiway.coderbox.cn](https://aiway.coderbox.cn)
+详细文档请访问：[Document](https://xgpxg.github.io/aiway/plugins/overview.html)
 
 ## 快速开始
 
@@ -78,11 +78,16 @@ cargo run --bin aiway
 Usage: aiway [OPTIONS]
 
 Options:
-  -a, --address <ADDRESS>            Listen address, like 127.0.0.1 [default: 127.0.0.1]
-  -p, --port <PORT>                  Port [default: 7000]
-      --gateway-port <GATEWAY_PORT>  Gateway port [default: 7001]
-  -h, --help                         Print help
-  -V, --version                      Print version
+      --console-address <CONSOLE_ADDRESS>      Console listen address [default: 127.0.0.1]
+      --console-port <CONSOLE_PORT>            Console listen port [default: 7000]
+      --gateway-address <GATEWAY_ADDRESS>      Gateway listen address [default: 127.0.0.1]
+      --gateway-port <GATEWAY_PORT>            Gateway listen port [default: 7001]
+      --log-server <LOG_SERVER>                Log server address [default: 127.0.0.1:7280]
+      --access-address <ACCESS_ADDRESS>        Access listen address [default: 0.0.0.0]
+      --access-http-port <ACCESS_HTTP_PORT>    Access http listen port [default: 7080]
+      --access-https-port <ACCESS_HTTPS_PORT>  Access https listen port [default: 7443]
+  -h, --help                                   Print help
+  -V, --version                                Print version
 ```
 
 ## 核心功能
@@ -100,13 +105,13 @@ Options:
 
 ## 插件生态
 
-### 官方插件
+### 已知插件
 
 我们提供了一系列常用插件，访问 [aiway-plugins](https://github.com/xgpxg/aiway-plugins) 获取更多信息。
 
 ### 自定义插件
 
-如需开发自定义插件，请参考 [插件开发文档](https://aiway.coderbox.cn/doc.html?path=docs/plugins/introduction.md)。
+如需开发自定义插件，请参考 [插件开发文档](https://xgpxg.github.io/aiway/plugins/overview.html)。
 
 ## 界面预览
 
