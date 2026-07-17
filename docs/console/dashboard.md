@@ -2,6 +2,8 @@
 
 控制台仪表盘展示系统整体运行状态。
 
+![dashboard.png](../images/dashboard.png)
+
 ## 展示指标
 
 - **请求统计**：总请求数、QPS、各状态码分布

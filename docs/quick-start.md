@@ -7,8 +7,6 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 ./aiway
 ```
 
-> 预编译版本基于 glibc 2.34 构建。若系统 glibc 版本低于 2.34，请从源码构建。
-
 ## 源码构建
 
 ### 环境要求
@@ -20,26 +18,23 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 ### 构建步骤
 
 ```bash
-# 构建全部二进制
-cargo build --release --bin gateway
-cargo build --release --bin console
-cargo build --release --bin logg
-cargo build --release --bin access
-cargo build --release --bin aiway
+# 构建全部二进制包
+cargo build -r --bin gateway
+cargo build -r --bin console
+cargo build -r --bin logg
+cargo build -r --bin access
+cargo build -r --bin aiway
 
-# 运行（一体化模式）
-cargo run --release --bin aiway
+# 运行（单机模式）
+cargo run --r --bin aiway
 ```
 
-## 访问服务
+## 访问地址
 
-| 服务 | 地址 |
-|------|------|
+| 服务    | 地址                    |
+|-------|-----------------------|
 | 管理控制台 | http://127.0.0.1:7000 |
-| 网关入口 | http://127.0.0.1:7001 |
-| 日志服务 | http://127.0.0.1:7280 |
-| Access 入口 | http://127.0.0.1:7080 |
-| Access HTTPS | https://127.0.0.1:7443 |
+| 网关入口  | http://127.0.0.1:7001 |
 
 默认账号: `admin` / `admin`
 

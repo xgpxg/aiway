@@ -14,7 +14,7 @@ MCP (Model Context Protocol) 是一种开放协议，允许 AI 模型安全地�
 
 ## 路由规则
 
-请求路径以 `/mcp/` 开头时，网关将其识别为 MCP 代理请求，由 `LocalService` 处理。
+请求路径以 `/mcp/` 开头时，网关将其识别为 MCP 代理请求，进入 MCP 调用链。
 
 ## 功能
 
@@ -26,3 +26,5 @@ MCP (Model Context Protocol) 是一种开放协议，允许 AI 模型安全地�
 ## 配置
 
 通过控制台的 MCP 管理页面配置 MCP 服务器信息。
+
+![mcp-manage.png](../images/mcp-manage.png)
