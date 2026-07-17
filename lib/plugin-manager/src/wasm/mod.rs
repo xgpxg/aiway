@@ -11,7 +11,7 @@ use aiway_plugin::wasm_types::{
 pub use aiway_plugin::{Plugin, PluginError, PluginInfo};
 pub use aiway_protocol as protocol;
 use aiway_protocol::context::http::{request, response};
-use aiway_protocol::context::{HttpContext, PluginContext};
+use aiway_protocol::context::{HttpContext};
 pub use async_trait::async_trait;
 pub use bytes::Bytes;
 use crossbeam::queue::ArrayQueue;
@@ -22,14 +22,13 @@ use serde_json::Value;
 use std::cell::UnsafeCell;
 use std::fs;
 use std::ptr::NonNull;
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{LazyLock, OnceLock};
+use std::sync::Arc;
 use wasmtime::{
-    Engine, Instance, InstanceAllocationStrategy, InstancePre, Linker, Memory, Module,
+    Engine, Instance, InstanceAllocationStrategy, Linker, Memory, Module,
     PoolingAllocationConfig, Store, TypedFunc,
 };
-use wasmtime_wasi::WasiCtxBuilder;
-use wasmtime_wasi::filesystem::WasiFilesystemView;
-use wasmtime_wasi::p1::{WasiP1Ctx, add_to_linker_async};
+use aiway_plugin::PluginContext;
 
 /// 全局共享 Engine
 static ENGINE: LazyLock<Engine> = LazyLock::new(|| {
@@ -49,7 +48,7 @@ static ENGINE: LazyLock<Engine> = LazyLock::new(|| {
 
 /// WASM Store 上下文
 pub(crate) struct WasmStoreCtx {
-    pub(crate) wasi: WasiP1Ctx,
+    //pub(crate) wasi: WasiP1Ctx,
     /// 当前请求的 HttpContext 指针，每次 call_wasm 前设置，调用后清除
     pub(crate) http_ctx: UnsafeCell<Option<NonNull<HttpContext>>>,
     /// 当前插件名称指针，call_wasm 期间有效，WasmPlugin 生命周期内不变
@@ -57,9 +56,8 @@ pub(crate) struct WasmStoreCtx {
 }
 
 impl WasmStoreCtx {
-    fn new(wasi: WasiP1Ctx) -> Self {
+    fn new() -> Self {
         Self {
-            wasi,
             http_ctx: UnsafeCell::new(None),
             plugin_name: UnsafeCell::new(None),
         }
@@ -74,17 +72,13 @@ unsafe impl Send for WasmStoreCtx {}
 /// 同步的会导致嵌套的异步运行时，会报错。
 fn create_linker() -> Result<Linker<WasmStoreCtx>, PluginError> {
     let mut linker = Linker::new(&*ENGINE);
-    add_to_linker_async(&mut linker, |t: &mut WasmStoreCtx| &mut t.wasi)
-        .map_err(|e| PluginError::LoadError(format!("add wasi to linker failed: {}", e)))?;
-    // 注册 aiway 宿主函数
     host_functions::register(&mut linker)?;
     Ok(linker)
 }
 
-/// 创建带 WASI 上下文的 Store（运行时使用）
+/// 创建 Store（运行时使用）
 fn create_store() -> Store<WasmStoreCtx> {
-    let wasi = WasiCtxBuilder::new().build_p1();
-    Store::new(&*ENGINE, WasmStoreCtx::new(wasi))
+    Store::new(&*ENGINE, WasmStoreCtx::new())
 }
 
 /// 创建加载插件信息用的 Linker
@@ -134,20 +128,21 @@ impl CachedFunc {
 }
 
 /// 缓存已创建的实例。
-/// 避免每次 Hook 调用都重新创建实例或重新解析导出函数。
+/// 避免每次 Hook 调用都重新实例化或重新解析导出函数。
+/// WASI imports 按 Store 打桩后实例化，而非跨 Store 复用 InstancePre。
 /// 池为空时自动创建新实例，超过容量时丢弃归还的实例。
 struct WasmInstancePool {
     /// 实例池
     pool: ArrayQueue<(Store<WasmStoreCtx>, Instance, CachedFunc)>,
-    /// 预解析的实例
-    instance_pre: InstancePre<WasmStoreCtx>,
+    /// 已编译模块
+    module: Arc<Module>,
 }
 
 impl WasmInstancePool {
-    fn new(instance_pre: InstancePre<WasmStoreCtx>, max_size: usize) -> Self {
+    fn new(module: Arc<Module>, max_size: usize) -> Self {
         Self {
             pool: ArrayQueue::new(max_size),
-            instance_pre,
+            module,
         }
     }
 
@@ -159,10 +154,15 @@ impl WasmInstancePool {
         }
 
         // 没取到，创建新的
+        // 由于 define_unknown_imports_as_default_values 会绑定到特定 Store，
+        // 必须在创建 Store 后按 Store 打桩 + 实例化，不能跨 Store 复用 InstancePre
         let mut store = create_store();
-        let instance = self
-            .instance_pre
-            .instantiate_async(&mut store)
+        let mut linker = create_linker()?;
+        linker
+            .define_unknown_imports_as_default_values(&mut store, &self.module)
+            .map_err(|e| PluginError::LoadError(format!("stub unknown imports failed: {}", e)))?;
+        let instance = linker
+            .instantiate_async(&mut store, &self.module)
             .await
             .map_err(|e| PluginError::ExecuteError(format!("instantiate failed: {}", e)))?;
 
@@ -200,13 +200,7 @@ impl WasmPlugin {
         })?;
 
         // 预解析 imports
-        let linker = create_linker()?;
-        let instance_pre = linker
-            .instantiate_pre(&module)
-            .map_err(|e| PluginError::LoadError(format!("instantiate_pre failed: {}", e)))?;
-
-        // 每个插件维护一个实例池
-        let pool = Arc::new(WasmInstancePool::new(instance_pre, 32));
+        let pool = Arc::new(WasmInstancePool::new(Arc::new(module), 32));
 
         Ok(Self {
             plugin_name: name,

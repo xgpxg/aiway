@@ -3,11 +3,11 @@
 //! 通过宿主函数访问网关的真实请求数据，而非在 WASM 内部维护独立状态。
 //! 所有数据读取均委托给宿主侧的 `aiway::host_xxx` 函数。
 
-use crate::protocol::context::PluginContext;
 #[cfg(feature = "model")]
-use crate::protocol::model::Provider;
 use std::any::Any;
-
+use aiway_protocol::model::Provider;
+use crate::plugin_ctx::{HttpRequest, HttpResponse, PluginContext};
+use crate::PluginError;
 // ---------------------------------------------------------------------------
 // 宿主函数 FFI 声明
 // ---------------------------------------------------------------------------
@@ -27,6 +27,12 @@ unsafe extern "C" {
     fn host_get_model_name(buf_ptr: *mut u8, buf_len: i32) -> i32;
     #[cfg(feature = "model")]
     fn host_get_model_provider(buf_ptr: *mut u8, buf_len: i32) -> i32;
+    fn host_http_request(
+        req_ptr: *const u8,
+        req_len: i32,
+        resp_buf_ptr: *mut u8,
+        resp_buf_len: i32,
+    ) -> i32;
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +138,37 @@ impl PluginContext for WasmHttpContext {
     fn log(&self, level: i32, msg: &str) {
         let bytes = msg.as_bytes();
         unsafe { host_log(level, bytes.as_ptr(), bytes.len() as i32) }
+    }
+
+    fn http_request(&self, req: &HttpRequest) -> Result<HttpResponse, PluginError> {
+        let req_bytes = bincode::serialize(req)
+            .map_err(|e| PluginError::HttpError(format!("serialize request failed: {e}")))?;
+
+        // 初始缓冲区 4KB，不足时扩容重试
+        let mut buf = vec![0u8; 4096];
+        loop {
+            let needed = unsafe {
+                host_http_request(
+                    req_bytes.as_ptr(),
+                    req_bytes.len() as i32,
+                    buf.as_mut_ptr(),
+                    buf.len() as i32,
+                )
+            };
+            if needed < 0 {
+                return Err(PluginError::HttpError(format!("http_request failed with code {needed}")));
+            }
+            if needed == 0 {
+                return Err(PluginError::HttpError("http_request returned empty response".into()));
+            }
+            let needed = needed as usize;
+            if needed > buf.len() {
+                buf.resize(needed, 0);
+                continue;
+            }
+            return bincode::deserialize(&buf[..needed])
+                .map_err(|e| PluginError::HttpError(format!("deserialize response failed: {e}")));
+        }
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {

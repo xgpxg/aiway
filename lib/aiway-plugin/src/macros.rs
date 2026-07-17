@@ -2,6 +2,51 @@
 //!
 //! 为插件开发者生成 C ABI 导出函数，供网关 wasmtime 运行时调用。
 
+/// 格式化日志宏（ERROR 级别）
+///
+/// # 用法
+/// ```ignore
+/// log_error!(ctx, "request failed: {}", err);
+/// ```
+#[macro_export]
+macro_rules! log_error {
+    ($ctx:expr, $($arg:tt)*) => {
+        $ctx.log_error(&format!($($arg)*))
+    };
+}
+
+/// WARN日志
+#[macro_export]
+macro_rules! log_warn {
+    ($ctx:expr, $($arg:tt)*) => {
+        $ctx.log_warn(&format!($($arg)*))
+    };
+}
+
+/// INFO日志
+#[macro_export]
+macro_rules! log_info {
+    ($ctx:expr, $($arg:tt)*) => {
+        $ctx.log_info(&format!($($arg)*))
+    };
+}
+
+/// DEBUG日志
+#[macro_export]
+macro_rules! log_debug {
+    ($ctx:expr, $($arg:tt)*) => {
+        $ctx.log_debug(&format!($($arg)*))
+    };
+}
+
+/// TRACE日志
+#[macro_export]
+macro_rules! log_trace {
+    ($ctx:expr, $($arg:tt)*) => {
+        $ctx.log_trace(&format!($($arg)*))
+    };
+}
+
 /// 导出 WASM 插件
 ///
 /// 生成以下导出函数：
@@ -88,21 +133,15 @@ macro_rules! export_wasm {
 
             // 根据 hook_id 分发
             let result = match hook_id {
-                aiway_plugin::wasm_types::HOOK_ON_REQUEST => {
-                    handle_on_request(&PLUGIN, &input)
-                }
+                aiway_plugin::wasm_types::HOOK_ON_REQUEST => handle_on_request(&PLUGIN, &input),
                 aiway_plugin::wasm_types::HOOK_ON_REQUEST_BODY => {
                     handle_on_request_body(&PLUGIN, &input)
                 }
-                aiway_plugin::wasm_types::HOOK_ON_RESPONSE => {
-                    handle_on_response(&PLUGIN, &input)
-                }
+                aiway_plugin::wasm_types::HOOK_ON_RESPONSE => handle_on_response(&PLUGIN, &input),
                 aiway_plugin::wasm_types::HOOK_ON_RESPONSE_BODY => {
                     handle_on_response_body(&PLUGIN, &input)
                 }
-                aiway_plugin::wasm_types::HOOK_ON_LOGGING => {
-                    handle_on_logging(&PLUGIN, &input)
-                }
+                aiway_plugin::wasm_types::HOOK_ON_LOGGING => handle_on_logging(&PLUGIN, &input),
                 _ => Err(format!("unknown hook_id: {}", hook_id)),
             };
 
@@ -113,9 +152,7 @@ macro_rules! export_wasm {
         }
 
         /// 编码成功输出
-        fn encode_output(
-            output: &aiway_plugin::wasm_types::WasmOutput,
-        ) -> i64 {
+        fn encode_output(output: &aiway_plugin::wasm_types::WasmOutput) -> i64 {
             match bincode::serialize(output) {
                 Ok(bytes) => {
                     let len = bytes.len();
@@ -152,14 +189,11 @@ macro_rules! export_wasm {
             let mut ctx = aiway_plugin::WasmHttpContext;
 
             aiway_plugin::block_on(async {
-                plugin
-                    .on_request(&config, &mut dummy_head, &mut ctx)
-                    .await
+                plugin.on_request(&config, &mut dummy_head, &mut ctx).await
             })
             .map_err(|e| format!("{}", e))?;
 
-            let output_head =
-                aiway_plugin::wasm_types::WasmHead::from_request_parts(&dummy_head);
+            let output_head = aiway_plugin::wasm_types::WasmHead::from_request_parts(&dummy_head);
 
             Ok(aiway_plugin::wasm_types::WasmOutput {
                 head: Some(output_head),
@@ -173,13 +207,14 @@ macro_rules! export_wasm {
             input: &aiway_plugin::wasm_types::WasmInput,
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
-            let mut body = input.body.as_ref().map(|b| aiway_plugin::Bytes::from(b.clone()));
+            let mut body = input
+                .body
+                .as_ref()
+                .map(|b| aiway_plugin::Bytes::from(b.clone()));
             let mut ctx = aiway_plugin::WasmHttpContext;
 
             aiway_plugin::block_on(async {
-                plugin
-                    .on_request_body(&config, &mut body, &mut ctx)
-                    .await
+                plugin.on_request_body(&config, &mut body, &mut ctx).await
             })
             .map_err(|e| format!("{}", e))?;
 
@@ -199,14 +234,11 @@ macro_rules! export_wasm {
             let mut ctx = aiway_plugin::WasmHttpContext;
 
             aiway_plugin::block_on(async {
-                plugin
-                    .on_response(&config, &mut dummy_head, &mut ctx)
-                    .await
+                plugin.on_response(&config, &mut dummy_head, &mut ctx).await
             })
             .map_err(|e| format!("{}", e))?;
 
-            let output_head =
-                aiway_plugin::wasm_types::WasmHead::from_response_parts(&dummy_head);
+            let output_head = aiway_plugin::wasm_types::WasmHead::from_response_parts(&dummy_head);
 
             Ok(aiway_plugin::wasm_types::WasmOutput {
                 head: Some(output_head),
@@ -221,7 +253,10 @@ macro_rules! export_wasm {
             input: &aiway_plugin::wasm_types::WasmInput,
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
-            let mut body = input.body.as_ref().map(|b| aiway_plugin::Bytes::from(b.clone()));
+            let mut body = input
+                .body
+                .as_ref()
+                .map(|b| aiway_plugin::Bytes::from(b.clone()));
             let mut ctx = aiway_plugin::WasmHttpContext;
 
             plugin

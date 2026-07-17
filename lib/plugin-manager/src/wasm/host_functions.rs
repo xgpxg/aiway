@@ -9,48 +9,102 @@
 //! 因此指针始终有效且不存在数据竞争。
 
 use super::WasmStoreCtx;
+use super::network::NETWORK;
 use aiway_protocol::context::HttpContext;
-use aiway_protocol::context::{LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_TRACE, LOG_WARN};
+use mime;
+use std::future::Future;
+use std::time::Duration;
 use wasmtime::{Caller, Linker};
+use aiway_plugin::{HttpRequest, HttpResponse};
 
 /// 注册所有 `aiway::` 宿主函数到 Linker
 pub fn register(linker: &mut Linker<WasmStoreCtx>) -> Result<(), crate::wasm::PluginError> {
     linker
         .func_wrap("aiway", "host_request_id", host_request_id)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_request_id: {e}")))?;
+        .map_err(|e| {
+            crate::wasm::PluginError::LoadError(format!("register host_request_id: {e}"))
+        })?;
     linker
         .func_wrap("aiway", "host_request_ts", host_request_ts)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_request_ts: {e}")))?;
+        .map_err(|e| {
+            crate::wasm::PluginError::LoadError(format!("register host_request_ts: {e}"))
+        })?;
     linker
         .func_wrap("aiway", "host_is_sse", host_is_sse)
         .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_is_sse: {e}")))?;
     linker
         .func_wrap("aiway", "host_is_websocket", host_is_websocket)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_is_websocket: {e}")))?;
+        .map_err(|e| {
+            crate::wasm::PluginError::LoadError(format!("register host_is_websocket: {e}"))
+        })?;
     linker
         .func_wrap("aiway", "host_get_route_name", host_get_route_name)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_get_route_name: {e}")))?;
+        .map_err(|e| {
+            crate::wasm::PluginError::LoadError(format!("register host_get_route_name: {e}"))
+        })?;
     linker
         .func_wrap("aiway", "host_get_routing_url", host_get_routing_url)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_get_routing_url: {e}")))?;
+        .map_err(|e| {
+            crate::wasm::PluginError::LoadError(format!("register host_get_routing_url: {e}"))
+        })?;
     linker
-        .func_wrap("aiway", "host_get_response_body_size", host_get_response_body_size)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_get_response_body_size: {e}")))?;
+        .func_wrap(
+            "aiway",
+            "host_get_response_body_size",
+            host_get_response_body_size,
+        )
+        .map_err(|e| {
+            crate::wasm::PluginError::LoadError(format!(
+                "register host_get_response_body_size: {e}"
+            ))
+        })?;
     linker
-        .func_wrap("aiway", "host_set_response_body_size", host_set_response_body_size)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_set_response_body_size: {e}")))?;
+        .func_wrap(
+            "aiway",
+            "host_set_response_body_size",
+            host_set_response_body_size,
+        )
+        .map_err(|e| {
+            crate::wasm::PluginError::LoadError(format!(
+                "register host_set_response_body_size: {e}"
+            ))
+        })?;
     linker
         .func_wrap("aiway", "host_log", host_log)
         .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_log: {e}")))?;
+    linker
+        .func_wrap_async(
+            "aiway",
+            "host_http_request",
+            |caller: Caller<'_, WasmStoreCtx>,
+             (req_ptr, req_len, resp_buf_ptr, resp_buf_len): (i32, i32, i32, i32)| {
+                Box::new(host_http_request(
+                    caller,
+                    req_ptr,
+                    req_len,
+                    resp_buf_ptr,
+                    resp_buf_len,
+                )) as Box<dyn Future<Output = i32> + Send>
+            },
+        )
+        .map_err(|e| {
+            crate::wasm::PluginError::LoadError(format!("register host_http_request: {e}"))
+        })?;
 
     #[cfg(feature = "model")]
     {
         linker
             .func_wrap("aiway", "host_get_model_name", host_get_model_name)
-            .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_get_model_name: {e}")))?;
+            .map_err(|e| {
+                crate::wasm::PluginError::LoadError(format!("register host_get_model_name: {e}"))
+            })?;
         linker
             .func_wrap("aiway", "host_get_model_provider", host_get_model_provider)
-            .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_get_model_provider: {e}")))?;
+            .map_err(|e| {
+                crate::wasm::PluginError::LoadError(format!(
+                    "register host_get_model_provider: {e}"
+                ))
+            })?;
     }
 
     Ok(())
@@ -61,11 +115,7 @@ pub fn register(linker: &mut Linker<WasmStoreCtx>) -> Result<(), crate::wasm::Pl
 // ---------------------------------------------------------------------------
 
 /// 获取请求 ID，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
-fn host_request_id(
-    mut caller: Caller<'_, WasmStoreCtx>,
-    buf_ptr: i32,
-    buf_len: i32,
-) -> i32 {
+fn host_request_id(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
     let id = http_ctx(&caller).request_id();
     write_to_wasm(&mut caller, buf_ptr, buf_len, id.as_bytes())
 }
@@ -86,11 +136,7 @@ fn host_is_websocket(caller: Caller<'_, WasmStoreCtx>) -> i32 {
 }
 
 /// 获取路由名称，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
-fn host_get_route_name(
-    mut caller: Caller<'_, WasmStoreCtx>,
-    buf_ptr: i32,
-    buf_len: i32,
-) -> i32 {
+fn host_get_route_name(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
     match http_ctx(&caller).get_route().map(|r| r.name.clone()) {
         Some(name) => write_to_wasm(&mut caller, buf_ptr, buf_len, name.as_bytes()),
         None => 0,
@@ -98,11 +144,7 @@ fn host_get_route_name(
 }
 
 /// 获取路由目标地址，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
-fn host_get_routing_url(
-    mut caller: Caller<'_, WasmStoreCtx>,
-    buf_ptr: i32,
-    buf_len: i32,
-) -> i32 {
+fn host_get_routing_url(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
     let url = http_ctx(&caller).get_routing_url().cloned();
     match url {
         Some(url) => write_to_wasm(&mut caller, buf_ptr, buf_len, url.as_bytes()),
@@ -124,11 +166,7 @@ fn host_set_response_body_size(mut caller: Caller<'_, WasmStoreCtx>, size: i64) 
 
 /// 获取模型名称，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
 #[cfg(feature = "model")]
-fn host_get_model_name(
-    mut caller: Caller<'_, WasmStoreCtx>,
-    buf_ptr: i32,
-    buf_len: i32,
-) -> i32 {
+fn host_get_model_name(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
     match http_ctx(&caller).get_proxy_model_name() {
         Some(name) => write_to_wasm(&mut caller, buf_ptr, buf_len, name.as_bytes()),
         None => 0,
@@ -155,12 +193,7 @@ fn host_get_model_provider(
 ///
 /// `level`: 日志级别（1=error, 2=warn, 3=info, 4=debug, 5=trace）
 /// `msg_ptr`/`msg_len`: 日志消息在 WASM 线性内存中的位置
-fn host_log(
-    mut caller: Caller<'_, WasmStoreCtx>,
-    level: i32,
-    msg_ptr: i32,
-    msg_len: i32,
-) {
+fn host_log(mut caller: Caller<'_, WasmStoreCtx>, level: i32, msg_ptr: i32, msg_len: i32) {
     let msg = read_from_wasm(&mut caller, msg_ptr, msg_len);
     let plugin_name = plugin_name(&caller);
     let formatted = format!("[{plugin_name}] {msg}");
@@ -245,4 +278,111 @@ fn write_to_wasm(
         .write(&mut *caller, buf_ptr as usize, data)
         .expect("write to WASM memory failed");
     data.len() as i32
+}
+
+/// 从 WASM 线性内存读取字节数组
+fn read_bytes_from_wasm(caller: &mut Caller<'_, WasmStoreCtx>, ptr: i32, len: i32) -> Vec<u8> {
+    let memory = caller
+        .get_export("memory")
+        .and_then(|e| e.into_memory())
+        .expect("WASM module has no 'memory' export");
+    let mut buf = vec![0u8; len as usize];
+    memory
+        .read(&mut *caller, ptr as usize, &mut buf)
+        .expect("read from WASM memory failed");
+    buf
+}
+
+/// 发起 HTTP 请求（异步）：反序列化请求 → 发送 → 序列化响应写回 WASM 内存
+///
+/// 通过 `func_wrap_async` 注册，`.await` 期间释放 worker 线程。
+/// 返回 snprintf 语义长度（成功时 ≥0），负值表示错误码：
+/// - -1: 请求反序列化失败
+/// - -2: 不支持的 HTTP 方法
+/// - -3: 请求执行失败
+/// - -4: 响应体读取失败
+fn host_http_request(
+    mut caller: Caller<'_, WasmStoreCtx>,
+    req_ptr: i32,
+    req_len: i32,
+    resp_buf_ptr: i32,
+    resp_buf_len: i32,
+) -> impl Future<Output = i32> + Send {
+    async move {
+        // 1. 读取并反序列化请求
+        let req_bytes = read_bytes_from_wasm(&mut caller, req_ptr, req_len);
+        let request: HttpRequest = match bincode::deserialize(&req_bytes) {
+            Ok(req) => req,
+            Err(_) => return -1,
+        };
+
+        // 2. 构建 reqwest 请求
+        let client = &NETWORK.client;
+        let mut req_builder = match request.method.to_uppercase().as_str() {
+            "GET" => client.get(&request.url),
+            "POST" => client.post(&request.url),
+            "PUT" => client.put(&request.url),
+            "DELETE" => client.delete(&request.url),
+            "PATCH" => client.patch(&request.url),
+            "HEAD" => client.head(&request.url),
+            _ => return -2,
+        };
+
+        for (key, value) in &request.headers {
+            req_builder = req_builder.header(key.as_str(), value.as_str());
+        }
+
+        // 3. 设置请求体（优先级: multipart > form > body）
+        if let Some(parts) = &request.multipart {
+            let mut form = reqwest::multipart::Form::new();
+            for part in parts {
+                let mut form_part = reqwest::multipart::Part::bytes(part.value.clone());
+                if let Some(ref file_name) = part.file_name {
+                    form_part = form_part.file_name(file_name.clone());
+                }
+                if let Some(ref mime_str) = part.mime_type {
+                    if mime_str.parse::<mime::Mime>().is_ok() {
+                        form_part = form_part.mime_str(mime_str).unwrap();
+                    }
+                }
+                form = form.part(part.key.clone(), form_part);
+            }
+            req_builder = req_builder.multipart(form);
+        } else if let Some(form_map) = &request.form {
+            req_builder = req_builder.form(form_map);
+        } else if let Some(body) = &request.body {
+            req_builder = req_builder.body(body.clone());
+        }
+
+        req_builder = req_builder.timeout(Duration::from_millis(request.timeout_ms));
+
+        // 4. 执行请求（异步，.await 期间释放 worker 线程）
+        let response = match req_builder.send().await {
+            Ok(resp) => resp,
+            Err(_) => return -3,
+        };
+
+        // 5. 读取响应
+        let status = response.status().as_u16();
+        let headers: Vec<(String, String)> = response
+            .headers()
+            .iter()
+            .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
+            .collect();
+
+        let body = match response.bytes().await {
+            Ok(b) => b.to_vec(),
+            Err(_) => return -4,
+        };
+
+        // 6. 序列化响应并写回 WASM 内存
+        let http_response = HttpResponse {
+            status,
+            headers,
+            body,
+        };
+        let resp_bytes = bincode::serialize(&http_response).expect("serialize HttpResponse failed");
+
+        write_to_wasm(&mut caller, resp_buf_ptr, resp_buf_len, &resp_bytes)
+    }
 }

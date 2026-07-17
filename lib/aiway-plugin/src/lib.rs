@@ -12,10 +12,12 @@
 pub mod wasm_types;
 
 mod macros;
+mod plugin_ctx;
 mod wasm_ctx;
 
-pub use aiway_protocol as protocol;
-use aiway_protocol::context::PluginContext;
+pub use crate::plugin_ctx::{
+    FormPart, HttpRequest, HttpRequestBuilder, HttpResponse, PluginContext,
+};
 use aiway_protocol::context::http::{request, response};
 pub use async_trait::async_trait;
 pub use bytes::Bytes;
@@ -24,7 +26,6 @@ pub use semver::Version;
 pub use serde_json;
 use serde_json::Value;
 pub use wasm_ctx::WasmHttpContext;
-
 /// 插件错误类型
 #[derive(Debug)]
 pub enum PluginError {
@@ -36,6 +37,8 @@ pub enum PluginError {
     LoadError(String),
     /// 序列化/反序列化错误
     SerializeError(String),
+    /// HTTP 错误
+    HttpError(String),
 }
 
 impl std::fmt::Display for PluginError {
@@ -45,6 +48,7 @@ impl std::fmt::Display for PluginError {
             PluginError::NotFound(msg) => write!(f, "{}", msg),
             PluginError::LoadError(msg) => write!(f, "{}", msg),
             PluginError::SerializeError(msg) => write!(f, "{}", msg),
+            PluginError::HttpError(msg) => write!(f, "{}", msg),
         }
     }
 }
