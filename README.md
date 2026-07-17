@@ -32,7 +32,7 @@
 
 ## 文档
 
-详细文档请访问：[Document](https://xgpxg.github.io/aiway/plugins/overview.html)
+详细文档请访问：[Document](https://xgpxg.github.io/aiway)
 
 ## 快速开始
 

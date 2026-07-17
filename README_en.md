@@ -9,11 +9,11 @@
 </div>
 
 
-**aiway** (API and AI Gateway) is a high-performance API + AI gateway developed in Rust, dedicated to providing stable,
-efficient, and scalable request forwarding and management solutions.
+**aiway** (API and AI Gateway) is a lightweight, high-performance API + AI gateway developed in Rust, dedicated to providing stable, efficient, and scalable request forwarding and management solutions.
 
-Leveraging Rust's memory safety features and zero-cost abstractions, aiway delivers exceptional security and stability
-while maintaining high performance.
+Leveraging Rust's memory safety features and zero-cost abstractions, aiway delivers exceptional security and stability while maintaining high performance.
+
+Unlike other gateways, aiway requires no complex configuration or environmental dependencies. Gateway nodes can be dynamically scaled out/in, easily handling millions of concurrent connections.
 
 ## Platform Support
 
@@ -32,7 +32,7 @@ while maintaining high performance.
 
 ## Documentation
 
-For detailed documentation, please visit: [https://aiway.coderbox.cn](https://aiway.coderbox.cn)
+For detailed documentation, please visit: [Document](https://xgpxg.github.io/aiway)
 
 ## Quick Start
 
@@ -46,8 +46,7 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 ./aiway
 ```
 
-> **Note**: The pre-built binaries are built against glibc 2.35. If your system's glibc version is lower than 2.35,
-> please build from source.
+> **Note**: The pre-built binaries are built against glibc 2.34. If your system's glibc version is lower than 2.34, please build from source.
 
 ### Option 2: Building from Source
 
@@ -79,28 +78,34 @@ cargo run --bin aiway
 Usage: aiway [OPTIONS]
 
 Options:
-  -a, --address <ADDRESS>            Listen address, like 127.0.0.1 [default: 127.0.0.1]
-  -p, --port <PORT>                  Port [default: 7000]
-      --gateway-port <GATEWAY_PORT>  Gateway port [default: 7001]
-  -h, --help                         Print help
-  -V, --version                      Print version
+      --console-address <CONSOLE_ADDRESS>      Console listen address [default: 127.0.0.1]
+      --console-port <CONSOLE_PORT>            Console listen port [default: 7000]
+      --gateway-address <GATEWAY_ADDRESS>      Gateway listen address [default: 127.0.0.1]
+      --gateway-port <GATEWAY_PORT>            Gateway listen port [default: 7001]
+      --log-server <LOG_SERVER>                Log server address [default: 127.0.0.1:7280]
+      --access-address <ACCESS_ADDRESS>        Access listen address [default: 0.0.0.0]
+      --access-http-port <ACCESS_HTTP_PORT>    Access http listen port [default: 7080]
+      --access-https-port <ACCESS_HTTPS_PORT>  Access https listen port [default: 7443]
+  -h, --help                                   Print help
+  -V, --version                                Print version
 ```
 
 ## Core Features
 
-- Dynamic Routing - Flexibly configure request routing rules
-- Service Management - Unified management of backend service instances
-- Plugin System - Scalable plugin architecture
-- Security Protection - Built-in firewall and security verification mechanisms
-- API Key Management - Unified API key management
-- Log Monitoring - Complete log storage and real-time monitoring
-- Visual Dashboard - Intuitive management console
-- AI Model Proxy - Intelligent AI model proxy and request forwarding
-- MCP Integration - Model Context Protocol support
+- [x] Dynamic Routing
+- [x] Service Management
+- [x] Plugin System
+- [x] Security Protection
+- [x] API Key Management
+- [x] Log Monitoring
+- [x] Visual Dashboard
+- [x] AI Model Proxy
+- [x] MCP Integration
+- [x] Multi-domain Support
 
 ## Plugin Ecosystem
 
-### Official Plugins
+### Known Plugins
 
 We provide a series of commonly used plugins. Visit [aiway-plugins](https://github.com/xgpxg/aiway-plugins) for more
 information.
@@ -108,13 +113,31 @@ information.
 ### Custom Plugins
 
 If you need to develop custom plugins, please refer to
-the [Plugin Development Documentation](https://aiway.coderbox.cn/doc.html?path=docs/plugins/introduction.md).
+the [Plugin Development Documentation](https://xgpxg.github.io/aiway/plugins/overview.html).
 
 ## Interface Preview
 
 ![Dashboard](docs/images/screenshot.png)
 
 ## Performance
+
+### Current
+
+- Via `access` entry point
+
+```shell
+wrk https://aiway-test-1.coderbox.cn:7443/api/hello -t 12 -c 100
+Running 10s test @ http://aiway-test-1.coderbox.cn:7080/api/hello
+  12 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     0.99ms  810.80us  34.97ms   96.17%
+    Req/Sec     8.43k     1.23k   16.35k    78.69%
+  1012287 requests in 10.10s, 253.90MB read
+Requests/sec: 100224.67
+Transfer/sec:     25.14MB
+```
+
+### Before 2026/05/24
 
 - Ubuntu 24.04, Intel i7-12700K, 12 Cores, 16 GB RAM
 
@@ -146,7 +169,7 @@ Requests/sec:  30265.20
 Transfer/sec:      7.59MB
 ```
 
-> The following test data is from older versions (<0.2.2). The new version is 30%~40% faster.
+### Before 2026/03/26
 
 - openEuler 24.03 (LTS-SP3), Intel(R) Xeon(R) 6982P-C, 4 Cores, 8 GB RAM
 
