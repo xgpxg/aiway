@@ -77,7 +77,7 @@ jobs:
       # 安装 zig（用于 musl 交叉编译）
       - name: Setup Zig
         if: contains(matrix.target, 'musl')
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
 
       # 安装 cargo-zigbuild
       - name: Install cargo-zigbuild
