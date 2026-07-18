@@ -74,10 +74,15 @@ jobs:
         run: cp -r frontend/dist/* console/ui/
 
 
-      #      # 安装 musl 工具
-      #      - name: Install musl tools
-      #        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
-      #        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      # 安装 zig（用于 musl 交叉编译）
+      - name: Setup Zig
+        if: contains(matrix.target, 'musl')
+        uses: mlugg/setup-zig@v1
+
+      # 安装 cargo-zigbuild
+      - name: Install cargo-zigbuild
+        if: contains(matrix.target, 'musl')
+        run: cargo install cargo-zigbuild
 
       # 添加目标平台
       - name: Add target
@@ -86,18 +91,28 @@ jobs:
       # 构建单机版
       - name: Build Standalone
         run: |
-          cargo build -r --bin gateway --target ${{ matrix.target }}
-          cargo build -r --bin console --target ${{ matrix.target }}
-          cargo build -r --bin logg --target ${{ matrix.target }}
-          cargo build -r --bin access --target ${{ matrix.target }}
-          cargo build -r --bin aiway --target ${{ matrix.target }}
+          if echo "${{ matrix.target }}" | grep -q musl; then
+            BUILD_CMD="cargo zigbuild"
+          else
+            BUILD_CMD="cargo build"
+          fi
+          $BUILD_CMD -r --bin gateway --target ${{ matrix.target }}
+          $BUILD_CMD -r --bin console --target ${{ matrix.target }}
+          $BUILD_CMD -r --bin logg --target ${{ matrix.target }}
+          $BUILD_CMD -r --bin access --target ${{ matrix.target }}
+          $BUILD_CMD -r --bin aiway --target ${{ matrix.target }}
 
       # 构建集群版
       - name: Build Cluster
         run: |
-          cargo build -r --bin gateway --target ${{ matrix.target }}
-          cargo build -r --bin console --target ${{ matrix.target }}
-          cargo build -r --bin access --target ${{ matrix.target }}
+          if echo "${{ matrix.target }}" | grep -q musl; then
+            BUILD_CMD="cargo zigbuild"
+          else
+            BUILD_CMD="cargo build"
+          fi
+          $BUILD_CMD -r --bin gateway --target ${{ matrix.target }}
+          $BUILD_CMD -r --bin console --target ${{ matrix.target }}
+          $BUILD_CMD -r --bin access --target ${{ matrix.target }}
 
       # 压缩单机版二进制文件
       - name: Compress standalone binary
