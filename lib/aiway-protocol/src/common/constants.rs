@@ -32,3 +32,4 @@ pub const LOCAL_SERVICE: &str = "__local__";
 
 pub const MODEL_API_PREFIX: &str = "/v1/model/";
 pub const MCP_API_PREFIX: &str = "/v1/mcp/";
+pub const A2A_API_PREFIX: &str = "/v1/a2a/";

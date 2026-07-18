@@ -9,9 +9,12 @@ mod server;
 mod gateway;
 #[cfg(feature = "mcp-proxy")]
 mod mcp_proxy;
+mod protocol;
 mod service;
 #[cfg(feature = "model-proxy")]
 mod model_proxy;
+#[cfg(feature = "a2a-proxy")]
+mod a2a_proxy;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 

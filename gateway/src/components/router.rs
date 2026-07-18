@@ -122,6 +122,19 @@ impl Router {
                 is_auth: true,
                 auth_white_list: vec![],
             },
+            Route {
+                name: "a2a-proxy".to_string(),
+                host: "*".to_string(),
+                path: "/v1/a2a/**".to_string(),
+                match_paths: vec!["/v1/a2a/{*p}".to_string()],
+                service: "__local__".to_string(),
+                methods: vec![],
+                header: Default::default(),
+                query: Default::default(),
+                plugins: vec![],
+                is_auth: false,
+                auth_white_list: vec![],
+            },
         ]
     }
 

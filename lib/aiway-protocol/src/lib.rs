@@ -7,6 +7,8 @@ pub mod context;
 pub mod gateway;
 #[cfg(feature = "logg")]
 pub mod logg;
+#[cfg(feature = "a2a")]
+pub mod a2a;
 #[cfg(feature = "mcp")]
 pub mod mcp;
 #[cfg(feature = "model")]

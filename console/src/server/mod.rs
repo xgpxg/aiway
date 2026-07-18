@@ -92,6 +92,8 @@ mod key;
 mod log;
 mod mcp;
 mod mcp_proxy;
+mod a2a;
+mod a2a_proxy;
 mod message;
 mod metrics;
 mod model;
@@ -124,6 +126,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/v1", gateway::api::routes());
     builder = builder.mount("/api/v1", model_proxy::api::routes());
     builder = builder.mount("/api/v1", mcp_proxy::api::routes());
+    builder = builder.mount("/api/v1", a2a_proxy::api::routes());
 
     // 业务调用
     builder = builder.mount("/api/user", user::api::routes());
@@ -140,6 +143,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/node", node::api::routes());
     builder = builder.mount("/api/model", model::api::routes());
     builder = builder.mount("/api/mcp", mcp::api::routes());
+    builder = builder.mount("/api/a2a", a2a::api::routes());
 
     builder = builder.mount("/file/", file::api::routes());
 

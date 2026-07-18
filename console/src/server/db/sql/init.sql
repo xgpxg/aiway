@@ -294,6 +294,22 @@ create table if not exists domain
     is_delete      tinyint(1)    not null default 0 -- 是否删除
 );
 
+-- A2A Agent 配置
+create table if not exists agent
+(
+    id             bigint primary key,
+    name           varchar(100) not null,          -- Agent 名称，全局唯一
+    description    varchar(500),                   -- 描述
+    url            varchar(500) not null,          -- Agent 端点 URL
+    status         varchar(20)  not null,          -- 状态：Disable | Ok
+    create_user_id bigint,                         -- 创建人ID
+    update_user_id bigint,                         -- 修改人ID
+    create_time    datetime,                       -- 创建时间
+    update_time    datetime,                       -- 更新时间
+    remark         varchar(500),                   -- 备注
+    is_delete      tinyint(1)   not null default 0 -- 是否删除
+);
+
 -- -------------------------------- 初始化用户 --------------------------------------
 insert or ignore into user(id, nickname)
 values (1, 'admin');

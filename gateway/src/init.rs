@@ -67,6 +67,14 @@ pub async fn init(args: &Args) {
     {
         crate::mcp_proxy::init(args).await;
     }
+
+    #[cfg(feature = "a2a-proxy")]
+    {
+        crate::a2a_proxy::init(args).await;
+    }
+
+    // 初始化协议注册表
+    crate::protocol::init_registry();
 }
 
 fn cache_dir(args: &Args) -> PathBuf {

@@ -25,5 +25,6 @@ http-serde = "2.1.1"
 api-key = ["chacha20poly1305", "base58"]
 logg = []
 alert = ["chrono"]
+a2a = []
 model = []
 mcp = ["rmcp/client", "rmcp/transport-streamable-http-client-reqwest"]

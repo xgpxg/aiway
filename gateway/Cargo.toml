@@ -39,6 +39,7 @@ bytes = "1.6"
 ipnet = "2"
 
 [features]
-default = ["model-proxy", "mcp-proxy"]
+default = ["model-proxy", "mcp-proxy", "a2a-proxy"]
 model-proxy = ["fastrand", "aha-reqwest-eventsource", "thiserror", "tokio-stream", "aiway-protocol/model", "plugin-manager/model"]
 mcp-proxy = ["aiway-protocol/mcp", "urlencoding"]
+a2a-proxy = ["aiway-protocol/a2a"]

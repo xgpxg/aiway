@@ -1,7 +1,4 @@
-use crate::mcp_proxy::{handle_mcp_request};
-use crate::model_proxy::handle_model_request;
 use plugin_manager::async_trait;
-use aiway_protocol::common::constants::{MCP_API_PREFIX, MODEL_API_PREFIX};
 use aiway_protocol::context::{HttpContext, RequestExt};
 use bytes::Bytes;
 use pingora::Error;
@@ -43,14 +40,14 @@ impl ProxyHttp for LocalService {
     ) -> pingora::Result<bool, Box<Error>> {
         let path = session.req_header().get_path();
 
-        // MCP API 处理
-        if path.starts_with(MCP_API_PREFIX) {
-            return handle_mcp_request(session, path.as_str()).await;
-        }
-
-        // 模型 API 处理
-        if path.starts_with(MODEL_API_PREFIX) {
-            return handle_model_request(session, path.as_str(), ctx).await;
+        // 通过协议注册表分发请求
+        if let Some(handled) = crate::protocol::REGISTRY
+            .get()
+            .expect("ProtocolRegistry not initialized")
+            .dispatch(session, &path, ctx)
+            .await?
+        {
+            return Ok(handled);
         }
 
         Ok(true)

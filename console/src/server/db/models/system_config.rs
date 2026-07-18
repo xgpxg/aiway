@@ -38,6 +38,8 @@ pub enum ConfigKey {
     IpRegionLastUpdate,
     /// 最后更新请求状态统计数据时间，秒级时间戳
     RequestStatusCountLastUpdate,
+    /// Agent 服务入口地址，用于重写 Agent Card 中的 url 字段
+    AgentEntryUrl,
 }
 impl Display for ConfigKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -53,6 +55,9 @@ impl Display for ConfigKey {
             }
             ConfigKey::RequestStatusCountLastUpdate => {
                 write!(f, "request-status-count-last-update")
+            }
+            ConfigKey::AgentEntryUrl => {
+                write!(f, "agent-entry-url")
             }
         }
     }
