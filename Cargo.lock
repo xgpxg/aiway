@@ -1079,9 +1079,8 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
- "aiway-plugin",
  "aiway-protocol",
  "alert",
  "anyhow",
@@ -2267,7 +2266,6 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "urlencoding",
- "uuid",
 ]
 
 [[package]]

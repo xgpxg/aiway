@@ -1,6 +1,6 @@
 [package]
 name = "console"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 
 [dependencies]
@@ -10,7 +10,6 @@ common = { path = "../lib/common" }
 aiway-protocol = { path = "../lib/aiway-protocol", features = ["logg", "api-key", "model", "mcp"] }
 busi = { path = "../lib/busi", features = ["rocket", "rbatis"] }
 alert = { path = "../lib/alert" }
-aiway-plugin = { path = "../lib/aiway-plugin" }
 plugin-manager = { path = "../lib/plugin-manager" }
 rocket = { git = "https://github.com/xgpxg/Rocket.git", branch = "v0.5", features = ["json"] }
 anyhow = "1.0"
