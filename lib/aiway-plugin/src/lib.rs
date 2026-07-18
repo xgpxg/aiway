@@ -17,6 +17,7 @@ mod wasm_ctx;
 
 pub use crate::plugin_ctx::{
     FormPart, HttpRequest, HttpRequestBuilder, HttpResponse, PluginContext,
+    LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_TRACE, LOG_WARN,
 };
 use aiway_protocol::context::http::{request, response};
 pub use async_trait::async_trait;

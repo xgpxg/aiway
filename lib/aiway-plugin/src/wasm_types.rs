@@ -77,26 +77,24 @@ impl WasmHead {
 
     /// 将修改应用到请求 Parts
     pub fn apply_to_request_parts(&self, parts: &mut http::request::Parts) {
-        if let Some(ref method) = self.method {
-            if let Ok(m) = method.parse() {
-                parts.method = m;
-            }
+        if let Some(ref method) = self.method
+            && let Ok(m) = method.parse()
+        {
+            parts.method = m;
         }
-        if let Some(ref uri) = self.uri {
-            if let Ok(u) = uri.parse() {
-                parts.uri = u;
-            }
+        if let Some(ref uri) = self.uri
+            && let Ok(u) = uri.parse()
+        {
+            parts.uri = u;
         }
         apply_headers(&self.headers, &mut parts.headers);
     }
 
     /// 将修改应用到响应 Parts
     pub fn apply_to_response_parts(&self, parts: &mut http::response::Parts) {
-        if let Some(status) = self.status {
-            if let Ok(s) = http::StatusCode::from_u16(status) {
+        if let Some(status) = self.status && let Ok(s) = http::StatusCode::from_u16(status) {
                 parts.status = s;
             }
-        }
         apply_headers(&self.headers, &mut parts.headers);
     }
 }

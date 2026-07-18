@@ -96,11 +96,12 @@ pub async fn report(req: State) -> anyhow::Result<()> {
         .interval_response_3xx_count(req.counter.response_3xx_count)
         .interval_response_4xx_count(req.counter.response_4xx_count)
         .interval_response_5xx_count(req.counter.response_5xx_count)
-        .interval_avg_response_time(if req.counter.request_count > 0 {
-            req.counter.response_time_since_last / req.counter.request_count
-        } else {
-            0
-        })
+        .interval_avg_response_time(
+            req.counter
+                .response_time_since_last
+                .checked_div(req.counter.request_count)
+                .unwrap_or(0),
+        )
         // 累计统计
         .request_count(req.counter.request_count + last.request_count)
         .request_invalid_count(req.counter.request_invalid_count + last.request_invalid_count)
@@ -108,13 +109,17 @@ pub async fn report(req: State) -> anyhow::Result<()> {
         .response_3xx_count(req.counter.response_3xx_count + last.response_3xx_count)
         .response_4xx_count(req.counter.response_4xx_count + last.response_4xx_count)
         .response_5xx_count(req.counter.response_5xx_count + last.response_5xx_count)
-        .avg_response_time(if req.counter.request_count > 0 {
-            (req.counter.response_time_since_last / req.counter.request_count
-                + last.avg_response_time)
-                / 2
-        } else {
-            last.avg_response_time
-        })
+        .avg_response_time(
+            if let Some(v) = req
+                .counter
+                .response_time_since_last
+                .checked_div(req.counter.request_count)
+            {
+                (v + last.avg_response_time) / 2
+            } else {
+                last.avg_response_time
+            },
+        )
         .create_time(Some(tools::now()))
         .build()?;
 

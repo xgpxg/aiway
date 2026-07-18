@@ -103,7 +103,7 @@ dependencies = [
 
 [[package]]
 name = "aiway"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -129,7 +129,7 @@ dependencies = [
 
 [[package]]
 name = "aiway-protocol"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "base58",
  "bincode",
@@ -1079,7 +1079,7 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "aiway-plugin",
  "aiway-protocol",
@@ -2234,7 +2234,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "aha-reqwest-eventsource",
  "aiway-protocol",
@@ -4363,7 +4363,7 @@ dependencies = [
 
 [[package]]
 name = "plugin-manager"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "aiway-plugin",
  "aiway-protocol",

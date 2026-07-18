@@ -23,7 +23,7 @@ pub(crate) async fn list(_req: ModelLisReq) -> anyhow::Result<Vec<ModelListRes>>
         return Ok(vec![]);
     }
 
-    models.sort_by(|a, b| b.id.cmp(&a.id));
+    models.sort_by_key(|b| std::cmp::Reverse(b.id));
 
     let providers = ModelProvider::select_all(tx).await?;
 

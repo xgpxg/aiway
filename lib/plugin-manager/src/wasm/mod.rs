@@ -71,19 +71,19 @@ unsafe impl Send for WasmStoreCtx {}
 /// 创建异步 Linker。
 /// 同步的会导致嵌套的异步运行时，会报错。
 fn create_linker() -> Result<Linker<WasmStoreCtx>, PluginError> {
-    let mut linker = Linker::new(&*ENGINE);
+    let mut linker = Linker::new(&ENGINE);
     host_functions::register(&mut linker)?;
     Ok(linker)
 }
 
 /// 创建 Store（运行时使用）
 fn create_store() -> Store<WasmStoreCtx> {
-    Store::new(&*ENGINE, WasmStoreCtx::new())
+    Store::new(&ENGINE, WasmStoreCtx::new())
 }
 
 /// 创建加载插件信息用的 Linker
 fn create_load_linker(store: &mut Store<()>, module: &Module) -> Result<Linker<()>, PluginError> {
-    let mut linker = Linker::new(&*ENGINE);
+    let mut linker = Linker::new(&ENGINE);
     linker
         .define_unknown_imports_as_default_values(store, module)
         .map_err(|e| PluginError::LoadError(format!("stub unknown imports failed: {}", e)))?;

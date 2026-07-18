@@ -62,7 +62,7 @@ async fn check_server_exists(server: &McpServer, exclude_id: Option<i64>) -> any
 
 pub async fn server_list(_req: McpServerListReq) -> anyhow::Result<Vec<McpServerListRes>> {
     let mut list = McpServer::select_all(Pool::get()?).await?;
-    list.sort_by(|a, b| b.id.cmp(&a.id));
+    list.sort_by_key(|b| std::cmp::Reverse(b.id));
 
     let list = list
         .into_iter()

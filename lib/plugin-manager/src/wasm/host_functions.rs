@@ -10,12 +10,14 @@
 
 use super::WasmStoreCtx;
 use super::network::NETWORK;
+use aiway_plugin::{
+    HttpRequest, HttpResponse, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_TRACE, LOG_WARN,
+};
 use aiway_protocol::context::HttpContext;
 use mime;
 use std::future::Future;
 use std::time::Duration;
 use wasmtime::{Caller, Linker};
-use aiway_plugin::{HttpRequest, HttpResponse};
 
 /// 注册所有 `aiway::` 宿主函数到 Linker
 pub fn register(linker: &mut Linker<WasmStoreCtx>) -> Result<(), crate::wasm::PluginError> {
@@ -301,88 +303,86 @@ fn read_bytes_from_wasm(caller: &mut Caller<'_, WasmStoreCtx>, ptr: i32, len: i3
 /// - -2: 不支持的 HTTP 方法
 /// - -3: 请求执行失败
 /// - -4: 响应体读取失败
-fn host_http_request(
+async fn host_http_request(
     mut caller: Caller<'_, WasmStoreCtx>,
     req_ptr: i32,
     req_len: i32,
     resp_buf_ptr: i32,
     resp_buf_len: i32,
-) -> impl Future<Output = i32> + Send {
-    async move {
-        // 1. 读取并反序列化请求
-        let req_bytes = read_bytes_from_wasm(&mut caller, req_ptr, req_len);
-        let request: HttpRequest = match bincode::deserialize(&req_bytes) {
-            Ok(req) => req,
-            Err(_) => return -1,
-        };
+) -> i32 {
+    // 1. 读取并反序列化请求
+    let req_bytes = read_bytes_from_wasm(&mut caller, req_ptr, req_len);
+    let request: HttpRequest = match bincode::deserialize(&req_bytes) {
+        Ok(req) => req,
+        Err(_) => return -1,
+    };
 
-        // 2. 构建 reqwest 请求
-        let client = &NETWORK.client;
-        let mut req_builder = match request.method.to_uppercase().as_str() {
-            "GET" => client.get(&request.url),
-            "POST" => client.post(&request.url),
-            "PUT" => client.put(&request.url),
-            "DELETE" => client.delete(&request.url),
-            "PATCH" => client.patch(&request.url),
-            "HEAD" => client.head(&request.url),
-            _ => return -2,
-        };
+    // 2. 构建 reqwest 请求
+    let client = &NETWORK.client;
+    let mut req_builder = match request.method.to_uppercase().as_str() {
+        "GET" => client.get(&request.url),
+        "POST" => client.post(&request.url),
+        "PUT" => client.put(&request.url),
+        "DELETE" => client.delete(&request.url),
+        "PATCH" => client.patch(&request.url),
+        "HEAD" => client.head(&request.url),
+        _ => return -2,
+    };
 
-        for (key, value) in &request.headers {
-            req_builder = req_builder.header(key.as_str(), value.as_str());
-        }
-
-        // 3. 设置请求体（优先级: multipart > form > body）
-        if let Some(parts) = &request.multipart {
-            let mut form = reqwest::multipart::Form::new();
-            for part in parts {
-                let mut form_part = reqwest::multipart::Part::bytes(part.value.clone());
-                if let Some(ref file_name) = part.file_name {
-                    form_part = form_part.file_name(file_name.clone());
-                }
-                if let Some(ref mime_str) = part.mime_type {
-                    if mime_str.parse::<mime::Mime>().is_ok() {
-                        form_part = form_part.mime_str(mime_str).unwrap();
-                    }
-                }
-                form = form.part(part.key.clone(), form_part);
-            }
-            req_builder = req_builder.multipart(form);
-        } else if let Some(form_map) = &request.form {
-            req_builder = req_builder.form(form_map);
-        } else if let Some(body) = &request.body {
-            req_builder = req_builder.body(body.clone());
-        }
-
-        req_builder = req_builder.timeout(Duration::from_millis(request.timeout_ms));
-
-        // 4. 执行请求（异步，.await 期间释放 worker 线程）
-        let response = match req_builder.send().await {
-            Ok(resp) => resp,
-            Err(_) => return -3,
-        };
-
-        // 5. 读取响应
-        let status = response.status().as_u16();
-        let headers: Vec<(String, String)> = response
-            .headers()
-            .iter()
-            .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
-            .collect();
-
-        let body = match response.bytes().await {
-            Ok(b) => b.to_vec(),
-            Err(_) => return -4,
-        };
-
-        // 6. 序列化响应并写回 WASM 内存
-        let http_response = HttpResponse {
-            status,
-            headers,
-            body,
-        };
-        let resp_bytes = bincode::serialize(&http_response).expect("serialize HttpResponse failed");
-
-        write_to_wasm(&mut caller, resp_buf_ptr, resp_buf_len, &resp_bytes)
+    for (key, value) in &request.headers {
+        req_builder = req_builder.header(key.as_str(), value.as_str());
     }
+
+    // 3. 设置请求体（优先级: multipart > form > body）
+    if let Some(parts) = &request.multipart {
+        let mut form = reqwest::multipart::Form::new();
+        for part in parts {
+            let mut form_part = reqwest::multipart::Part::bytes(part.value.clone());
+            if let Some(ref file_name) = part.file_name {
+                form_part = form_part.file_name(file_name.clone());
+            }
+            if let Some(ref mime_str) = part.mime_type
+                && mime_str.parse::<mime::Mime>().is_ok()
+            {
+                form_part = form_part.mime_str(mime_str).unwrap();
+            }
+            form = form.part(part.key.clone(), form_part);
+        }
+        req_builder = req_builder.multipart(form);
+    } else if let Some(form_map) = &request.form {
+        req_builder = req_builder.form(form_map);
+    } else if let Some(body) = &request.body {
+        req_builder = req_builder.body(body.clone());
+    }
+
+    req_builder = req_builder.timeout(Duration::from_millis(request.timeout_ms));
+
+    // 4. 执行请求（异步，.await 期间释放 worker 线程）
+    let response = match req_builder.send().await {
+        Ok(resp) => resp,
+        Err(_) => return -3,
+    };
+
+    // 5. 读取响应
+    let status = response.status().as_u16();
+    let headers: Vec<(String, String)> = response
+        .headers()
+        .iter()
+        .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
+        .collect();
+
+    let body = match response.bytes().await {
+        Ok(b) => b.to_vec(),
+        Err(_) => return -4,
+    };
+
+    // 6. 序列化响应并写回 WASM 内存
+    let http_response = HttpResponse {
+        status,
+        headers,
+        body,
+    };
+    let resp_bytes = bincode::serialize(&http_response).expect("serialize HttpResponse failed");
+
+    write_to_wasm(&mut caller, resp_buf_ptr, resp_buf_len, &resp_bytes)
 }
