@@ -46,8 +46,6 @@ curl -L https://github.com/xgpxg/aiway/releases/latest/download/aiway-linux-amd6
 ./aiway
 ```
 
-> **Note**: The pre-built binaries are built against glibc 2.34. If your system's glibc version is lower than 2.34, please build from source.
-
 ### Option 2: Building from Source
 
 ```bash
