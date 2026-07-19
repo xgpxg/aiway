@@ -4,14 +4,15 @@ mod host_functions;
 mod network;
 
 use self::network::NETWORK;
+use aiway_plugin::PluginContext;
 use aiway_plugin::wasm_types::{
     HOOK_ON_LOGGING, HOOK_ON_REQUEST, HOOK_ON_REQUEST_BODY, HOOK_ON_RESPONSE,
     HOOK_ON_RESPONSE_BODY, WasmHead, WasmInput, WasmOutput, WasmPluginInfo,
 };
 pub use aiway_plugin::{Plugin, PluginError, PluginInfo};
 pub use aiway_protocol as protocol;
+use aiway_protocol::context::HttpContext;
 use aiway_protocol::context::http::{request, response};
-use aiway_protocol::context::{HttpContext};
 pub use async_trait::async_trait;
 pub use bytes::Bytes;
 use crossbeam::queue::ArrayQueue;
@@ -22,13 +23,12 @@ use serde_json::Value;
 use std::cell::UnsafeCell;
 use std::fs;
 use std::ptr::NonNull;
-use std::sync::{LazyLock, OnceLock};
 use std::sync::Arc;
+use std::sync::{LazyLock, OnceLock};
 use wasmtime::{
-    Engine, Instance, InstanceAllocationStrategy, Linker, Memory, Module,
-    PoolingAllocationConfig, Store, TypedFunc,
+    Engine, Instance, InstanceAllocationStrategy, Linker, Memory, Module, PoolingAllocationConfig,
+    Store, TypedFunc,
 };
-use aiway_plugin::PluginContext;
 
 /// 全局共享 Engine
 static ENGINE: LazyLock<Engine> = LazyLock::new(|| {
@@ -274,6 +274,7 @@ impl WasmPlugin {
                     PluginError::LoadError(format!("parse default_config failed: {}", e))
                 })?,
                 description: wasm_info.description,
+                readme: wasm_info.readme,
             },
         ))
     }

@@ -16,8 +16,8 @@ mod plugin_ctx;
 mod wasm_ctx;
 
 pub use crate::plugin_ctx::{
-    FormPart, HttpRequest, HttpRequestBuilder, HttpResponse, PluginContext,
-    LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_TRACE, LOG_WARN,
+    FormPart, HttpRequest, HttpRequestBuilder, HttpResponse, LOG_DEBUG, LOG_ERROR, LOG_INFO,
+    LOG_TRACE, LOG_WARN, PluginContext,
 };
 use aiway_protocol::context::http::{request, response};
 pub use async_trait::async_trait;
@@ -118,6 +118,8 @@ pub struct PluginInfo {
     pub default_config: Value,
     /// 描述
     pub description: String,
+    /// 插件使用手册
+    pub readme: Option<String>,
 }
 
 /// 简易 block_on，用于在同步上下文（WASM 内部）中执行 async 函数。

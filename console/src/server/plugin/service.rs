@@ -26,6 +26,7 @@ pub async fn info(req: PluginInfoReq<'_>, _user: UserPrincipal) -> anyhow::Resul
         version: info.version,
         default_config: info.default_config,
         description: info.description,
+        readme: info.readme,
     };
     drop(plugin);
     Ok(res)

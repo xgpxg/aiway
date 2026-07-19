@@ -99,6 +99,7 @@ macro_rules! export_wasm {
                 description: PLUGIN.info().description.clone(),
                 default_config: aiway_plugin::serde_json::to_string(&PLUGIN.info().default_config)
                     .unwrap_or_default(),
+                readme:  PLUGIN.info().readme.clone(),
             };
 
             let bytes = bincode::serialize(&info).unwrap();

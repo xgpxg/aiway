@@ -13,6 +13,8 @@ pub struct PluginInfoRes {
     pub default_config: Value,
     /// 描述，插件解析后获得
     pub description: String,
+    /// 插件说明文档
+    pub readme: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

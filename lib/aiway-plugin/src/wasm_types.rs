@@ -126,4 +126,6 @@ pub struct WasmPluginInfo {
     pub description: String,
     /// 默认配置（JSON 字符串）
     pub default_config: String,
+    /// 插件文档
+    pub readme: Option<String>,
 }

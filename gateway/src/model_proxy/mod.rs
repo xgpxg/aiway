@@ -197,7 +197,6 @@ async fn stream_response_body(
     ctx: &mut HttpContext,
 ) -> pingora::Result<bool, Box<Error>> {
     let mut stream = response.bytes_stream();
-    log::info!("[ModelProxy] 开始流式传输响应体");
 
     while let Some(item) = stream.next().await {
         let mut body = Some(item.unwrap());
@@ -214,7 +213,6 @@ async fn stream_response_body(
     }
 
     // 发送结束标记
-    log::info!("[ModelProxy] 流式传输完成");
     session.write_response_body(None, true).await?;
     Ok(true)
 }
