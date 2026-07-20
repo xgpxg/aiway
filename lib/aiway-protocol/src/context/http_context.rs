@@ -132,6 +132,16 @@ impl HttpContext {
     pub const MODEL_PROXY_MODEL: &'static str = ":model_proxy:model";
     /// 模型提供商，仅适用于模型插件
     pub const MODEL_PROXY_PROVIDER: &'static str = ":model_proxy:provider";
+    /// 模型调用 prompt token 数量
+    pub const MODEL_USAGE_PROMPT_TOKENS: &'static str = ":model:usage:prompt_tokens";
+    /// 模型调用 completion token 数量
+    pub const MODEL_USAGE_COMPLETION_TOKENS: &'static str = ":model:usage:completion_tokens";
+    /// 模型调用 total token 数量
+    pub const MODEL_USAGE_TOTAL_TOKENS: &'static str = ":model:usage:total_tokens";
+    /// 模型调用首 Token 响应时间（毫秒）
+    pub const MODEL_TTFT_MS: &'static str = ":model:ttft_ms";
+    /// 响应状态码
+    pub const RESPONSE_STATUS_CODE: &'static str = ":resp:status_code";
     pub fn new() -> Self {
         Self {
             routing: Default::default(),

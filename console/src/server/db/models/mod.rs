@@ -8,6 +8,7 @@ pub mod model_provider;
 pub mod plugin;
 pub mod route;
 pub mod service;
+pub mod statistics_model_call;
 pub mod statistics_request_province;
 pub mod statistics_request_status_code;
 pub mod system_config;

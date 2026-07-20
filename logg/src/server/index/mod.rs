@@ -3,6 +3,8 @@
 //!
 //! - aiway_logs: 通用日志索引
 //! - request_logs: 网关请求日志索引
+//! - model_call_logs: 模型调用日志索引
 //!
 pub(crate) mod aiway_logs;
+pub(crate) mod model_call_logs;
 pub(crate) mod request_logs;

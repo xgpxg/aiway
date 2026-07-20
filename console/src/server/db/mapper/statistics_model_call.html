@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+<mapper>
+    <!-- 累计总量 -->
+    <select id="overview_total">
+        SELECT COALESCE(SUM(total_tokens), 0)     AS total_tokens,
+               COALESCE(SUM(total_call_count), 0) AS total_call_count
+        FROM statistics_model_call_total
+    </select>
+
+    <!-- 今日分钟级聚合的总和 -->
+    <select id="overview_today">
+        SELECT COALESCE(SUM(tokens), 0)     AS tokens,
+               COALESCE(SUM(call_count), 0) AS call_count
+        FROM statistics_model_call
+        WHERE state_time >= #{today_start}
+    </select>
+
+    <!-- 近5分钟加权平均耗时 -->
+    <select id="overview_avg_elapsed">
+        SELECT COALESCE(
+                       CAST(SUM(avg_elapsed * call_count) * 1.0 / NULLIF(SUM(call_count), 0) AS INTEGER),
+                       0
+               ) AS avg_elapsed
+        FROM statistics_model_call
+        WHERE state_time >= #{five_min_ago}
+    </select>
+
+    <!-- 今日有调用的模型数 -->
+    <select id="overview_active_models">
+        SELECT COUNT(DISTINCT model_name) AS count
+        FROM statistics_model_call
+        WHERE state_time >= #{today_start}
+          AND call_count > 0
+    </select>
+
+    <!-- 时间范围内的趋势数据 -->
+    <select id="select_trend">
+        SELECT state_time, tokens, call_count
+        FROM statistics_model_call
+        WHERE state_time BETWEEN #{param.start_time} AND #{param.end_time}
+        ORDER BY state_time
+    </select>
+
+    <!-- 模型排名 -->
+    <select id="select_model_rank">
+        SELECT model_name AS name, SUM(${param.field}) AS value
+        FROM statistics_model_call
+        WHERE state_time BETWEEN #{param.start_time} AND #{param.end_time}
+        GROUP BY model_name
+        ORDER BY value DESC
+        LIMIT 10
+    </select>
+</mapper>

@@ -1,22 +1,25 @@
-use crate::mcp_proxy::{handle_mcp_request};
+use crate::Args;
+use crate::mcp_proxy::handle_mcp_request;
 use crate::model_proxy::handle_model_request;
-use plugin_manager::async_trait;
 use aiway_protocol::common::constants::{MCP_API_PREFIX, MODEL_API_PREFIX};
 use aiway_protocol::context::{HttpContext, RequestExt};
 use bytes::Bytes;
 use pingora::Error;
 use pingora::http::ResponseHeader;
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
+use plugin_manager::async_trait;
 use tokio_stream::StreamExt;
 
 /// 本地服务
 ///
 /// 用于处理网关自身业务请求和响应，如模型代理、MCP代理等等。
-pub struct LocalService {}
+pub struct LocalService {
+    args: Args,
+}
 
 impl LocalService {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(args: &Args) -> Self {
+        Self { args: args.clone() }
     }
 }
 
@@ -50,7 +53,7 @@ impl ProxyHttp for LocalService {
 
         // 模型 API 处理
         if path.starts_with(MODEL_API_PREFIX) {
-            return handle_model_request(session, path.as_str(), ctx).await;
+            return handle_model_request(session, path.as_str(), ctx, &self.args).await;
         }
 
         Ok(true)

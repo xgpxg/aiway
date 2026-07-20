@@ -38,6 +38,8 @@ pub enum ConfigKey {
     IpRegionLastUpdate,
     /// 最后更新请求状态统计数据时间，秒级时间戳
     RequestStatusCountLastUpdate,
+    /// 最后更新模型调用统计数据时间，秒级时间戳
+    ModelCallCountLastUpdate,
 }
 impl Display for ConfigKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -53,6 +55,9 @@ impl Display for ConfigKey {
             }
             ConfigKey::RequestStatusCountLastUpdate => {
                 write!(f, "request-status-count-last-update")
+            }
+            ConfigKey::ModelCallCountLastUpdate => {
+                write!(f, "model-call-count-last-update")
             }
         }
     }

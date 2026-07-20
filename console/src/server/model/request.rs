@@ -1,7 +1,7 @@
 use crate::server::db::models::model::ModelStatus;
 use crate::server::db::models::model_provider::ModelProviderStatus;
 use aiway_protocol::gateway::ConfiguredPlugin;
-use aiway_protocol::model::LbStrategy;
+use aiway_protocol::model::{LbStrategy, TokenUsageConfig};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -27,6 +27,7 @@ pub struct ProviderAddReq {
     pub weight: Option<u32>,
     pub target_model_name: Option<String>,
     pub plugins: Option<ConfiguredPlugin>,
+    pub token_usage_config: Option<TokenUsageConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -39,4 +40,27 @@ pub struct ProviderUpdateReq {
     pub weight: Option<u32>,
     pub target_model_name: Option<String>,
     pub plugins: Option<ConfiguredPlugin>,
+    pub token_usage_config: Option<TokenUsageConfig>,
+}
+
+// -- 用量统计 --
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TrendReq {
+    pub start_timestamp: i64,
+    pub end_timestamp: i64,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RankType {
+    Calls,
+    Tokens,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RankReq {
+    pub r#type: RankType,
+    pub start_timestamp: Option<i64>,
+    pub end_timestamp: Option<i64>,
 }

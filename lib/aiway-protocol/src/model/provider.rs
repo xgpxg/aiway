@@ -21,5 +21,17 @@ pub struct Provider {
     pub target_model_name: Option<String>,
     /// 插件
     pub plugins: Option<ConfiguredPlugin>,
+    /// Token 用量提取配置
+    pub token_usage_config: Option<TokenUsageConfig>,
+}
 
+/// Token 用量提取配置，声明 JSON 路径从响应中提取 token 数量
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
+pub struct TokenUsageConfig {
+    /// prompt_tokens 的 JSON 路径，如 `usage.prompt_tokens`
+    pub prompt_tokens: Option<String>,
+    /// completion_tokens 的 JSON 路径，如 `usage.completion_tokens`
+    pub completion_tokens: Option<String>,
+    /// total_tokens 的 JSON 路径，如 `usage.total_tokens`
+    pub total_tokens: Option<String>,
 }

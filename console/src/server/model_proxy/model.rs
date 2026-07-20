@@ -48,6 +48,7 @@ pub(crate) async fn models() -> anyhow::Result<Vec<aiway_protocol::model::Model>
                     weight: 1,
                     target_model_name: provider.target_model_name,
                     plugins: provider.plugins,
+                    token_usage_config: provider.token_usage_config,
                 })
                 .collect::<Vec<_>>();
             let total_weight = providers.iter().map(|p| p.weight).sum::<u32>();

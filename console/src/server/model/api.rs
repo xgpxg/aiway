@@ -1,9 +1,9 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::model::request::{
-    ModelAddReq, ModelLisReq, ModelUpdateReq, ProviderAddReq, ProviderUpdateReq,
+    ModelAddReq, ModelLisReq, ModelUpdateReq, ProviderAddReq, ProviderUpdateReq, RankReq, TrendReq,
 };
-use crate::server::model::response::ModelListRes;
-use crate::server::model::service;
+use crate::server::model::response::{ModelListRes, ModelRankItem, TrendItem, UsageOverview};
+use crate::server::model::{service, usage};
 use busi::req::IdReq;
 use busi::res::Res;
 use rocket::serde::json::Json;
@@ -17,7 +17,10 @@ pub fn routes() -> Vec<rocket::Route> {
         delete,
         add_provider,
         update_provider,
-        delete_provider
+        delete_provider,
+        usage_overview,
+        usage_trend,
+        usage_model_rank,
     ]
 }
 
@@ -79,6 +82,32 @@ pub async fn update_provider(req: Json<ProviderUpdateReq>, user: UserPrincipal) 
 pub async fn delete_provider(req: Json<IdReq>, _user: UserPrincipal) -> Res<()> {
     match service::delete_provider(req.into_inner()).await {
         Ok(_) => Res::success(()),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+// -- 用量统计 --
+
+#[post("/usage/overview")]
+pub async fn usage_overview(_user: UserPrincipal) -> Res<UsageOverview> {
+    match usage::overview().await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+#[post("/usage/trend", data = "<req>")]
+pub async fn usage_trend(req: Json<TrendReq>, _user: UserPrincipal) -> Res<Vec<TrendItem>> {
+    match usage::trend(req.into_inner()).await {
+        Ok(res) => Res::success(res),
+        Err(e) => Res::error(&e.to_string()),
+    }
+}
+
+#[post("/usage/model_rank", data = "<req>")]
+pub async fn usage_model_rank(req: Json<RankReq>, _user: UserPrincipal) -> Res<Vec<ModelRankItem>> {
+    match usage::model_rank(req.into_inner()).await {
+        Ok(res) => Res::success(res),
         Err(e) => Res::error(&e.to_string()),
     }
 }

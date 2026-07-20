@@ -30,7 +30,7 @@ pub fn start_http_server(args: &Args) -> anyhow::Result<()> {
     }
 
     {
-        let service = LocalService::new();
+        let service = LocalService::new(args);
         let mut proxy = http_proxy_service(&server.configuration, service);
 
         proxy.add_uds(GATEWAY_LOCAL_SOCK_PATH, None);

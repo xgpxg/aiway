@@ -21,6 +21,8 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/v1/aiway-logs", index::aiway_logs::routes());
     // 网关请求日志, Index: request-logs
     builder = builder.mount("/api/v1/request-logs", index::request_logs::routes());
+    // 模型调用日志, Index: model-call-logs
+    builder = builder.mount("/api/v1/model-call-logs", index::model_call_logs::routes());
 
     builder = builder.manage(index::aiway_logs::Logg::new(
         AppDir::log_dir()
@@ -33,6 +35,13 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
         AppDir::log_dir()
             .join("index")
             .join("request")
+            .to_str()
+            .unwrap_or_default(),
+    )?);
+    builder = builder.manage(index::model_call_logs::Logg::new(
+        AppDir::log_dir()
+            .join("index")
+            .join("model-call")
             .to_str()
             .unwrap_or_default(),
     )?);

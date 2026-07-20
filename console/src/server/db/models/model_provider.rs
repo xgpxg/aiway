@@ -3,6 +3,7 @@ use rbatis::crud;
 use rbatis::rbdc::DateTime;
 use serde::{Deserialize, Serialize};
 use aiway_protocol::gateway::ConfiguredPlugin;
+use aiway_protocol::model::TokenUsageConfig;
 
 /// 模型提供商配置
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -28,6 +29,8 @@ pub struct ModelProvider {
     pub target_model_name: Option<String>,
     /// 插件
     pub plugins: Option<ConfiguredPlugin>,
+    /// Token 用量提取配置，JSON 格式
+    pub token_usage_config: Option<TokenUsageConfig>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

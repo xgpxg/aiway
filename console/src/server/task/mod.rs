@@ -1,5 +1,6 @@
 mod cleaner;
 mod ip_region_count;
+mod model_call_count;
 mod request_status_count;
 mod state;
 
@@ -52,6 +53,19 @@ pub async fn start() -> anyhow::Result<()> {
         Box::pin(cleaner::clean_api_key())
     })?;
     sched.add(api_key_clean).await?;
+
+    // 模型调用统计聚合
+    let args_clone = args.clone();
+    let model_call_count = Job::new_async("every 1 minutes", move |_, _| {
+        Box::pin(model_call_count::model_call_count(args_clone.clone()))
+    })?;
+    sched.add(model_call_count).await?;
+
+    // 模型调用统计数据清理
+    let model_call_count_clean = Job::new_async("every 1 hours", move |_, _| {
+        Box::pin(model_call_count::clean())
+    })?;
+    sched.add(model_call_count_clean).await?;
 
     sched.start().await?;
 

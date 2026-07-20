@@ -1,6 +1,7 @@
 use crate::args::Args;
 use crate::server::common::pool::HTTP_CLIENT;
-use crate::server::log::request::{DeleteLogReq, LogListReq};
+use crate::server::log::request::{DeleteLogReq, LogListReq, ModelCallLogListReq};
+use aiway_protocol::gateway::ModelCallLog;
 use aiway_protocol::gateway::request_log::RequestLog;
 use aiway_protocol::logg::{LogDeleteReq, LogEntry, LogSearchReq, LogSearchRes};
 use busi::req::Pagination;
@@ -11,6 +12,7 @@ use rocket::State;
 
 const AIWAY_LOG_INDEX: &str = "aiway-logs";
 const REQUEST_LOG_INDEX: &str = "request-logs";
+const MODEL_CALL_LOG_INDEX: &str = "model-call-logs";
 
 pub async fn list(req: LogListReq, args: &State<Args>) -> anyhow::Result<PageRes<LogEntry>> {
     let log_server = &args.log_server;
@@ -99,6 +101,62 @@ pub(crate) async fn request_log_list(
         .send()
         .await?
         .json::<LogSearchRes<RequestLog>>()
+        .await?;
+
+    Ok(PageRes {
+        page_num: req.page_num(),
+        page_size: req.page_size(),
+        total: res.num_hits as u64,
+        list: res.hits,
+        ext: None,
+    })
+}
+
+pub(crate) async fn model_call_log_list(
+    req: ModelCallLogListReq,
+    args: &State<Args>,
+) -> anyhow::Result<PageRes<ModelCallLog>> {
+    let url = format!(
+        "http://{}/api/v1/{}/search",
+        args.log_server,
+        MODEL_CALL_LOG_INDEX
+    );
+
+    let mut query = Vec::new();
+    if let Some(model_name) = &req.model_name
+        && !model_name.is_empty()
+    {
+        query.push(format!("model_name:{}", model_name));
+    }
+    if let Some(provider_name) = &req.provider_name
+        && !provider_name.is_empty()
+    {
+        query.push(format!("provider_name:{}", provider_name));
+    }
+
+    let start_offset = ((req.page_num() - 1) * req.page_size()) as usize;
+    let max_hits = req.page_size() as usize;
+
+    let param = LogSearchReq {
+        query: if query.is_empty() { None } else { Some(query.join(" AND ")) },
+        start_timestamp: req
+            .start_time
+            .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
+        end_timestamp: req
+            .end_time
+            .map(|t| chrono::Utc.from_utc_datetime(&t).timestamp()),
+        start_offset,
+        max_hits,
+        aggs: None,
+        sort_by: Some("request_time".into()),
+    };
+
+    let res = HTTP_CLIENT
+        .post(url)
+        .json(&param)
+        .send()
+        .await?
+        .json::<LogSearchRes<ModelCallLog>>()
         .await?;
 
     Ok(PageRes {

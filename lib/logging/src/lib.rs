@@ -26,6 +26,10 @@ mod appender;
 mod request_logging;
 #[cfg(feature = "request-log")]
 pub use request_logging::log_request;
+#[cfg(feature = "model-call-log")]
+mod model_call_logging;
+#[cfg(feature = "model-call-log")]
+pub use model_call_logging::log_model_call;
 
 bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -73,6 +77,10 @@ impl Config {
     // 网关请求日志索引ID
     #[cfg(feature = "request-log")]
     const REQUEST_LOGS_INDEX: &'static str = "request-logs";
+
+    // 模型调用日志索引ID
+    #[cfg(feature = "model-call-log")]
+    const MODEL_CALL_LOGS_INDEX: &'static str = "model-call-logs";
 
     // 构建quickwit restful的api
     fn build_quickwit_endpoint(&self, index: &str) -> String {
@@ -182,6 +190,10 @@ pub fn init_log_with(writer: LogAppender, config: Config) {
     // 初始化网关请求日志，仅在网关处需要
     #[cfg(feature = "request-log")]
     request_logging::init(config.build_quickwit_endpoint(Config::REQUEST_LOGS_INDEX));
+
+    // 初始化模型调用日志
+    #[cfg(feature = "model-call-log")]
+    model_call_logging::init(config.build_quickwit_endpoint(Config::MODEL_CALL_LOGS_INDEX));
 }
 
 // 获取当前进程名

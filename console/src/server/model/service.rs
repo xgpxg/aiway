@@ -131,6 +131,7 @@ pub(crate) async fn add_provider(req: ProviderAddReq, user: UserPrincipal) -> an
             .weight(req.weight)
             .target_model_name(req.target_model_name)
             .plugins(req.plugins)
+            .token_usage_config(req.token_usage_config)
             .create_time(Some(tools::now()))
             .create_user_id(Some(user.id))
             .build()?,
@@ -186,6 +187,7 @@ pub(crate) async fn update_provider(
             .weight(req.weight)
             .target_model_name(req.target_model_name)
             .plugins(req.plugins.clone())
+            .token_usage_config(req.token_usage_config.clone())
             .update_time(Some(tools::now()))
             .update_user_id(Some(user.id))
             .build()?,
@@ -199,7 +201,8 @@ pub(crate) async fn update_provider(
         tx,
         "model_provider",
         req.id,
-        plugins = req.plugins
+        plugins = req.plugins,
+        token_usage_config = req.token_usage_config
     );
 
     Ok(())

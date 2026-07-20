@@ -18,3 +18,4 @@ bitflags = "2.9.4"
 [features]
 default = []
 request-log = []
+model-call-log = []
