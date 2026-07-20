@@ -103,7 +103,7 @@ dependencies = [
 
 [[package]]
 name = "aiway"
-version = "0.3.0"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -114,7 +114,7 @@ dependencies = [
 
 [[package]]
 name = "aiway-plugin"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "aiway-protocol",
  "async-trait",
@@ -129,7 +129,7 @@ dependencies = [
 
 [[package]]
 name = "aiway-protocol"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "base58",
  "bincode",
@@ -1079,7 +1079,7 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "aiway-protocol",
  "alert",
@@ -2233,7 +2233,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.3.0"
+version = "0.3.2"
 dependencies = [
  "aha-reqwest-eventsource",
  "aiway-protocol",
@@ -3245,7 +3245,7 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "logg"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aiway-protocol",
  "anyhow",
