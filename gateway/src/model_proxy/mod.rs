@@ -203,6 +203,23 @@ async fn execute_response_and_send(
     stream_response_body(session, response, plugin_type.clone(), ctx).await
 }
 
+/// 响应体缓冲区，非流式和流式互斥
+enum ResponseBuffer {
+    /// 非流式：收集完整 body
+    Full(Vec<u8>),
+    /// 流式：仅保留最后一条 data 行的 JSON 片段
+    SseLast(Vec<u8>),
+}
+
+impl ResponseBuffer {
+    fn as_slice(&self) -> &[u8] {
+        match self {
+            ResponseBuffer::Full(v) => v,
+            ResponseBuffer::SseLast(v) => v,
+        }
+    }
+}
+
 /// 流式传输响应体，同时提取 Token 用量和 TTFT
 async fn stream_response_body(
     session: &mut Session,
@@ -225,10 +242,11 @@ async fn stream_response_body(
 
     let mut stream = response.bytes_stream();
     let mut first_chunk_ts: Option<i64> = None;
-
-    // 非流式：收集完整 body；流式：保留最后一个完整事件块
-    let mut full_body: Option<Vec<u8>> = if !is_sse { Some(Vec::new()) } else { None };
-    let mut last_event: Option<Vec<u8>> = if is_sse { Some(Vec::new()) } else { None };
+    let mut buf = if is_sse {
+        ResponseBuffer::SseLast(Vec::new())
+    } else {
+        ResponseBuffer::Full(Vec::new())
+    };
 
     while let Some(item) = stream.next().await {
         // 记录首 chunk 到达时间
@@ -236,19 +254,26 @@ async fn stream_response_body(
             first_chunk_ts = Some(chrono::Local::now().timestamp_millis());
         }
 
-        let mut body = Some(item.unwrap());
-        let chunk = body.as_ref().unwrap();
+        let chunk = match item {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("[ModelProxy] 响应流读取失败：{:?}", e);
+                break;
+            }
+        };
 
         // 累积 body 数据
-        if let Some(ref mut buf) = full_body {
-            buf.extend_from_slice(chunk);
-        }
-        if let Some(ref mut buf) = last_event {
-            // SSE 模式：累积所有事件，由 extract_and_store_tokens 提取最后一条有效 data 行
-            buf.extend_from_slice(chunk);
+        match &mut buf {
+            ResponseBuffer::Full(v) => v.extend_from_slice(&chunk),
+            ResponseBuffer::SseLast(v) => {
+                v.extend_from_slice(&chunk);
+                // 只保留最后一条非 [DONE] 的 data 行，避免内存无限增长
+                trim_sse_to_last_data(v);
+            }
         }
 
         // 执行响应体阶段插件
+        let mut body = Some(chunk);
         if let Err(e) = plugin::run_on_response_body(plugin_type.clone(), &mut body, ctx) {
             log::error!("[ModelProxy] 响应体阶段插件执行失败：{:?}", e);
             return crate::service::send_error_response(session, e.0, e.1)
@@ -263,10 +288,7 @@ async fn stream_response_body(
     let provider = ctx.get_proxy_model_provider();
     if let Some(ref provider) = provider {
         if let Some(ref config) = provider.token_usage_config {
-            let body_bytes = full_body.as_ref().or_else(|| last_event.as_ref());
-            if let Some(bytes) = body_bytes {
-                extract_and_store_tokens(bytes, config, ctx);
-            }
+            extract_and_store_tokens(buf.as_slice(), config, ctx);
         }
     }
 
@@ -278,6 +300,33 @@ async fn stream_response_body(
     // 发送结束标记
     session.write_response_body(None, true).await?;
     Ok(true)
+}
+
+/// SSE 缓冲区裁剪：只保留最后一条非 [DONE] 的 data 行
+fn trim_sse_to_last_data(buf: &mut Vec<u8>) {
+    let marker = b"\ndata: ";
+    let done_marker = b"data: [DONE]";
+    // 从后向前查找最后一个 "\ndata: " 且内容不是 [DONE]
+    let mut search_from = buf.len();
+    loop {
+        // 在 [0..search_from) 范围内查找最后一个 marker
+        let slice = &buf[..search_from];
+        let Some(pos) = slice.windows(marker.len()).rposition(|w| w == marker) else {
+            return; // 没有更多 data: 行，保留当前内容
+        };
+        let data_start = pos + 1; // 跳过 "\n"
+        let data_content = &buf[data_start..];
+        // 检查该 data 行到下一个 "\ndata: " 之间的内容是否为 [DONE]
+        // 简单判断：如果 data_content 以 "data: [DONE]" 开头则跳过
+        if data_content.starts_with(done_marker) {
+            search_from = pos; // 继续向前查找
+        } else {
+            // 找到有效的 data 行，裁剪保留
+            let keep = buf[data_start..].to_vec();
+            *buf = keep;
+            return;
+        }
+    }
 }
 
 /// 按配置的 JSON 路径提取 Token 用量，并存入 HttpContext
