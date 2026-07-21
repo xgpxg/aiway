@@ -29,122 +29,138 @@ pub(crate) async fn handle_model_request(
     args: &Args,
 ) -> pingora::Result<bool, Box<Error>> {
     // 读取请求体（已消费，后续不可重复读取）
-    let mut body = session.read_request_body().await?.unwrap_or_default();
+    let body = session.read_request_body().await?.unwrap_or_default();
     log::info!("[ModelProxy] 开始处理模型请求，路径：{}", path);
 
-    // 解析模型和提供商信息
-    let (model, provider) =
-        parse_model_info(&mut body).map_err(|e| Error::new(ErrorType::HTTPStatus(e.0)))?;
+    // 解析模型名称和候选提供商列表
+    let (model, body_json, providers) =
+        parse_model_info(&body).map_err(|e| Error::new(ErrorType::HTTPStatus(e.0)))?;
 
     log::info!(
-        "[ModelProxy] 解析到模型：{}, 提供商：{}",
+        "[ModelProxy] 解析到模型：{}，候选提供商：{}",
         model,
-        provider.name
+        providers
+            .iter()
+            .map(|p| p.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
     );
 
     ctx.insert_state(HttpContext::MODEL_PROXY_MODEL, model.to_string());
-    ctx.insert_state(HttpContext::MODEL_PROXY_PROVIDER, provider.clone());
 
-    // 插件类型
-    let plugin_type = PluginType::Model {
-        model_name: model.to_string(),
-        provider_name: provider.name.clone(),
-    };
+    // 故障自动切换：依次尝试每个候选提供商
+    for (i, provider) in providers.iter().enumerate() {
+        log::info!(
+            "[ModelProxy] 尝试提供商：{} ({}/{})",
+            provider.name,
+            i + 1,
+            providers.len()
+        );
 
-    // 执行请求阶段插件
-    log::info!("[ModelProxy] 执行请求阶段插件");
-    if let Err(e) = execute_request_plugins(session, &plugin_type, ctx).await {
-        log::error!("[ModelProxy] 请求阶段插件执行失败：{:?}", e);
-        return crate::service::send_error_response(session, e.0, e.1)
-            .await
-            .map(|_| true);
-    }
+        // 更新上下文中的提供商信息
+        ctx.insert_state(HttpContext::MODEL_PROXY_PROVIDER, provider.clone());
 
-    // 执行请求体阶段插件
-    let mut body_opt = Some(body);
-    log::info!("[ModelProxy] 执行请求体阶段插件");
-    if let Err(e) = execute_request_body_plugins(plugin_type.clone(), &mut body_opt, ctx).await {
-        log::error!("[ModelProxy] 请求体阶段插件执行失败：{:?}", e);
-        return crate::service::send_error_response(session, e.0, e.1)
-            .await
-            .map(|_| true);
-    }
+        // 插件类型（与当前提供商绑定）
+        let plugin_type = PluginType::Model {
+            model_name: model.to_string(),
+            provider_name: provider.name.clone(),
+        };
 
-    // 检查请求体是否存在
-    let body = match body_opt {
-        Some(b) => b,
-        None => {
-            log::error!("[ModelProxy] 请求体为空");
-            return crate::service::send_error_response(
-                session,
-                500,
-                "Request body is none".into(),
-            )
-            .await
-            .map(|_| true);
-        }
-    };
+        // 应用模型名称映射（不同提供商可能有不同的 target_model_name）
+        let mut mapped_body = body_json.clone();
+        apply_model_name_mapping(&mut mapped_body, provider);
+        let body_bytes = Bytes::from(serde_json::to_vec(&mapped_body).unwrap());
 
-    // 调用模型 API
-    log::info!("[ModelProxy] 调用模型 API");
-    let response = match Proxy::call(Some(body), ctx).await {
-        Ok(resp) => resp,
-        Err(e) => {
-            log::error!("[ModelProxy] 调用模型 API 失败：{:?}", e);
-            let (status, message) = e.into_status_message();
-            return crate::service::send_error_response(session, status, message)
+        // 执行请求阶段插件
+        if let Err(e) = execute_request_plugins(session, &plugin_type, ctx).await {
+            log::error!("[ModelProxy] 请求阶段插件执行失败：{:?}", e);
+            return crate::service::send_error_response(session, e.0, e.1)
                 .await
                 .map(|_| true);
         }
-    };
 
-    // 执行响应阶段插件并发送响应
-    log::info!("[ModelProxy] 执行响应阶段插件并发送响应");
-    let result = execute_response_and_send(session, plugin_type, response, ctx).await;
+        // 执行请求体阶段插件
+        let mut body_opt = Some(body_bytes);
+        if let Err(e) = execute_request_body_plugins(plugin_type.clone(), &mut body_opt, ctx).await
+        {
+            log::error!("[ModelProxy] 请求体阶段插件执行失败：{:?}", e);
+            return crate::service::send_error_response(session, e.0, e.1)
+                .await
+                .map(|_| true);
+        }
 
-    // 记录模型调用日志
-    // 模型调用日志为单独的日志索引，不和通用的请求日志混在一起
+        let final_body = match body_opt {
+            Some(b) => b,
+            None => {
+                log::error!("[ModelProxy] 请求体为空");
+                return crate::service::send_error_response(
+                    session,
+                    500,
+                    "Request body is none".into(),
+                )
+                .await
+                .map(|_| true);
+            }
+        };
+
+        // 调用模型 API
+        match Proxy::call(Some(final_body), ctx).await {
+            Ok(response) => {
+                // 成功：执行响应阶段插件并发送响应
+                let result = execute_response_and_send(session, plugin_type, response, ctx).await;
+                log_model_call(ctx, &format!("{}:{}", args.address, args.port));
+                return result;
+            }
+            Err(e) => {
+                log::warn!(
+                    "[ModelProxy] 提供商 {} 调用失败：{:?}，尝试下一个",
+                    provider.name,
+                    e
+                );
+            }
+        }
+    }
+
+    // 所有提供商均失败
+    log::error!("[ModelProxy] 所有提供商均调用失败");
+    let result = crate::service::send_error_response(session, 502, "没有可用的模型提供商".into())
+        .await
+        .map(|_| true);
+
+    ctx.insert_state(HttpContext::RESPONSE_STATUS_CODE, 502);
+
     log_model_call(ctx, &format!("{}:{}", args.address, args.port));
 
     result
 }
 
-/// 解析模型信息
-fn parse_model_info(body: &mut Bytes) -> Result<(String, Provider), HandlerError> {
-    // 转为JSON，提取模型名称
-    let mut body_json = serde_json::from_slice::<Value>(body)
+/// 解析模型信息，返回模型名称、原始请求体 JSON 和候选提供商列表
+fn parse_model_info(body: &Bytes) -> Result<(String, Value, Vec<Provider>), HandlerError> {
+    let body_json = serde_json::from_slice::<Value>(body)
         .map_err(|e| HandlerError::new(400, &e.to_string()))?;
     let model = body_json["model"]
         .as_str()
         .map(|s| s.to_string())
         .ok_or_else(|| HandlerError::new(400, "Missing 'model' field"))?;
 
-    // 从模型的可用提供商中获取一个
-    let provider =
-        ModelFactory::get_provider(&model).map_err(|e| HandlerError::new(400, &e.to_string()))?;
+    let providers =
+        ModelFactory::get_providers(&model).map_err(|e| HandlerError::new(400, &e.to_string()))?;
 
-    log::info!(
-        "[ModelProxy] 解析模型信息 - 原始模型：{}, 提供商：{}",
-        model,
-        provider.name
-    );
+    Ok((model, body_json, providers))
+}
 
-    // 模型名称映射
-    if let Some(target_model_name) = &provider.target_model_name
-        && !target_model_name.is_empty()
+/// 应用模型名称映射：根据提供商的 target_model_name 修改请求体中的 model 字段
+fn apply_model_name_mapping(body_json: &mut Value, provider: &Provider) {
+    if let Some(target) = &provider.target_model_name
+        && !target.is_empty()
     {
         log::info!(
             "[ModelProxy] 替换模型名称：{} -> {}",
-            model,
-            target_model_name
+            body_json["model"].as_str().unwrap_or(""),
+            target
         );
-        body_json["model"] = Value::String(provider.target_model_name.clone().unwrap());
+        body_json["model"] = Value::String(target.clone());
     }
-
-    // 修改请求体
-    *body = serde_json::to_vec(&body_json).unwrap().into();
-
-    Ok((model, provider))
 }
 
 /// 执行请求阶段插件

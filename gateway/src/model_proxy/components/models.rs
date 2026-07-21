@@ -100,54 +100,51 @@ impl ModelFactory {
         });
     }
 
-    /// 按负载策略获取模型的提供商
-    pub fn get_provider(model_name: &str) -> Result<Provider, ModelError> {
+    /// 按负载策略获取模型的候选提供商列表，用于故障自动切换
+    pub fn get_providers(model_name: &str) -> Result<Vec<Provider>, ModelError> {
         let factory = MODEL_FACTORY.get().unwrap();
-        let model = factory.models.get_mut(model_name);
-        match model {
-            Some(mut model) => {
-                let model = model.value_mut();
-                log::debug!(
-                    "get provider for model: {}, model detail: {:?}",
-                    model_name,
-                    model
-                );
-                let providers = &model.providers;
-                let len = providers.len();
-                if len == 0 {
-                    return Err(ModelError::NoAvailableProvider);
-                }
-                if len == 1 {
-                    return Ok(providers[0].clone());
-                }
-                match &model.lb {
-                    // 随机
-                    LbStrategy::Random => {
-                        let index = fastrand::usize(0..len);
-                        Ok(providers[index].clone())
-                    }
-                    // 轮询
-                    LbStrategy::RoundRobin => {
-                        let index = model.round_robin_index % (len as u64);
-                        model.round_robin_index = index + 1;
-                        Ok(providers[index as usize].clone())
-                    }
-                    // 权重随机
-                    LbStrategy::WeightedRandom => {
-                        let mut random_weight = fastrand::u32(0..model.total_weight);
-                        for provider in providers {
-                            if random_weight < provider.weight {
-                                return Ok(provider.clone());
-                            }
-                            random_weight -= provider.weight;
-                        }
-                        // 理论上不会到达这里，但作为安全fallback
-                        Ok(providers[0].clone())
-                    }
-                }
-            }
-            None => Err(ModelError::UnsupportedModel(model_name.to_string())),
+        let mut model = match factory.models.get_mut(model_name) {
+            Some(m) => m,
+            None => return Err(ModelError::UnsupportedModel(model_name.to_string())),
+        };
+        let model = model.value_mut();
+        let providers = &model.providers;
+        if providers.is_empty() {
+            return Err(ModelError::NoAvailableProvider);
         }
+        if providers.len() == 1 {
+            return Ok(providers.clone());
+        }
+        let sorted = match &model.lb {
+            // 随机：重新打乱顺序
+            LbStrategy::Random => {
+                let mut list = providers.clone();
+                fastrand::shuffle(&mut list);
+                list
+            }
+            // 轮询：重新排序
+            LbStrategy::RoundRobin => {
+                let len = providers.len();
+                let start = (model.round_robin_index % len as u64) as usize;
+                model.round_robin_index += 1;
+                let mut list = providers[start..].to_vec();
+                list.extend_from_slice(&providers[..start]);
+                list
+            }
+            // 权重随机（指数分布排序，权重越大越靠前）
+            LbStrategy::WeightedRandom => {
+                let mut list: Vec<_> = providers
+                    .iter()
+                    .map(|p| {
+                        let u = fastrand::f64().max(f64::MIN_POSITIVE);
+                        (-(u.ln() / p.weight as f64), p)
+                    })
+                    .collect();
+                list.sort_by(|a, b| a.0.total_cmp(&b.0));
+                list.into_iter().map(|(_, p)| p.clone()).collect()
+            }
+        };
+        Ok(sorted)
     }
     pub fn get_special_provider(model_name: &str, provider_name: &str) -> Option<Provider> {
         let factory = MODEL_FACTORY.get().unwrap();

@@ -25,24 +25,4 @@ pub enum ModelError {
     /// 解析错误，响应状态码：500
     #[error("Parse error")]
     Parse(String),
-    // /// 插件执行错误，响应状态码：500
-    // #[error("Plugin error: {0}")]
-    // PluginError(String),
-    // /// 未知错误，响应状态码：500
-    // #[error("Unknown error: {0}")]
-    // Unknown(String),
-}
-
-impl ModelError {
-    pub fn into_status_message(self) -> (u16, String) {
-        match self {
-            ModelError::RequestProviderError(_) => (500, "请求模型提供商时发生错误".to_string()),
-            //ModelError::ApiError(status_code, message) => (status_code, message),
-            ModelError::UnsupportedModel(_) => (400, "不支持的模型".to_string()),
-            ModelError::NoAvailableProvider => (500, "没有可用的提供商".to_string()),
-            ModelError::Parse(message) => (500, message),
-            //ModelError::PluginError(message) => (500, message),
-            //ModelError::Unknown(message) => (500, message),
-        }
-    }
 }
