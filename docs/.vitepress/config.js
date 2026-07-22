@@ -38,7 +38,8 @@ export default {
                     {text: '插件系统', link: '/gateway/plugins'},
                     {text: 'AI 模型代理', link: '/gateway/model-proxy'},
                     {text: 'MCP 集成', link: '/gateway/mcp'},
-                    {text: '监控与告警', link: '/gateway/monitoring'}
+                    {text: '监控与告警', link: '/gateway/monitoring'},
+                    {text: '网关扩容', link: '/gateway/scaling'}
                 ]
             },
             {
