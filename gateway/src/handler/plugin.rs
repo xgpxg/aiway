@@ -194,10 +194,11 @@ pub fn run_on_response_body(
 
 pub async fn run_on_logging(ctx: &mut HttpContext) {
     // 执行路由插件的logging
-    let route = ctx.get_route().unwrap();
-    let plugins = &route.plugins;
-    for plugin in plugins.iter() {
-        PluginFactory::on_logging(plugin, ctx).await;
+    if let Some(route) = ctx.get_route() {
+        let plugins = &route.plugins;
+        for plugin in plugins.iter() {
+            PluginFactory::on_logging(plugin, ctx).await;
+        }
     }
 
     // 执行模型插件的logging
