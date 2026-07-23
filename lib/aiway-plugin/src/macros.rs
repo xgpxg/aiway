@@ -102,7 +102,7 @@ macro_rules! export_wasm {
                 readme:  PLUGIN.info().readme.clone(),
             };
 
-            let bytes = bincode::serialize(&info).unwrap();
+            let bytes = $crate::bincode::serialize(&info).unwrap();
             let len = bytes.len();
             let ptr = bytes.as_ptr() as i32;
             std::mem::forget(bytes);
@@ -126,7 +126,7 @@ macro_rules! export_wasm {
             let input_slice =
                 unsafe { std::slice::from_raw_parts(input_ptr as *const u8, input_len as usize) };
 
-            let input: aiway_plugin::wasm_types::WasmInput = match bincode::deserialize(input_slice)
+            let input: $crate::wasm_types::WasmInput = match $crate::bincode::deserialize(input_slice)
             {
                 Ok(v) => v,
                 Err(e) => return encode_error(&format!("deserialize input failed: {}", e)),
@@ -154,7 +154,7 @@ macro_rules! export_wasm {
 
         /// 编码成功输出
         fn encode_output(output: &aiway_plugin::wasm_types::WasmOutput) -> i64 {
-            match bincode::serialize(output) {
+            match $crate::bincode::serialize(output) {
                 Ok(bytes) => {
                     let len = bytes.len();
                     let ptr = bytes.as_ptr() as i32;
