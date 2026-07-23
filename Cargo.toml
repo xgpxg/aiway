@@ -7,7 +7,6 @@ members = [
     "lib/logging",
     "lib/aiway-plugin",
     "lib/aiway-protocol",
-    "lib/sdk",
     "test-server",
     "lib/loadbalance",
     "lib/cache",
