@@ -1,4 +1,4 @@
-# aiway 简介
+# 简介
 
 **aiway** (API and AI Gateway) 是一个基于 Rust 构建的高性能 API + AI 网关。
 

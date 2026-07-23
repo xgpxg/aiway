@@ -9,13 +9,7 @@
 ```toml
 [dependencies]
 aiway-plugin = "0.3"
-```
 
-或者 `cargo add aiway-plugin`
-
-## Cargo.toml 配置
-
-```toml
 [lib]
 crate-type = ["cdylib"]
 ```
@@ -47,6 +41,7 @@ impl Plugin for MyPlugin {
         head: &mut request::Parts,
         ctx: &mut dyn PluginContext,
     ) -> Result<(), PluginError> {
+        ctx.log_info("My First Plugin!");
         Ok(())
     }
 }
@@ -62,12 +57,9 @@ export_wasm!(MyPlugin);
 
 ```bash
 cargo build -r --target wasm32-wasip1
+
+# 产物路径：target/wasm32-wasip1/release/my-plugin.wasm
 ```
-
-编译环境：
-
-- 使用 `wasm32-wasip1` 目标
-- 通过 Host API 与网关通信
 
 ## Plugin trait 接口
 
@@ -79,12 +71,8 @@ cargo build -r --target wasm32-wasip1
 | `on_response_body` | sync  | 修改响应体 |
 | `on_logging`       | async | 日志阶段  |
 
-## 上传
+## 上传到控制台
 
-在控制台插件管理页面上传 `.wasm` 文件，配置插件参数后自动同步到网关。
+在控制台插件管理页面上传 `.wasm` 文件，配置插件参数后自动同步到网关节点。
 
-## 安全
-
-- WASM 在沙箱中执行
-- 无直接主进程内存访问
-- 插件异常不影响网关稳定性
+至此，一个插件就开发好了。
