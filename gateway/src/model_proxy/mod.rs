@@ -290,7 +290,7 @@ async fn stream_response_body(
 
         // 执行响应体阶段插件
         let mut body = Some(chunk);
-        if let Err(e) = plugin::run_on_response_body(plugin_type.clone(), &mut body, ctx) {
+        if let Err(e) = plugin::run_on_response_body(plugin_type.clone(), &mut body, ctx).await {
             log::error!("[ModelProxy] 响应体阶段插件执行失败：{:?}", e);
             return crate::service::send_error_response(session, e.0, e.1)
                 .await

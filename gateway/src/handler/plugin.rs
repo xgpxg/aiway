@@ -4,7 +4,7 @@ use crate::model_proxy::ModelFactory;
 use aiway_protocol::context::HttpContext;
 use bytes::Bytes;
 use pingora::prelude::*;
-use plugin_manager::PluginFactory;
+use plugin_manager::{PluginError, PluginFactory};
 
 #[derive(Clone, Debug)]
 pub enum PluginType {
@@ -23,19 +23,17 @@ macro_rules! execute_plugin_async {
     ($plugin:expr, $ctx:expr, $method:ident, $($arg:expr),*) => {{
         log::debug!("execute plugin: {}", $plugin.name);
         PluginFactory::$method(&$plugin, $ctx, $($arg),*).await.map_err(|e| {
-            log::error!("execute plugin {} error: {}", $plugin.name, e);
-            HandlerError::new(502, "BadPlugin")
-        })?;
-    }};
-}
-
-/// 执行单个插件并处理错误（同步版本）
-macro_rules! execute_plugin_sync {
-    ($plugin:expr,$ctx:expr, $method:ident, $($arg:expr),*) => {{
-        log::debug!("execute plugin: {}", $plugin.name);
-        PluginFactory::$method(&$plugin, $ctx, $($arg),*).map_err(|e| {
-            log::error!("execute plugin {} error: {}", $plugin.name, e);
-            HandlerError::new(502, "BadPlugin")
+            match e {
+                PluginError::Reject(status, message) => {
+                    // 插件主动拒绝请求，透传状态码
+                    HandlerError::new(status, &message)
+                }
+                e => {
+                    // 插件自身异常，统一 502
+                    log::error!("execute plugin {} error: {}", $plugin.name, e);
+                    HandlerError::new(502, "BadPlugin")
+                }
+            }
         })?;
     }};
 }
@@ -154,7 +152,7 @@ pub async fn run_on_response(
     Ok(())
 }
 
-pub fn run_on_response_body(
+pub async fn run_on_response_body(
     plugin_type: PluginType,
     body: &mut Option<Bytes>,
     ctx: &mut HttpContext,
@@ -163,7 +161,7 @@ pub fn run_on_response_body(
         PluginType::Global => {
             let plugins = GlobalPluginFactory::get_plugins();
             for plugin in plugins.iter() {
-                execute_plugin_sync!(plugin, ctx, on_response_body, body);
+                execute_plugin_async!(plugin, ctx, on_response_body, body);
             }
         }
         PluginType::Route => {
@@ -171,7 +169,7 @@ pub fn run_on_response_body(
             let route = ctx.get_route().unwrap();
             let plugins = &route.plugins;
             for plugin in plugins.iter() {
-                execute_plugin_sync!(plugin, ctx, on_response_body, body);
+                execute_plugin_async!(plugin, ctx, on_response_body, body);
             }
         }
         PluginType::Model {
@@ -184,7 +182,7 @@ pub fn run_on_response_body(
                     "execute model provider request converter plugin: {}",
                     plugin.name
                 );
-                execute_plugin_sync!(plugin, ctx, on_response_body, body);
+                execute_plugin_async!(plugin, ctx, on_response_body, body);
             }
         }
     }

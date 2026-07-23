@@ -199,11 +199,18 @@ impl ProxyHttp for Gateway {
         _: bool,
         ctx: &mut Self::CTX,
     ) -> pingora::Result<Option<Duration>> {
-        // 执行路由响应体阶段插件，可在此处修改响应body
-        plugin::run_on_response_body(PluginType::Route, body, ctx)?;
+        // Pingora 的 response_body_filter 是同步接口，在此处桥接 async 插件
+        tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async {
+                // 执行路由响应体阶段插件，可在此处修改响应body
+                plugin::run_on_response_body(PluginType::Route, body, ctx).await?;
 
-        // 执行全局响应体阶段插件，可在此处修改响应body
-        plugin::run_on_response_body(PluginType::Global, body, ctx)?;
+                // 执行全局响应体阶段插件，可在此处修改响应body
+                plugin::run_on_response_body(PluginType::Global, body, ctx).await?;
+
+                Ok::<_, HandlerError>(())
+            })
+        })?;
 
         ctx.insert_state(
             HttpContext::RESPONSE_BODY_SIZE,

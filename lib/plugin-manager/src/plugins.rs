@@ -184,15 +184,18 @@ impl PluginFactory {
         }
     }
 
-    pub fn on_response_body(
+    pub async fn on_response_body(
         configured_plugin: &ConfiguredPlugin,
         ctx: &mut HttpContext,
         body: &mut Option<Bytes>,
     ) -> Result<(), PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
-            Some(plugin) => plugin
-                .1
-                .on_response_body(&configured_plugin.config, body, ctx),
+            Some(plugin) => {
+                plugin
+                    .1
+                    .on_response_body(&configured_plugin.config, body, ctx)
+                    .await
+            }
             None => Err(PluginError::NotFound(configured_plugin.name.clone())),
         }
     }

@@ -133,7 +133,7 @@ macro_rules! export_wasm {
             };
 
             // 根据 hook_id 分发
-            let result = match hook_id {
+            let result: Result<aiway_plugin::wasm_types::WasmOutput, String> = match hook_id {
                 aiway_plugin::wasm_types::HOOK_ON_REQUEST => handle_on_request(&PLUGIN, &input),
                 aiway_plugin::wasm_types::HOOK_ON_REQUEST_BODY => {
                     handle_on_request_body(&PLUGIN, &input)
@@ -148,7 +148,7 @@ macro_rules! export_wasm {
 
             match result {
                 Ok(output) => encode_output(&output),
-                Err(err_msg) => encode_error(&err_msg),
+                Err(err_bytes) => encode_reject_error(err_bytes.as_bytes()),
             }
         }
 
@@ -168,10 +168,36 @@ macro_rules! export_wasm {
         /// 编码错误信息（ptr=0, len=错误信息长度）
         fn encode_error(msg: &str) -> i64 {
             let bytes = msg.as_bytes();
-            // 将错误信息写入 ptr=1 处（预留 1 字节作为 null 标记）
+            // 将错误信息写入 ptr=1 处
             let dst = unsafe { std::slice::from_raw_parts_mut(1 as *mut u8, bytes.len()) };
             dst.copy_from_slice(bytes);
             (0i64 << 32) | (bytes.len() as i64)
+        }
+
+        /// 编码错误信息，Reject 错误携带状态码前缀
+        ///
+        /// 错误缓冲区格式（写入 ptr=1）：
+        /// - Reject: `[status_u16_be (4 bytes)] [message bytes]`
+        /// - 其他:   `[message bytes]`
+        fn encode_reject_error(err_bytes: &[u8]) -> i64 {
+            let dst = unsafe { std::slice::from_raw_parts_mut(1 as *mut u8, err_bytes.len()) };
+            dst.copy_from_slice(err_bytes);
+            (0i64 << 32) | (err_bytes.len() as i64)
+        }
+
+        /// 将 PluginError 编码为字节：Reject 带 4 字节状态码前缀，其他为纯消息
+        fn encode_plugin_error(e: aiway_plugin::PluginError) -> String {
+            match e {
+                aiway_plugin::PluginError::Reject(status, message) => {
+                    let msg_bytes = message.as_bytes();
+                    let mut buf = Vec::with_capacity(4 + msg_bytes.len());
+                    buf.extend_from_slice(&(status as u32).to_be_bytes());
+                    buf.extend_from_slice(msg_bytes);
+                    // SAFETY: 前 4 字节是 u32 BE，后面是 UTF-8 消息
+                    unsafe { String::from_utf8_unchecked(buf) }
+                }
+                other => format!("{}", other),
+            }
         }
 
         /// 解析 JSON 配置字符串
@@ -192,7 +218,7 @@ macro_rules! export_wasm {
             aiway_plugin::block_on(async {
                 plugin.on_request(&config, &mut dummy_head, &mut ctx).await
             })
-            .map_err(|e| format!("{}", e))?;
+            .map_err(encode_plugin_error)?;
 
             let output_head = aiway_plugin::wasm_types::WasmHead::from_request_parts(&dummy_head);
 
@@ -217,7 +243,7 @@ macro_rules! export_wasm {
             aiway_plugin::block_on(async {
                 plugin.on_request_body(&config, &mut body, &mut ctx).await
             })
-            .map_err(|e| format!("{}", e))?;
+            .map_err(encode_plugin_error)?;
 
             Ok(aiway_plugin::wasm_types::WasmOutput {
                 head: None,
@@ -237,7 +263,7 @@ macro_rules! export_wasm {
             aiway_plugin::block_on(async {
                 plugin.on_response(&config, &mut dummy_head, &mut ctx).await
             })
-            .map_err(|e| format!("{}", e))?;
+            .map_err(encode_plugin_error)?;
 
             let output_head = aiway_plugin::wasm_types::WasmHead::from_response_parts(&dummy_head);
 
@@ -248,7 +274,6 @@ macro_rules! export_wasm {
         }
 
         /// 处理 on_response_body
-        /// 因为 pingora 仅支持同步的，所以这里也需要同步
         fn handle_on_response_body(
             plugin: &$plugin_type,
             input: &aiway_plugin::wasm_types::WasmInput,
@@ -260,9 +285,10 @@ macro_rules! export_wasm {
                 .map(|b| aiway_plugin::Bytes::from(b.clone()));
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            plugin
-                .on_response_body(&config, &mut body, &mut ctx)
-                .map_err(|e| format!("{}", e))?;
+            aiway_plugin::block_on(async {
+                plugin.on_response_body(&config, &mut body, &mut ctx).await
+            })
+            .map_err(encode_plugin_error)?;
 
             Ok(aiway_plugin::wasm_types::WasmOutput {
                 head: None,

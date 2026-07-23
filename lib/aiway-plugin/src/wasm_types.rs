@@ -6,6 +6,7 @@
 use crate::http::{self, HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use std::sync::Arc;
 
 /// 插件钩子 ID
 pub const HOOK_ON_REQUEST: i32 = 1;
@@ -18,7 +19,7 @@ pub const HOOK_ON_LOGGING: i32 = 5;
 #[derive(Serialize, Deserialize)]
 pub struct WasmInput {
     /// 插件配置（JSON 字符串）
-    pub config: String,
+    pub config: Arc<str>,
     /// HTTP 头部信息（请求或响应）
     pub head: Option<WasmHead>,
     /// Body 数据

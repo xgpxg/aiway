@@ -129,21 +129,25 @@ impl CachedFunc {
 
 /// 缓存已创建的实例。
 /// 避免每次 Hook 调用都重新实例化或重新解析导出函数。
-/// WASI imports 按 Store 打桩后实例化，而非跨 Store 复用 InstancePre。
 /// 池为空时自动创建新实例，超过容量时丢弃归还的实例。
 struct WasmInstancePool {
     /// 实例池
     pool: ArrayQueue<(Store<WasmStoreCtx>, Instance, CachedFunc)>,
     /// 已编译模块
     module: Arc<Module>,
+    /// 预注册宿主函数的 Linker 模板，clone 时仅增加 Arc 引用计数，
+    /// 避免每次池 miss 都重新注册全部宿主函数。
+    linker_template: Linker<WasmStoreCtx>,
 }
 
 impl WasmInstancePool {
-    fn new(module: Arc<Module>, max_size: usize) -> Self {
-        Self {
+    fn new(module: Arc<Module>, max_size: usize) -> Result<Self, PluginError> {
+        let linker_template = create_linker()?;
+        Ok(Self {
             pool: ArrayQueue::new(max_size),
             module,
-        }
+            linker_template,
+        })
     }
 
     /// 从池中获取一个 (Store, Instance, CachedFunc)，池为空时创建新的
@@ -153,11 +157,9 @@ impl WasmInstancePool {
             return Ok((store, instance, func));
         }
 
-        // 没取到，创建新的
-        // 由于 define_unknown_imports_as_default_values 会绑定到特定 Store，
-        // 必须在创建 Store 后按 Store 打桩 + 实例化，不能跨 Store 复用 InstancePre
+        // 池 miss：clone Linker（仅 Arc 引用计数 +1），避免重新注册宿主函数
         let mut store = create_store();
-        let mut linker = create_linker()?;
+        let mut linker = self.linker_template.clone();
         linker
             .define_unknown_imports_as_default_values(&mut store, &self.module)
             .map_err(|e| PluginError::LoadError(format!("stub unknown imports failed: {}", e)))?;
@@ -185,7 +187,8 @@ pub struct WasmPlugin {
     /// 实例池，每个插件一个
     pool: Arc<WasmInstancePool>,
     /// 缓存序列化后的 config 字符串，避免每次 hook 调用重复的序列化。
-    cached_config: OnceLock<String>,
+    /// 使用 Arc<str> 避免 clone 时的堆分配。
+    cached_config: OnceLock<Arc<str>>,
 }
 
 impl WasmPlugin {
@@ -199,8 +202,8 @@ impl WasmPlugin {
             tokio::runtime::Handle::current().block_on(Self::load_info(&module))
         })?;
 
-        // 预解析 imports
-        let pool = Arc::new(WasmInstancePool::new(Arc::new(module), 32));
+        // 预解析 imports，池扩容到 128 减少高并发下的 miss 率
+        let pool = Arc::new(WasmInstancePool::new(Arc::new(module), 128)?);
 
         Ok(Self {
             plugin_name: name,
@@ -334,43 +337,72 @@ impl WasmPlugin {
             })?;
 
         // 调用插件钩子函数（使用缓存的 call_fn）
-        let result = func
+        let call_result = func
             .call_fn
             .call_async(&mut *store, (hook_id, input_ptr, input_bytes.len() as i32))
-            .await
+            .await;
+
+        // 无论 call_fn 成功或 trap，都释放 input_ptr
+        if let Some(dealloc_fn) = &func.dealloc_fn {
+            let _ = dealloc_fn
+                .call_async(&mut *store, (input_ptr, input_bytes.len() as i32))
+                .await;
+        }
+
+        let result = call_result
             .map_err(|e| PluginError::ExecuteError(format!("aiway_call trap: {}", e)))?;
 
         // 解码返回值
         let result_ptr = (result >> 32) as usize;
         let result_len = (result & 0xFFFFFFFF) as usize;
 
-        if result_ptr == 0 {
+        // 用 result 变量保存最终结果，确保 result_ptr 的 dealloc 在 return 之前执行
+        let output_result = if result_ptr == 0 {
             let mut err_buf = vec![0u8; result_len];
             func.memory
                 .read(&*store, 1, &mut err_buf)
                 .map_err(|e| PluginError::ExecuteError(format!("read error msg failed: {}", e)))?;
-            return Err(PluginError::ExecuteError(
-                String::from_utf8_lossy(&err_buf).to_string(),
-            ));
+
+            // 尝试解析 Reject 格式：前 4 字节为 u32 BE 状态码，>0 表示 Reject
+            if err_buf.len() >= 4 {
+                let status =
+                    u32::from_be_bytes([err_buf[0], err_buf[1], err_buf[2], err_buf[3]]);
+                if status > 0 && status <= 599 {
+                    let message = String::from_utf8_lossy(&err_buf[4..]).to_string();
+                    Err(PluginError::Reject(status as u16, message))
+                } else {
+                    Err(PluginError::ExecuteError(
+                        String::from_utf8_lossy(&err_buf).to_string(),
+                    ))
+                }
+            } else {
+                Err(PluginError::ExecuteError(
+                    String::from_utf8_lossy(&err_buf).to_string(),
+                ))
+            }
+        } else {
+            let mut result_buf = vec![0u8; result_len];
+            func.memory
+                .read(&*store, result_ptr, &mut result_buf)
+                .map_err(|e| {
+                    PluginError::ExecuteError(format!("read result failed: {}", e))
+                })?;
+
+            bincode::deserialize(&result_buf).map_err(|e| {
+                PluginError::SerializeError(format!("deserialize output failed: {}", e))
+            })
+        };
+
+        // 释放 result_ptr 的 WASM 内存（在 return 之前统一释放）
+        if result_ptr > 0 {
+            if let Some(dealloc_fn) = &func.dealloc_fn {
+                let _ = dealloc_fn
+                    .call_async(&mut *store, (result_ptr as i32, result_len as i32))
+                    .await;
+            }
         }
 
-        let mut result_buf = vec![0u8; result_len];
-        func.memory
-            .read(&*store, result_ptr, &mut result_buf)
-            .map_err(|e| PluginError::ExecuteError(format!("read result failed: {}", e)))?;
-
-        // 释放 WASM 内存
-        if let Some(dealloc_fn) = &func.dealloc_fn {
-            let _ = dealloc_fn
-                .call_async(&mut *store, (input_ptr, input_bytes.len() as i32))
-                .await;
-            let _ = dealloc_fn
-                .call_async(&mut *store, (result_ptr as i32, result_len as i32))
-                .await;
-        }
-
-        bincode::deserialize(&result_buf)
-            .map_err(|e| PluginError::SerializeError(format!("deserialize output failed: {}", e)))
+        output_result
     }
 }
 
@@ -394,7 +426,7 @@ impl Plugin for WasmPlugin {
         let input = WasmInput {
             config: self
                 .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default())
+                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
                 .clone(),
             head: Some(WasmHead::from_request_parts(head)),
             body: None,
@@ -421,7 +453,7 @@ impl Plugin for WasmPlugin {
         let input = WasmInput {
             config: self
                 .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default())
+                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
                 .clone(),
             head: None,
             body: body.as_ref().map(|b| b.to_vec()),
@@ -450,7 +482,7 @@ impl Plugin for WasmPlugin {
         let input = WasmInput {
             config: self
                 .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default())
+                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
                 .clone(),
             head: Some(WasmHead::from_response_parts(head)),
             body: None,
@@ -467,7 +499,7 @@ impl Plugin for WasmPlugin {
         Ok(())
     }
 
-    fn on_response_body(
+    async fn on_response_body(
         &self,
         config: &Value,
         body: &mut Option<Bytes>,
@@ -477,7 +509,7 @@ impl Plugin for WasmPlugin {
         let input = WasmInput {
             config: self
                 .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default())
+                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
                 .clone(),
             head: None,
             body: body.as_ref().map(|b| b.to_vec()),
@@ -485,14 +517,9 @@ impl Plugin for WasmPlugin {
             request_ts: None,
         };
 
-        // on_response_body 是同步方法，需要 block_in_place 在 tokio 多线程中安全地阻塞
-        let output = tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(self.call_wasm(
-                HOOK_ON_RESPONSE_BODY,
-                &input,
-                http_ctx,
-            ))
-        })?;
+        let output = self
+            .call_wasm(HOOK_ON_RESPONSE_BODY, &input, http_ctx)
+            .await?;
 
         if let Some(modified_body) = output.body {
             *body = Some(Bytes::from(modified_body));
@@ -506,7 +533,7 @@ impl Plugin for WasmPlugin {
         let input = WasmInput {
             config: self
                 .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default())
+                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
                 .clone(),
             head: None,
             body: None,

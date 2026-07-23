@@ -38,8 +38,13 @@ pub enum PluginError {
     LoadError(String),
     /// 序列化/反序列化错误
     SerializeError(String),
-    /// HTTP 错误
+    /// HTTP 错误（发起HTTP调用错误）
     HttpError(String),
+    /// 插件主动拒绝请求，携带 HTTP 状态码和消息
+    ///
+    /// 用于限流(429)、鉴权失败(403)、参数校验(400) 等场景，
+    /// 网关会透传 status 作为 HTTP 响应码返回给客户端。
+    Reject(u16, String),
 }
 
 impl std::fmt::Display for PluginError {
@@ -50,6 +55,7 @@ impl std::fmt::Display for PluginError {
             PluginError::LoadError(msg) => write!(f, "{}", msg),
             PluginError::SerializeError(msg) => write!(f, "{}", msg),
             PluginError::HttpError(msg) => write!(f, "{}", msg),
+            PluginError::Reject(status, message) => write!(f, "[{}] {}", status, message),
         }
     }
 }
@@ -95,8 +101,8 @@ pub trait Plugin: Send + Sync {
         Ok(())
     }
 
-    /// 响应体阶段，可改写响应体（同步）
-    fn on_response_body(
+    /// 响应体阶段，可改写响应体
+    async fn on_response_body(
         &self,
         _config: &Value,
         _body: &mut Option<Bytes>,
