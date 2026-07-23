@@ -365,8 +365,7 @@ impl WasmPlugin {
 
             // 尝试解析 Reject 格式：前 4 字节为 u32 BE 状态码，>0 表示 Reject
             if err_buf.len() >= 4 {
-                let status =
-                    u32::from_be_bytes([err_buf[0], err_buf[1], err_buf[2], err_buf[3]]);
+                let status = u32::from_be_bytes([err_buf[0], err_buf[1], err_buf[2], err_buf[3]]);
                 if status > 0 && status <= 599 {
                     let message = String::from_utf8_lossy(&err_buf[4..]).to_string();
                     Err(PluginError::Reject(status as u16, message))
@@ -384,9 +383,7 @@ impl WasmPlugin {
             let mut result_buf = vec![0u8; result_len];
             func.memory
                 .read(&*store, result_ptr, &mut result_buf)
-                .map_err(|e| {
-                    PluginError::ExecuteError(format!("read result failed: {}", e))
-                })?;
+                .map_err(|e| PluginError::ExecuteError(format!("read result failed: {}", e)))?;
 
             bincode::deserialize(&result_buf).map_err(|e| {
                 PluginError::SerializeError(format!("deserialize output failed: {}", e))
@@ -394,12 +391,12 @@ impl WasmPlugin {
         };
 
         // 释放 result_ptr 的 WASM 内存（在 return 之前统一释放）
-        if result_ptr > 0 {
-            if let Some(dealloc_fn) = &func.dealloc_fn {
-                let _ = dealloc_fn
-                    .call_async(&mut *store, (result_ptr as i32, result_len as i32))
-                    .await;
-            }
+        if result_ptr > 0
+            && let Some(dealloc_fn) = &func.dealloc_fn
+        {
+            let _ = dealloc_fn
+                .call_async(&mut *store, (result_ptr as i32, result_len as i32))
+                .await;
         }
 
         output_result

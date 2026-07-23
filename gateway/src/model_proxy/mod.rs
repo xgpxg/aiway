@@ -302,10 +302,10 @@ async fn stream_response_body(
 
     // Token 提取
     let provider = ctx.get_proxy_model_provider();
-    if let Some(ref provider) = provider {
-        if let Some(ref config) = provider.token_usage_config {
-            extract_and_store_tokens(buf.as_slice(), config, ctx);
-        }
+    if let Some(ref provider) = provider
+        && let Some(ref config) = provider.token_usage_config
+    {
+        extract_and_store_tokens(buf.as_slice(), config, ctx);
     }
 
     // TTFT 存入上下文
@@ -355,8 +355,7 @@ fn extract_and_store_tokens(body: &[u8], config: &TokenUsageConfig, ctx: &HttpCo
             match text
                 .lines()
                 .filter_map(|line| line.strip_prefix("data: "))
-                .filter(|s| !s.starts_with("[DONE]"))
-                .last()
+                .rfind(|s| !s.starts_with("[DONE]"))
                 .and_then(|s| serde_json::from_str::<Value>(s).ok())
             {
                 Some(v) => v,
@@ -365,20 +364,20 @@ fn extract_and_store_tokens(body: &[u8], config: &TokenUsageConfig, ctx: &HttpCo
         }
     };
 
-    if let Some(path) = &config.prompt_tokens {
-        if let Some(v) = json_path_extract(&json, path) {
-            ctx.insert_state(HttpContext::MODEL_USAGE_PROMPT_TOKENS, v);
-        }
+    if let Some(path) = &config.prompt_tokens
+        && let Some(v) = json_path_extract(&json, path)
+    {
+        ctx.insert_state(HttpContext::MODEL_USAGE_PROMPT_TOKENS, v);
     }
-    if let Some(path) = &config.completion_tokens {
-        if let Some(v) = json_path_extract(&json, path) {
-            ctx.insert_state(HttpContext::MODEL_USAGE_COMPLETION_TOKENS, v);
-        }
+    if let Some(path) = &config.completion_tokens
+        && let Some(v) = json_path_extract(&json, path)
+    {
+        ctx.insert_state(HttpContext::MODEL_USAGE_COMPLETION_TOKENS, v);
     }
-    if let Some(path) = &config.total_tokens {
-        if let Some(v) = json_path_extract(&json, path) {
-            ctx.insert_state(HttpContext::MODEL_USAGE_TOTAL_TOKENS, v);
-        }
+    if let Some(path) = &config.total_tokens
+        && let Some(v) = json_path_extract(&json, path)
+    {
+        ctx.insert_state(HttpContext::MODEL_USAGE_TOTAL_TOKENS, v);
     }
 }
 
