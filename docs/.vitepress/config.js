@@ -75,8 +75,8 @@ export default {
                 text: '插件开发',
                 items: [
                     {text: '概述', link: '/plugins/overview'},
-                    {text: 'SDK 使用', link: '/plugins/sdk'},
-                    {text: '插件生命周期', link: '/plugins/lifecycle'}
+                    {text: '开发一个插件', link: '/plugins/sdk'},
+                    {text: '生命周期与上下文', link: '/plugins/lifecycle'}
                 ]
             },
             {

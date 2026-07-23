@@ -1,13 +1,17 @@
-# 插件开发
+# 开发一个插件
 
-插件编译为 WASM 模块后由网关加载执行。
+本文介绍如何开发一个插件，并在网关中使用。
 
-## 依赖
+> 更详细的API参考，可查阅：[aiway-plugin](https://docs.rs/aiway-plugin/0.3.3/aiway_plugin)。
+
+## 添加依赖
 
 ```toml
 [dependencies]
 aiway-plugin = "0.3"
 ```
+
+或者 `cargo add aiway-plugin`
 
 ## Cargo.toml 配置
 
@@ -61,6 +65,7 @@ cargo build -r --target wasm32-wasip1
 ```
 
 编译环境：
+
 - 使用 `wasm32-wasip1` 目标
 - 通过 Host API 与网关通信
 
