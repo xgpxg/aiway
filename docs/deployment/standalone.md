@@ -20,8 +20,6 @@ tar -zxvf aiway-linux-amd64-standalone.tar.gz
 
 ```shell
 ./aiway
-
-# 💡使用 ./aiway -h 查看更多参数
 ```
 
 以下为可选的启动参数：

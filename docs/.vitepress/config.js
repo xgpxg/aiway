@@ -60,7 +60,6 @@ export default {
                 text: '接入层',
                 items: [
                     {text: '概述', link: '/access/overview'},
-                    {text: 'L4 透传', link: '/access/l4-proxy'},
                     {text: 'TLS 终止', link: '/access/tls'}
                 ]
             },

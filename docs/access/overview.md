@@ -1,20 +1,39 @@
 # 接入层
 
-接入层（Access）是网关系统的 L4 TCP 透传代理，支持 TLS 终止。
+## `access` 接入点
 
-Access 作为外部流量的统一入口，将请求转发到后端网关节点，和 Nginx 类似。
+通常情况下，网关作为系统内部服务，不应在公网暴露，所以需要一个接入点来接收外部流量，并转发到网关节点。
+
+接入层 `access` 是 aiway 为网关提供的的可选入口点，在 L4 层进行流量转发，支持 TLS 终止。
 
 ```text
-Request --> Access --> Gateway1 --> Service
+# 请求流程
+Request --> Access --> Gateway --> Service
 ```
 
-当有多个网节点时，建议通过Access来接入，可将域名解析到Access节点，实现网关的负载均衡。
+`access` 会与控制台通信，自动获取可用的网关节点，当有多个网节点时，建议通过 `access` 来接入，可将域名解析到 `access`
+节点，实现网关的负载均衡。
 
-## 职责
+![域名管理](../images/access.png)
 
-- **统一入口**：作为系统的对外统一接入点
-- **L4 透传**：纯 TCP 层转发，不解析 HTTP 内容
-- **TLS 终止**：解密 HTTPS 流量后以明文转发给网关
-- **SNI 路由**：根据域名动态选择 TLS 证书
-- **节点发现**：从控制台自动发现网关节点
-- **负载均衡**：自动分发到多个网关节点
+
+> 如果您对 Nginx 更熟悉，也可以使用 Nginx 作为接入点，反向代理到网关节点。
+
+## 启动参数
+
+以下是 `access` 的启动参数：
+
+```shell
+access -h
+Usage: access [OPTIONS]
+
+Options:
+  -a, --address <ADDRESS>        Listen address [default: 0.0.0.0]
+  -p, --port <PORT>              HTTP listen port [default: 7080]
+      --https-port <HTTPS_PORT>  HTTPS listen port, 0 means disabled [default: 0]
+  -c, --console <CONSOLE>        Console address [default: 127.0.0.1:7000]
+  -l, --log-server <LOG_SERVER>  Log server address [default: 127.0.0.1:7280]
+  -h, --help                     Print help
+  -V, --version                  Print version
+
+```
