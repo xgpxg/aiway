@@ -4,9 +4,12 @@ use crate::Args;
 use common::dir::AppDir;
 use rocket::Config;
 use rocket::data::{ByteUnit, Limits};
+use std::net::IpAddr;
+use std::str::FromStr;
 
 pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     let mut builder = rocket::build().configure(Config {
+        address: IpAddr::from_str(args.address.as_str())?,
         port: args.port,
         limits: Limits::default()
             .limit("json", ByteUnit::Mebibyte(3))
