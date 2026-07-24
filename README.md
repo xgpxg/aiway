@@ -15,6 +15,8 @@
 
 与其他网关不同，aiway无需复杂的配置和环境依赖，网关节点可动态扩容/缩容，轻松应对百万并发连接。
 
+控制台示例：[https://aiway-example.coderbox.cn/](https://aiway-example.coderbox.cn/)
+
 ## 支持的系统
 
 - Linux (x86_64 / arm64)
