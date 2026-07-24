@@ -42,7 +42,7 @@ pub async fn log_handle(session: &Session, _err: Option<&Error>, ctx: &HttpConte
         .as_ref()
         .map(|h| get_real_ip(h, session.client_addr().unwrap().to_string()))
         .unwrap_or_else(|| session.client_addr().unwrap().to_string());
-    log::info!("client_ip: {}", client_ip);
+
     let host = request_headers
         .and_then(|h| h.get("host").or_else(|| h.get(":authority")))
         .and_then(|v| v.to_str().ok())
