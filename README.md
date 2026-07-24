@@ -15,7 +15,15 @@
 
 与其他网关不同，aiway无需复杂的配置和环境依赖，网关节点可动态扩容/缩容，轻松应对百万并发连接。
 
-控制台示例：[https://aiway-example.coderbox.cn/](https://aiway-example.coderbox.cn/)
+## 快速体验
+
+访问：[网关管理控制台](https://aiway-example.coderbox.cn/)
+
+用户名：admin
+
+密码：admin
+
+> 注意：此为演示系统，会不定期重置数据，请勿配置如API Key等隐私数据。
 
 ## 支持的系统
 
