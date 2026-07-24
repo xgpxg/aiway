@@ -10,6 +10,7 @@ pub mod security;
 
 pub use auth::auth_handle;
 pub use cleanup::cleanup_handle;
+use http::header::HeaderMap;
 use http::header::ToStrError;
 pub use lb::lb_handle;
 pub use logger::log_handle;
@@ -66,6 +67,17 @@ impl From<HandlerError> for BError {
     fn from(value: HandlerError) -> Self {
         pingora::Error::because(ErrorType::HTTPStatus(value.0), "", value)
     }
+}
+
+/// 从代理头中提取真实客户端 IP
+/// 优先级: X-Real-IP > X-Forwarded-For(取第一个) > fallback
+pub fn get_real_ip(headers: &HeaderMap, fallback: String) -> String {
+    headers
+        .get("x-real-ip")
+        .or_else(|| headers.get("x-forwarded-for"))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.split(',').next().unwrap_or(s).trim().to_string())
+        .unwrap_or(fallback)
 }
 
 // /// 从状态码生成错误响应

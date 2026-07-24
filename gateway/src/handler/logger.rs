@@ -2,6 +2,7 @@
 //!
 use crate::Args;
 use crate::components::IpRegion;
+use crate::handler::get_real_ip;
 use crate::report::STATE;
 use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::HttpContext;
@@ -10,9 +11,6 @@ use aiway_protocol::gateway::request_log::RequestLog;
 use pingora::prelude::*;
 
 pub async fn log_handle(session: &Session, _err: Option<&Error>, ctx: &HttpContext, args: &Args) {
-    // SAFE: client_ip不会为空
-    let client_ip = session.client_addr().unwrap().to_string();
-
     let request_id = ctx.request_id();
 
     let request_time = ctx.request_ts();
@@ -39,6 +37,12 @@ pub async fn log_handle(session: &Session, _err: Option<&Error>, ctx: &HttpConte
 
     let request_headers = &request_parts.headers.as_ref();
 
+    // 优先从代理头获取真实客户端 IP，fallback 到 TCP 对端地址
+    let client_ip = request_headers
+        .as_ref()
+        .map(|h| get_real_ip(h, session.client_addr().unwrap().to_string()))
+        .unwrap_or_else(|| session.client_addr().unwrap().to_string());
+    log::info!("client_ip: {}", client_ip);
     let host = request_headers
         .and_then(|h| h.get("host").or_else(|| h.get(":authority")))
         .and_then(|v| v.to_str().ok())
@@ -82,7 +86,7 @@ pub async fn log_handle(session: &Session, _err: Option<&Error>, ctx: &HttpConte
 
     let request_log = RequestLog {
         request_id: request_id.to_string(),
-        client_ip: client_ip.to_string(),
+        client_ip,
         client_country: region.0,
         client_province: region.1,
         client_city: region.2,

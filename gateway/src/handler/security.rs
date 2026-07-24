@@ -1,5 +1,5 @@
 use crate::components::Firewalld;
-use crate::handler::{HandlerError, HandlerResult};
+use crate::handler::{HandlerError, HandlerResult, get_real_ip};
 use crate::report::STATE;
 use aiway_protocol::common::header::Headers;
 use aiway_protocol::context::HttpContext;
@@ -7,20 +7,20 @@ use pingora::prelude::*;
 use pingora::protocols::l4::socket::SocketAddr;
 
 pub async fn firewall_check(session: &mut Session, _: &mut HttpContext) -> HandlerResult<()> {
-    let addr = session.client_addr();
-    let ip = addr
+    let headers = &session.req_header().headers;
+
+    let fallback = session
+        .client_addr()
         .map(|addr| match addr {
             SocketAddr::Inet(addr) => addr.ip().to_string(),
-            SocketAddr::Unix(_) => {
-                unimplemented!()
-            }
+            SocketAddr::Unix(_) => String::new(),
         })
         .unwrap_or_default();
-    let referer = session
-        .req_header()
-        .headers
+    let ip = get_real_ip(headers, fallback);
+
+    let referer = headers
         .get(Headers::REFERER)
-        .map(|v| v.to_str().unwrap())
+        .and_then(|v| v.to_str().ok())
         .unwrap_or_default();
 
     // 调用防火墙校验请求
