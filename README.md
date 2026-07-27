@@ -19,6 +19,10 @@
 
 访问：[网关管理控制台](https://aiway-example.coderbox.cn/)
 
+网关入口：[https://aiway-api-example.coderbox.cn/](https://aiway-api-example.coderbox.cn/)
+
+示例接口：[https://aiway-api-example.coderbox.cn/hello](https://aiway-api-example.coderbox.cn/hello)
+
 用户名：admin
 
 密码：admin
