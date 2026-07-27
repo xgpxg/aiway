@@ -23,6 +23,9 @@ impl Instances<String> for Vec<String> {
 pub trait LoadBalance<T: Clone>: Sync + Send {
     /// 从实例中选择一个
     fn select(&self, instances: &[T]) -> Option<T>;
+
+    /// 返回按负载策略排序的所有健康实例。
+    fn select_all(&self, instances: &[T], unhealthy_indices: &[usize]) -> Vec<T>;
 }
 
 /// 负载均衡错误类型

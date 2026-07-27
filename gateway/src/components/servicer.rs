@@ -12,29 +12,36 @@
 //!
 
 use crate::components::client::INNER_HTTP_CLIENT;
+use aiway_protocol::common::constants::GATEWAY_LOCAL_SOCK_PATH;
 use aiway_protocol::gateway;
 use aiway_protocol::gateway::service::LbStrategy;
 use dashmap::DashMap;
 use loadbalance::LoadBalance;
 use std::process::exit;
 use std::sync::{Arc, LazyLock, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use aiway_protocol::common::constants::GATEWAY_LOCAL_SOCK_PATH;
+
+/// 服务管理器
+pub static SERVICES: OnceLock<Servicer> = OnceLock::new();
+
+/// 不健康实例标记，key = 实例地址，value = 标记时间
+static UNHEALTHY_INSTANCES: LazyLock<DashMap<String, Instant>> = LazyLock::new(DashMap::new);
+
+/// 不健康标记的 TTL（秒），过期后自动恢复尝试
+const UNHEALTHY_TTL: Duration = Duration::from_secs(30);
+
+/// 本地服务，用于处理模型和MCP调用
+pub static LOCAL_SERVICE: LazyLock<gateway::Service> = LazyLock::new(|| gateway::Service {
+    name: "__local__".to_string(),
+    nodes: vec![GATEWAY_LOCAL_SOCK_PATH.to_string()],
+    lb: LbStrategy::Random,
+});
 
 pub struct Servicer {
     services: DashMap<String, Arc<LbService>>,
     hash: Arc<RwLock<String>>,
 }
-
-pub static SERVICES: OnceLock<Servicer> = OnceLock::new();
-pub static LOCAL_SERVICE: LazyLock<gateway::Service> = LazyLock::new(|| {
-    gateway::Service {
-        name: "__local__".to_string(),
-        nodes: vec![GATEWAY_LOCAL_SOCK_PATH.to_string()],
-        lb: LbStrategy::Random,
-    }
-});
 
 impl Servicer {
     pub async fn init() {
@@ -127,6 +134,49 @@ impl Servicer {
             return service.lb.select(&service.service.nodes);
         }
         None
+    }
+
+    /// 返回按负载策略排序的所有实例，不健康实例沉底。
+    /// 用于负载均衡的故障自动切换。
+    pub fn get_instances(service_id: &str) -> Vec<String> {
+        //SAFE: SERVICES已经初始化
+        let servicer = SERVICES.get().unwrap();
+        let service = match servicer.services.get(service_id) {
+            Some(s) => s,
+            None => return vec![],
+        };
+
+        // 所有实例
+        let nodes = &service.service.nodes;
+        let now = Instant::now();
+
+        // 清理过期的不健康标记，并收集仍有效的不健康实例索引
+        // 先读后写分离，避免 DashMap 读写锁死锁
+        let unhealthy_indices: Vec<usize> = nodes
+            .iter()
+            .enumerate()
+            .filter_map(|(i, node)| {
+                // 先读：获取标记状态（读锁立即释放）
+                let is_unhealthy = UNHEALTHY_INSTANCES
+                    .get(node)
+                    .map(|marked_at| now.duration_since(*marked_at) < UNHEALTHY_TTL)
+                    .unwrap_or(false);
+                if is_unhealthy {
+                    Some(i)
+                } else {
+                    // 过期或不存在，移除标记
+                    UNHEALTHY_INSTANCES.remove(node);
+                    None
+                }
+            })
+            .collect();
+        service.lb.select_all(nodes, &unhealthy_indices)
+    }
+
+    /// 将实例标记为不健康，后续请求会优先选择其他实例
+    pub fn mark_unhealthy(instance: &str) {
+        UNHEALTHY_INSTANCES.insert(instance.to_string(), Instant::now());
+        log::warn!("mark instance unhealthy: {}", instance);
     }
 }
 

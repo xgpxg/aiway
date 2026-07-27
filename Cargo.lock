@@ -2233,7 +2233,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.3.5"
+version = "0.3.6"
 dependencies = [
  "aha-reqwest-eventsource",
  "aiway-protocol",
@@ -3212,7 +3212,7 @@ checksum = "6373607a59f0be73a39b6fe456b8192fcc3585f602af20751600e974dd455e77"
 
 [[package]]
 name = "loadbalance"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "fastrand",
 ]

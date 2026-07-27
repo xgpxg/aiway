@@ -1,3 +1,5 @@
+use crate::components::Servicer;
+use crate::handler::lb::{LB_ATTEMPT, LB_CANDIDATES};
 use crate::init::alert_error;
 use crate::{Args, handler};
 use aiway_protocol::common::header::Headers;
@@ -13,6 +15,8 @@ use pingora::proxy::FailToProxy;
 use pingora::{Error, ErrorType};
 use plugin_manager::async_trait;
 use std::ops::Deref;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 pub struct Gateway {
@@ -42,7 +46,8 @@ impl ProxyHttp for Gateway {
     ) -> pingora::Result<Box<HttpPeer>, Box<Error>> {
         let backend_addr = ctx
             .get_routing_url()
-            .ok_or_else(|| Error::new_str("Routing URL not found in context"))?;
+            .ok_or_else(|| Error::new_str("Routing URL not found in context"))?
+            .clone();
 
         // 转发到本地处理
         if backend_addr.ends_with(".sock") {
@@ -50,34 +55,35 @@ impl ProxyHttp for Gateway {
             ctx.insert_any_state("host", host);
 
             return Ok(Box::new(HttpPeer::new_uds(
-                backend_addr,
+                &backend_addr,
                 false,
                 "".to_string(),
             )?));
         }
 
-        let uri: Uri = backend_addr
-            .parse()
-            .map_err(|_| Error::new_str("Failed to parse backend URI"))?;
+        // 候选的实例列表
+        let candidates = ctx.get_any_state::<Vec<String>>(LB_CANDIDATES);
 
-        let host = uri
-            .host()
-            .ok_or_else(|| Error::new_str("Backend URI missing host"))?;
+        // 无候选列表（未走 lb 的场景），直接用 routing_url
+        let Some(candidates) = candidates else {
+            return build_http_peer(ctx, &backend_addr);
+        };
 
-        let tls = uri
-            .scheme_str()
-            .map(|s| s == "https" || s == "wss")
-            .unwrap_or(false);
+        // 获取当前尝试索引（fail_to_connect 中递增）
+        let attempt = ctx
+            .get_any_state::<AtomicUsize>(LB_ATTEMPT)
+            .map_or(0, |a| a.load(Ordering::Relaxed));
 
-        let port = uri.port_u16().unwrap_or(if tls { 443 } else { 80 });
+        // 尝试次数小于候选列表长度时，继续尝试
+        if attempt < candidates.len() {
+            // 当前尝试的对应的索引处的实例
+            let instance = &candidates[attempt];
+            let peer = build_http_peer(ctx, instance)?;
+            return Ok(peer);
+        }
 
-        let peer = Box::new(HttpPeer::new((host, port), tls, host.to_string()));
-
-        ctx.insert_any_state("host", host.to_string());
-
-        log::debug!("Proxying to {}:{} with SNI {}", host, port, host);
-
-        Ok(peer)
+        // 所有候选均已尝试，还是没有可用的，返回异常
+        Err(Error::new_str("All backend instances are unreachable"))
     }
 
     /// 在向后端发送请求之前
@@ -237,6 +243,44 @@ impl ProxyHttp for Gateway {
         matches!(error.etype, ErrorType::HTTPStatus(_))
     }
 
+    /// 处理上游连接失败
+    fn fail_to_connect(
+        &self,
+        _session: &mut Session,
+        _peer: &HttpPeer,
+        ctx: &mut Self::CTX,
+        mut e: Box<Error>,
+    ) -> Box<Error> {
+        // 标记当前失败实例为不健康
+        if let Some(addr) = ctx.get_routing_url() {
+            Servicer::mark_unhealthy(addr);
+        }
+
+        // 获取候选实例
+        let candidates: Option<Arc<Vec<String>>> = ctx.get_any_state(LB_CANDIDATES);
+
+        // 获取或者初始化尝试次数
+        let attempt = ctx.get_any_state::<AtomicUsize>(LB_ATTEMPT).or_else(|| {
+            ctx.insert_any_state(LB_ATTEMPT, AtomicUsize::new(0));
+            ctx.get_any_state::<AtomicUsize>(LB_ATTEMPT)
+        });
+
+        if let (Some(candidates), Some(attempt)) = (candidates, attempt) {
+            let next = attempt.fetch_add(1, Ordering::Relaxed) + 1;
+            if next < candidates.len() {
+                log::warn!(
+                    "Connection failed, will retry ({}/{})",
+                    // +1 是排除首次调用
+                    next + 1,
+                    candidates.len()
+                );
+                e.set_retry(true);
+            }
+        }
+
+        e
+    }
+
     /// 统一响应错误信息
     async fn fail_to_proxy(
         &self,
@@ -281,4 +325,29 @@ impl ProxyHttp for Gateway {
             can_reuse_downstream: false,
         }
     }
+}
+
+/// 从 URL 字符串构建 HttpPeer，同时设置上下文中的 host 头
+fn build_http_peer(
+    ctx: &mut HttpContext,
+    addr: &str,
+) -> pingora::Result<Box<HttpPeer>, Box<Error>> {
+    let uri: Uri = addr
+        .parse()
+        .map_err(|_| Error::new_str("Failed to parse backend URI"))?;
+
+    let host = uri
+        .host()
+        .ok_or_else(|| Error::new_str("Backend URI missing host"))?;
+
+    let tls = uri
+        .scheme_str()
+        .map(|s| s == "https" || s == "wss")
+        .unwrap_or(false);
+
+    let port = uri.port_u16().unwrap_or(if tls { 443 } else { 80 });
+
+    ctx.insert_any_state("host", host.to_string());
+
+    Ok(Box::new(HttpPeer::new((host, port), tls, host.to_string())))
 }
