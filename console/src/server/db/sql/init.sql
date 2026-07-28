@@ -219,22 +219,22 @@ create table if not exists model
 -- 模型提供商
 create table if not exists model_provider
 (
-    id                bigint primary key,
-    model_id          bigint       not null,           -- 模型ID
-    name              varchar(500),                    -- 模型提供商名称
-    api_url           varchar(500) not null,           -- 接口地址
-    api_key           varchar(500),                    -- 密钥
-    status            varchar(20)  not null,           -- 状态：Disable | Ok
-    weight            int          not null default 1, -- 权重
-    plugins           text,                            -- 插件
-    target_model_name varchar(500),                    -- 目标模型名称
-    token_usage_config text,                           -- Token 用量提取配置，JSON，如 {"prompt_tokens": "usage.prompt_tokens", ...}
-    create_user_id    bigint,                          -- 创建人ID
-    update_user_id    bigint,                          -- 修改人ID
-    create_time       datetime,                        -- 创建时间
-    update_time       datetime,                        -- 更新时间
-    remark            varchar(500),                    -- 备注
-    is_delete         tinyint(1)   not null default 0  -- 是否删除
+    id                 bigint primary key,
+    model_id           bigint       not null,           -- 模型ID
+    name               varchar(500),                    -- 模型提供商名称
+    api_url            varchar(500) not null,           -- 接口地址
+    api_key            varchar(500),                    -- 密钥
+    status             varchar(20)  not null,           -- 状态：Disable | Ok
+    weight             int          not null default 1, -- 权重
+    plugins            text,                            -- 插件
+    target_model_name  varchar(500),                    -- 目标模型名称
+    token_usage_config text,                            -- Token 用量提取配置，JSON，如 {"prompt_tokens": "usage.prompt_tokens", ...}
+    create_user_id     bigint,                          -- 创建人ID
+    update_user_id     bigint,                          -- 修改人ID
+    create_time        datetime,                        -- 创建时间
+    update_time        datetime,                        -- 更新时间
+    remark             varchar(500),                    -- 备注
+    is_delete          tinyint(1)   not null default 0  -- 是否删除
 );
 
 -- mcp服务
@@ -282,43 +282,61 @@ create table if not exists mcp_tool
 create table if not exists domain
 (
     id             bigint primary key,
-    domain         varchar(200)  not null,          -- 绑定域名，如 "example.com" 或 "*.example.com"
-    protocol       varchar(10)   not null default 'HTTP', -- 协议：HTTP | HTTPS
-    cert           text,                             -- PEM 格式证书内容（HTTPS 必填）
-    cert_key       text,                             -- PEM 格式私钥内容（HTTPS 必填）
-    status         varchar(20)   not null,          -- 状态：Disable | Ok
+    domain         varchar(200) not null,                -- 绑定域名，如 "example.com" 或 "*.example.com"
+    protocol       varchar(10)  not null default 'HTTP', -- 协议：HTTP | HTTPS
+    cert           text,                                 -- PEM 格式证书内容（HTTPS 必填）
+    cert_key       text,                                 -- PEM 格式私钥内容（HTTPS 必填）
+    status         varchar(20)  not null,                -- 状态：Disable | Ok
+    create_user_id bigint,                               -- 创建人ID
+    update_user_id bigint,                               -- 修改人ID
+    create_time    datetime,                             -- 创建时间
+    update_time    datetime,                             -- 更新时间
+    remark         varchar(500),                         -- 备注
+    is_delete      tinyint(1)   not null default 0       -- 是否删除
+);
+
+-- TLS 证书管理（ACME 自动签发）
+create table if not exists tls_cert
+(
+    id             bigint primary key,
+    domain         varchar(200) not null,           -- 主域名，如 example.com 或 *.example.com
+    cert_pem       text         not null,           -- PEM 格式证书内容（含证书链）
+    key_pem        text         not null,           -- PEM 格式私钥内容
+    issuer         varchar(100) not null,           -- 签发机构，如 Let's Encrypt
+    issued_at      datetime     not null,           -- 签发时间
+    expires_at     datetime     not null,           -- 过期时间
+    auto_renew     tinyint(1)   not null default 0, -- 是否自动续期
     create_user_id bigint,                          -- 创建人ID
-    update_user_id bigint,                          -- 修改人ID
     create_time    datetime,                        -- 创建时间
     update_time    datetime,                        -- 更新时间
     remark         varchar(500),                    -- 备注
-    is_delete      tinyint(1)    not null default 0 -- 是否删除
+    is_delete      tinyint(1)   not null default 0  -- 是否删除
 );
 
 -- 模型调用统计（分钟级明细）
 create table if not exists statistics_model_call
 (
-    model_name              varchar(500) not null,           -- 模型名称
-    provider_name           varchar(500) not null,           -- 提供商名称
-    state_time              bigint not null,                 -- 分钟级起始时间戳
-    call_count              bigint not null default 0,       -- 该分钟调用次数
-    prompt_tokens           bigint default 0,                -- 该分钟 prompt tokens
-    completion_tokens       bigint default 0,                -- 该分钟 completion tokens
-    tokens                  bigint default 0,                -- 该分钟 total tokens
-    avg_elapsed             bigint default 0,                -- 该分钟平均耗时(毫秒)
-    avg_ttft                bigint default 0,                -- 该分钟平均首Token耗时(毫秒)
+    model_name        varchar(500) not null,           -- 模型名称
+    provider_name     varchar(500) not null,           -- 提供商名称
+    state_time        bigint       not null,           -- 分钟级起始时间戳
+    call_count        bigint       not null default 0, -- 该分钟调用次数
+    prompt_tokens     bigint                default 0, -- 该分钟 prompt tokens
+    completion_tokens bigint                default 0, -- 该分钟 completion tokens
+    tokens            bigint                default 0, -- 该分钟 total tokens
+    avg_elapsed       bigint                default 0, -- 该分钟平均耗时(毫秒)
+    avg_ttft          bigint                default 0, -- 该分钟平均首Token耗时(毫秒)
     primary key (model_name, provider_name, state_time)
 );
 
 -- 模型调用累计汇总（每个 model+provider 仅一行）
 create table if not exists statistics_model_call_total
 (
-    model_name              varchar(500) not null,                -- 模型名称
-    provider_name           varchar(500) not null,                -- 提供商名称
-    total_call_count        bigint not null default 0,            -- 累计调用次数
-    total_prompt_tokens     bigint not null default 0,            -- 累计 prompt tokens
-    total_completion_tokens bigint not null default 0,            -- 累计 completion tokens
-    total_tokens            bigint not null default 0,            -- 累计 total tokens
+    model_name              varchar(500) not null,           -- 模型名称
+    provider_name           varchar(500) not null,           -- 提供商名称
+    total_call_count        bigint       not null default 0, -- 累计调用次数
+    total_prompt_tokens     bigint       not null default 0, -- 累计 prompt tokens
+    total_completion_tokens bigint       not null default 0, -- 累计 completion tokens
+    total_tokens            bigint       not null default 0, -- 累计 total tokens
     primary key (model_name, provider_name)
 );
 

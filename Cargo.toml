@@ -14,5 +14,6 @@ members = [
     "logg",
     "lib/alert",
     "lib/plugin-manager",
-    "lib/busi"
+    "lib/busi",
+    "lib/certs"
 ]

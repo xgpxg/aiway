@@ -5,6 +5,7 @@ use rocket::data::{ByteUnit, Limits};
 use std::net::IpAddr;
 use std::str::FromStr;
 mod auth;
+mod cert;
 mod common;
 pub mod db;
 mod domain;
@@ -56,6 +57,7 @@ pub async fn start_http_server(args: &Args) -> anyhow::Result<()> {
     builder = builder.mount("/api/plugin", plugin::api::routes());
     builder = builder.mount("/api/metrics", metrics::api::routes());
     builder = builder.mount("/api/log", log::api::routes());
+    builder = builder.mount("/api/cert", cert::api::routes());
     builder = builder.mount("/api/domain", domain::api::routes());
     builder = builder.mount("/api/firewall", firewall::api::routes());
     builder = builder.mount("/api/system", system::routes());

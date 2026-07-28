@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+        "https://raw.githubusercontent.com/rbatis/rbatis/master/rbatis-codegen/mybatis-3-mapper.dtd">
+
+<mapper>
+    <select id="list_page">
+        <if test="do_count == true">select count(1)</if>
+        <if test="do_count == false">select c.*</if>
+        ` `
+        from tls_cert c
+        <where>
+            <if test="param.filter_text!=null && param.filter_text!=''">
+                ` and (
+                        c.domain like concat('%',#{param.filter_text},'%')
+                    ) `
+            </if>
+            <if test="param.status == 'Active'">` and c.expires_at > datetime('now') `</if>
+            <if test="param.status == 'Expired'">` and c.expires_at <= datetime('now') `</if>
+            and c.is_delete = 0
+        </where>
+        <if test="do_count == false">` order by c.id desc `` limit ${page_no},${page_size} `</if>
+    </select>
+</mapper>

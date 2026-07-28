@@ -40,6 +40,8 @@ pub enum ConfigKey {
     RequestStatusCountLastUpdate,
     /// 最后更新模型调用统计数据时间，秒级时间戳
     ModelCallCountLastUpdate,
+    /// ACME 证书签发配置（邮箱、DNS 提供商及凭证）
+    Acme,
 }
 impl Display for ConfigKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -59,6 +61,7 @@ impl Display for ConfigKey {
             ConfigKey::ModelCallCountLastUpdate => {
                 write!(f, "model-call-count-last-update")
             }
+            ConfigKey::Acme => write!(f, "acme"),
         }
     }
 }

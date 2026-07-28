@@ -1,0 +1,24 @@
+[package]
+name = "certs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+acme2 = "0.5"
+openssl = { version = "0.10", features = ["vendored"] }
+reqwest = { version = "0.13", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+async-trait = "0.1"
+tracing = "0.1"
+tokio = { version = "1", features = ["macros", "time"] }
+chrono = { version = "0.4", features = ["serde"] }
+hex = "0.4"
+sha1 = "0.10"
+sha2 = "0.10"
+hmac = "0.12"
+base64 = "0.22"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread"] }

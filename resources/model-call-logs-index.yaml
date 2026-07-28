@@ -1,0 +1,64 @@
+version: 0.7
+
+index_id: model-call-logs
+index_uri: file://data/model-call-logs
+
+doc_mapping:
+  mode: strict
+  field_mappings:
+    - name: request_id
+      type: text
+      tokenizer: raw
+      fast: true
+    - name: model_name
+      type: text
+      tokenizer: raw
+      fast: true
+    - name: provider_name
+      type: text
+      tokenizer: raw
+      fast: true
+    - name: request_time
+      type: datetime
+      input_formats:
+        - unix_timestamp
+      output_format: unix_timestamp_millis
+      fast_precision: milliseconds
+      fast: true
+    - name: response_time
+      type: datetime
+      input_formats:
+        - unix_timestamp
+      output_format: unix_timestamp_millis
+      fast_precision: milliseconds
+      fast: true
+    - name: elapsed
+      type: i64
+      fast: true
+    - name: ttft_ms
+      type: i64
+      fast: true
+    - name: status_code
+      type: u64
+      fast: true
+    - name: is_stream
+      type: bool
+      fast: true
+    - name: prompt_tokens
+      type: i64
+      fast: true
+    - name: completion_tokens
+      type: i64
+      fast: true
+    - name: total_tokens
+      type: i64
+      fast: true
+    - name: node_address
+      type: text
+      fast: true
+
+  timestamp_field: request_time
+
+indexing_settings:
+  commit_timeout_secs: 10
+  split_num_docs_target: 1000000

@@ -16,3 +16,4 @@ pub mod user;
 pub mod user_auth;
 pub mod mcp_server;
 pub mod mcp_tool;
+pub mod tls_cert;

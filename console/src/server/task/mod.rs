@@ -1,3 +1,4 @@
+mod cert_renew;
 mod cleaner;
 mod ip_region_count;
 mod model_call_count;
@@ -66,6 +67,12 @@ pub async fn start() -> anyhow::Result<()> {
         Box::pin(model_call_count::clean())
     })?;
     sched.add(model_call_count_clean).await?;
+
+    // HTTPS 证书自动续期
+    let cert_auto_renew = Job::new_async("every 1 hours", |_, _| {
+        Box::pin(cert_renew::auto_renew())
+    })?;
+    sched.add(cert_auto_renew).await?;
 
     sched.start().await?;
 
