@@ -153,7 +153,6 @@ create table if not exists gateway_node_state
     interval_response_3xx_count    bigint       not null default 0, -- 区间内3xx响应数
     interval_response_4xx_count    bigint       not null default 0, -- 区间内4xx响应数
     interval_response_5xx_count    bigint       not null default 0, -- 区间内5xx响应数
-    interval_http_connect_count    bigint       not null default 0, -- 区间内http连接数
     interval_avg_response_time     bigint       not null default 0, -- 区间内平均响应时间
     request_count                  bigint       not null default 0, -- 累计请求数
     request_invalid_count          bigint       not null default 0, -- 累计无效请求数

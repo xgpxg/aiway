@@ -1,9 +1,9 @@
+use aiway_protocol::gateway::state::GpuState;
 use derive_builder::Builder;
 use rbatis::executor::Executor;
 use rbatis::rbdc::DateTime;
 use rbatis::{crud, htmlsql};
-use rocket::serde::{Deserialize, Serialize};
-use aiway_protocol::gateway::state::GpuState;
+use serde::{Deserialize, Serialize};
 
 /// 网关节点状态记录
 #[derive(Debug, Clone, Serialize, Deserialize, Builder, Default)]
@@ -17,7 +17,7 @@ pub struct GatewayNodeState {
     ///  操作系统信息
     pub os: Option<String>,
     /// 节点名称
-    pub host_name: Option<u16>,
+    pub host_name: Option<String>,
     /// CPU使用率
     pub cpu_usage: f32,
     /// 内存总大小

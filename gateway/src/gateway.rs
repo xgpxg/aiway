@@ -12,6 +12,7 @@ use http::Uri;
 use pingora::http::{RequestHeader, ResponseHeader};
 use pingora::prelude::{HttpPeer, ProxyHttp, Session};
 use pingora::proxy::FailToProxy;
+use pingora::upstreams::peer::ALPN;
 use pingora::{Error, ErrorType};
 use plugin_manager::async_trait;
 use std::ops::Deref;
@@ -340,14 +341,19 @@ fn build_http_peer(
         .host()
         .ok_or_else(|| Error::new_str("Backend URI missing host"))?;
 
-    let tls = uri
-        .scheme_str()
-        .map(|s| s == "https" || s == "wss")
-        .unwrap_or(false);
+    let scheme = uri.scheme_str().unwrap_or("http");
+    let is_tls = matches!(scheme, "https" | "wss");
+    let is_grpc = matches!(scheme, "grpc");
+    let port = uri.port_u16().unwrap_or(if is_tls { 443 } else { 80 });
 
-    let port = uri.port_u16().unwrap_or(if tls { 443 } else { 80 });
+    let host_string = host.to_string();
+    ctx.insert_any_state("host", host_string.clone());
 
-    ctx.insert_any_state("host", host.to_string());
+    let mut peer = Box::new(HttpPeer::new((host, port), is_tls, host_string));
 
-    Ok(Box::new(HttpPeer::new((host, port), tls, host.to_string())))
+    if is_grpc {
+        peer.options.alpn = ALPN::H2;
+    }
+
+    Ok(peer)
 }
