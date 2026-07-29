@@ -1,0 +1,15 @@
+services:
+  aiway:
+    image: ghcr.io/xgpxg/aiway:latest
+    container_name: aiway
+    restart: unless-stopped
+    ports:
+      - "7000:7000"   # Console
+      - "7001:7001"   # Gateway
+      - "7080:7080"   # Access HTTP
+      - "7443:7443"   # Access HTTPS
+    volumes:
+      - aiway-data:/root/.aiway
+
+volumes:
+  aiway-data:

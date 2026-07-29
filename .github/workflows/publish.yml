@@ -3,6 +3,7 @@ name: Publish
 on:
   push:
     tags: [ "*" ]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -121,6 +122,14 @@ jobs:
           tar -czf ${{ matrix.asset_name_standalone }} aiway
         shell: bash
 
+      # 上传 linux-amd64 产物供 Docker job 使用
+      - name: Upload artifact for Docker
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aiway-linux-amd64
+          path: target/${{ matrix.target }}/release/aiway
+
       # 压缩集群版二进制文件
       - name: Compress cluster binary
         run: |
@@ -139,3 +148,37 @@ jobs:
             target/${{ matrix.target }}/release/${{ matrix.asset_name_cluster }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download aiway binary
+        uses: actions/download-artifact@v4
+        with:
+          name: aiway-linux-amd64
+          path: build/
+
+      - name: Set binary permissions
+        run: chmod +x build/aiway
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
