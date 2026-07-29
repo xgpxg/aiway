@@ -102,6 +102,17 @@ Options:
   -V, --version                                Print version
 ```
 
+## 使用 Docker
+
+```bash
+docker run --rm --name aiway \
+-p 7000:7000 \
+-p 7001:7001 \
+-p 7080:7080 \
+-p 7443:7443 \
+ghcr.io/xgpxg/aiway:latest
+```
+
 ## 核心功能
 
 - [x] 动态路由
