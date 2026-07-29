@@ -78,9 +78,14 @@ impl RequestExt for Parts {
 
     fn get_host(&self) -> String {
         if self.version == http::Version::HTTP_2 {
-            self.get_request_header(":authority").unwrap()
+            self.uri
+                .authority()
+                .map(|a| a.as_str().to_string())
+                .or_else(|| self.get_request_header("host"))
+                .expect("host header not set")
         } else {
-            self.get_request_header("host").unwrap()
+            self.get_request_header("host")
+                .expect("host header not set")
         }
     }
 

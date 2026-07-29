@@ -2,7 +2,9 @@ use crate::Args;
 use crate::gateway::Gateway;
 use crate::service::LocalService;
 use aiway_protocol::common::constants::GATEWAY_LOCAL_SOCK_PATH;
+use pingora::apps::HttpServerOptions;
 use pingora::prelude::*;
+use pingora::proxy::ProxyServiceBuilder;
 
 /// 启动 HTTP 服务器
 pub fn start_http_server(args: &Args) -> anyhow::Result<()> {
@@ -10,7 +12,12 @@ pub fn start_http_server(args: &Args) -> anyhow::Result<()> {
     server.bootstrap();
     {
         let service = Gateway::new(args);
-        let mut proxy = http_proxy_service(&server.configuration, service);
+        let mut server_options = HttpServerOptions::default();
+        server_options.h2c = true;
+
+        let mut proxy = ProxyServiceBuilder::new(&server.configuration, service)
+            .server_options(server_options)
+            .build();
 
         let addr = format!("{}:{}", args.address, args.port);
         proxy.add_tcp(addr.as_str());
@@ -25,7 +32,7 @@ pub fn start_http_server(args: &Args) -> anyhow::Result<()> {
             crate::VERSION,
             args.address,
             args.port,
-            cpu_cores.max(4)
+            cpu_cores
         );
     }
 
