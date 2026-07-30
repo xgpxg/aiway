@@ -10,7 +10,7 @@ use aiway_protocol::context::parts::SerdeParts;
 use aiway_protocol::gateway::request_log::RequestLog;
 use pingora::prelude::*;
 
-pub async fn log_handle(session: &Session, _err: Option<&Error>, ctx: &HttpContext, args: &Args) {
+pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContext, args: &Args) {
     let request_id = ctx.request_id();
 
     let request_time = ctx.request_ts();
@@ -71,7 +71,13 @@ pub async fn log_handle(session: &Session, _err: Option<&Error>, ctx: &HttpConte
 
     let status_code = response_parts
         .as_ref()
-        .and_then(|parts| parts.status_code.map(|s| s.as_u16()));
+        .and_then(|parts| parts.status_code.map(|s| s.as_u16()))
+        .or_else(|| {
+            err.and_then(|e| match e.etype {
+                HTTPStatus(status_code) => Some(status_code),
+                _ => None,
+            })
+        });
 
     let body_size = ctx.get_state::<usize>(HttpContext::RESPONSE_BODY_SIZE);
 
