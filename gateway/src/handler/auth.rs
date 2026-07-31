@@ -20,7 +20,7 @@ pub async fn auth_handle(session: &mut Session, ctx: &HttpContext) -> HandlerRes
         log::debug!("路由 {} 未开启权限验证，无需鉴权", route.name);
         return Ok(());
     }
-    // FIXME 修改匹配方式
+
     if route.auth_white_list.contains(&session.req_header().get_path()) {
         log::debug!(
             "匹配到白名单，跳过鉴权，{} => {}",

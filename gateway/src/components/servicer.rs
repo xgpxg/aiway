@@ -130,10 +130,9 @@ impl Servicer {
 
     pub fn get_instance(service_id: &str) -> Option<String> {
         let service = SERVICES.get().unwrap().services.get(service_id);
-        if let Some(service) = service {
-            return service.lb.select(&service.service.nodes);
-        }
-        None
+        // map 一下释放锁
+        let service = service.map(|s| Arc::clone(&s));
+        service.map(|s| s.lb.select(&s.service.nodes)).flatten()
     }
 
     /// 返回按负载策略排序的所有实例，不健康实例沉底。
@@ -141,8 +140,9 @@ impl Servicer {
     pub fn get_instances(service_id: &str) -> Vec<String> {
         //SAFE: SERVICES已经初始化
         let servicer = SERVICES.get().unwrap();
+        // 克隆 Arc 后立即释放锁，避免持锁期间执行耗时操作
         let service = match servicer.services.get(service_id) {
-            Some(s) => s,
+            Some(s) => Arc::clone(&s),
             None => return vec![],
         };
 
