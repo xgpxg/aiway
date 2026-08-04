@@ -26,9 +26,6 @@ pub struct Firewall {
     /// 是否允许空Referer
     pub allow_empty_referer: bool,
     /// 单个网关节点的最大连接数限制
-    // /// 例如：127.0.0.1:8080/1000，
-    // /// 对所有节点限制：*/2000，
-    // /// 如果配置了具体的节点限制，则优先使用具体配置。
     pub max_connections: Option<usize>,
     /// API密钥的加密密钥，长度固定为32位，由控制台验证长度。
     /// 可能为空字符串，为空时使用默认密钥
