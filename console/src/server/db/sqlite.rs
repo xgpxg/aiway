@@ -44,7 +44,7 @@ where
     let tx = match Pool::get()?.acquire_begin().await {
         Ok(tx) => tx,
         Err(e) => {
-            log::error!("事务异常: {}", e);
+            log::error!("transaction error: {}", e);
             bail!(e);
         }
     };
@@ -54,23 +54,23 @@ where
     match result {
         Ok(result) => {
             match tx.commit().await {
-                Ok(_) => log::debug!("事务提交成功，事务ID：{}", tx.tx_id),
+                Ok(_) => log::debug!("transaction committed, tx_id: {}", tx.tx_id),
                 Err(e) => {
-                    log::error!("事务提交失败，事务ID：{}， 原因： {}", tx.tx_id, e);
+                    log::error!("transaction commit failed, tx_id: {}, error: {}", tx.tx_id, e);
                     bail!(e);
                 }
             };
             Ok(result)
         }
         Err(e) => {
-            log::debug!("事务闭包执行失败，即将回滚，错误原因: {}", e);
+            log::debug!("transaction closure failed, rolling back, error: {}", e);
             match tx.rollback().await {
                 Ok(_) => {
-                    log::debug!("事务回滚成功，事务ID：{}", tx.tx_id);
+                    log::debug!("transaction rolled back, tx_id: {}", tx.tx_id);
                     Err(e)
                 }
                 Err(e) => {
-                    log::error!("事务回滚失败，事务ID：{}， 原因： {}", tx.tx_id, e);
+                    log::error!("transaction rollback failed, tx_id: {}, error: {}", tx.tx_id, e);
                     bail!(e);
                 }
             }

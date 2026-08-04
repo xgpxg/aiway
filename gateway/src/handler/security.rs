@@ -28,7 +28,7 @@ pub async fn firewall_check(session: &mut Session, _: &mut HttpContext) -> Handl
         // 拦截请求后，无效请求数+1
         STATE.inc_request_invalid_count(1);
 
-        return Err(HandlerError::new(403, &e.to_string()));
+        return Err(HandlerError::new(e.0.as_u16(), &e.1));
     }
 
     // http连接计数

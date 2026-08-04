@@ -4,7 +4,6 @@ use logging::log;
 use rbatis::RBatis;
 use std::sync::OnceLock;
 
-#[allow(unused)]
 mod migrations;
 pub mod models;
 mod mysql;
@@ -36,11 +35,11 @@ pub async fn init(args: &Args) -> anyhow::Result<()> {
         _ => bail!("database not support"),
     };
 
-    // 单机模式下执行版本升级
-    // 集群模式下需要提供升级脚本执行
-    // if AppConfig::mode() == &config::Mode::Standalone {
-    //     migrations::run(&mut Pool::get()?.clone()).await;
-    // }
+    let rb = Pool::get().expect("database not initialized");
+    if let Err(e) = migrations::run_all(rb).await {
+        log::error!("migration error: {}", e);
+        bail!("migration error: {}", e);
+    }
 
     Ok(())
 }

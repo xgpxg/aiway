@@ -1,6 +1,8 @@
 use crate::components::client::INNER_HTTP_CLIENT;
+use crate::report::STATE;
 use aiway_protocol::gateway::{AllowDenyPolicy, Firewall};
 use anyhow::Context;
+use http::StatusCode;
 use ipnet::IpNet;
 use std::collections::HashSet;
 use std::net::IpAddr;
@@ -83,7 +85,7 @@ impl Firewalld {
             }
         });
     }
-    pub async fn check(ip: &str, referer: &str) -> Result<(), String> {
+    pub async fn check(ip: &str, referer: &str) -> Result<(), (StatusCode, String)> {
         let firewall = FIREWALLD.get().unwrap().config.read().await;
 
         // 受信IP直接通过（支持IP段）
@@ -92,11 +94,19 @@ impl Firewalld {
         }
 
         // 检查IP策略
-        Self::check_ip_policy(&firewall, ip)?;
+        Self::check_ip_policy(&firewall, ip).map_err(|e| (StatusCode::FORBIDDEN, e))?;
         // 检查Referer策略
-        Self::check_referer_policy(&firewall, referer)?;
+        Self::check_referer_policy(&firewall, referer).map_err(|e| (StatusCode::FORBIDDEN, e))?;
 
         // 检查最大连接数
+        if let Some(max_connections) = firewall.max_connections {
+            if STATE.get_all_connect_count() >= max_connections as isize {
+                return Err((
+                    StatusCode::TOO_MANY_REQUESTS,
+                    "Too many requests".to_string(),
+                ));
+            }
+        }
 
         Ok(())
     }

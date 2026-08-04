@@ -42,6 +42,8 @@ pub enum ConfigKey {
     ModelCallCountLastUpdate,
     /// ACME 证书签发配置（邮箱、DNS 提供商及凭证）
     Acme,
+    /// 数据库版本
+    DbVersion,
 }
 impl Display for ConfigKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -62,6 +64,9 @@ impl Display for ConfigKey {
                 write!(f, "model-call-count-last-update")
             }
             ConfigKey::Acme => write!(f, "acme"),
+            ConfigKey::DbVersion => {
+                write!(f, "db-version")
+            }
         }
     }
 }
