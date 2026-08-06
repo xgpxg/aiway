@@ -100,7 +100,6 @@ impl Firewalld {
 
         // 检查最大连接数
         if let Some(max_connections) = firewall.max_connections {
-            println!( "max_connections: {}", max_connections);
             if STATE.get_all_connect_count() >= max_connections as isize {
                 return Err((
                     StatusCode::TOO_MANY_REQUESTS,
