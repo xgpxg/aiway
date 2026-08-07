@@ -17,14 +17,15 @@ pub struct Plugin {
     pub url: Option<String>,
     /// 版本，格式为0.1.0，只增不减
     pub version: Option<String>,
+    /// 插件文件SHA256，网关下载校验和变更检测用
+    pub checksum: Option<String>,
     /// 默认配置，JSON格式
     ///
     /// - 该配置仅由插件管理处修改；
     /// - 仅作为默认配置展示给前端，在路由插件配置处，会使用该配置作为路由插件的默认配置。
     pub default_config: Option<serde_json::Value>,
-    /// 插件说明文档，Markdown格式
-    #[deprecated(note = "考虑到插件不需要太多的文档，在default_config中提供配置说明即可")]
-    pub document: Option<String>,
+    /// 插件说明文档，Markdown格式，取自插件包
+    pub readme: Option<String>,
     /// 创建人ID
     pub create_user_id: Option<i64>,
     /// 修改人ID

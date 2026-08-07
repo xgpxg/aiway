@@ -2,3 +2,5 @@
 *.log
 frontend/
 build/
+bench-results/
+docker-data/

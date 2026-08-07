@@ -24,10 +24,6 @@ pub struct PluginAddReq<'a> {
     /// - 该配置在全局插件配置及路由插件配置时展示，修改后的配置关联到[`gateway::ConfiguredPlugin`]
     /// - 该配置仅可在插件管理处修改
     pub default_config: Option<String>,
-    /// 插件的说明文档，Markdown格式
-    #[deprecated(note = "考虑到插件不需要太多的文档，在default_config中提供配置说明即可")]
-    #[allow(unused)]
-    pub document: Option<String>,
 }
 
 #[derive(Debug, FromForm)]
@@ -45,8 +41,6 @@ pub struct PluginUpdateReq<'a> {
     /// - 该配置在全局插件配置及路由插件配置时展示，修改后的配置关联到[`gateway::ConfiguredPlugin`]
     /// - 该配置仅可在插件管理处修改
     pub default_config: Option<String>,
-    /// 插件的说明文档，Markdown格式
-    pub document: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

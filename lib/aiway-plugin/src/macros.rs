@@ -148,7 +148,7 @@ macro_rules! export_wasm {
 
             match result {
                 Ok(output) => encode_output(&output),
-                Err(err_bytes) => encode_reject_error(err_bytes.as_bytes()),
+                Err(err_bytes) => encode_error(&err_bytes),
             }
         }
 
@@ -165,7 +165,7 @@ macro_rules! export_wasm {
             }
         }
 
-        /// 编码错误信息（ptr=0, len=错误信息长度）
+        /// 编码错误信息：写入 ptr=1，返回 ptr=0 标记错误
         fn encode_error(msg: &str) -> i64 {
             let bytes = msg.as_bytes();
             // 将错误信息写入 ptr=1 处
@@ -174,30 +174,9 @@ macro_rules! export_wasm {
             (0i64 << 32) | (bytes.len() as i64)
         }
 
-        /// 编码错误信息，Reject 错误携带状态码前缀
-        ///
-        /// 错误缓冲区格式（写入 ptr=1）：
-        /// - Reject: `[status_u16_be (4 bytes)] [message bytes]`
-        /// - 其他:   `[message bytes]`
-        fn encode_reject_error(err_bytes: &[u8]) -> i64 {
-            let dst = unsafe { std::slice::from_raw_parts_mut(1 as *mut u8, err_bytes.len()) };
-            dst.copy_from_slice(err_bytes);
-            (0i64 << 32) | (err_bytes.len() as i64)
-        }
-
-        /// 将 PluginError 编码为字节：Reject 带 4 字节状态码前缀，其他为纯消息
+        /// 将 PluginError 编码为错误消息
         fn encode_plugin_error(e: aiway_plugin::PluginError) -> String {
-            match e {
-                aiway_plugin::PluginError::Reject(status, message) => {
-                    let msg_bytes = message.as_bytes();
-                    let mut buf = Vec::with_capacity(4 + msg_bytes.len());
-                    buf.extend_from_slice(&(status as u32).to_be_bytes());
-                    buf.extend_from_slice(msg_bytes);
-                    // SAFETY: 前 4 字节是 u32 BE，后面是 UTF-8 消息
-                    unsafe { String::from_utf8_unchecked(buf) }
-                }
-                other => format!("{}", other),
-            }
+            format!("{}", e)
         }
 
         /// 解析 JSON 配置字符串
@@ -212,20 +191,29 @@ macro_rules! export_wasm {
             input: &aiway_plugin::wasm_types::WasmInput,
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
-            let mut dummy_head = build_dummy_request_parts(input.head.as_ref().unwrap());
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            aiway_plugin::block_on(async {
-                plugin.on_request(&config, &mut dummy_head, &mut ctx).await
+            let outcome = aiway_plugin::block_on(async {
+                plugin.on_request(&config, &mut ctx).await
             })
             .map_err(encode_plugin_error)?;
 
-            let output_head = aiway_plugin::wasm_types::WasmHead::from_request_parts(&dummy_head);
-
-            Ok(aiway_plugin::wasm_types::WasmOutput {
-                head: Some(output_head),
-                body: None,
-            })
+            match outcome {
+                aiway_plugin::Outcome::Continue => {
+                    Ok(aiway_plugin::wasm_types::WasmOutput {
+                        body: None,
+                        respond: None,
+                    })
+                }
+                aiway_plugin::Outcome::Respond(resp) => Ok(aiway_plugin::wasm_types::WasmOutput {
+                    body: None,
+                    respond: Some(aiway_plugin::wasm_types::WasmRespond {
+                        status: resp.status,
+                        headers: resp.headers,
+                        body: resp.body,
+                    }),
+                }),
+            }
         }
 
         /// 处理 on_request_body
@@ -240,15 +228,27 @@ macro_rules! export_wasm {
                 .map(|b| aiway_plugin::Bytes::from(b.clone()));
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            aiway_plugin::block_on(async {
+            let outcome = aiway_plugin::block_on(async {
                 plugin.on_request_body(&config, &mut body, &mut ctx).await
             })
             .map_err(encode_plugin_error)?;
 
-            Ok(aiway_plugin::wasm_types::WasmOutput {
-                head: None,
-                body: body.map(|b| b.to_vec()),
-            })
+            match outcome {
+                aiway_plugin::Outcome::Continue => Ok(aiway_plugin::wasm_types::WasmOutput {
+                    body: body.map(|b| b.to_vec()),
+                    respond: None,
+                }),
+                aiway_plugin::Outcome::Respond(resp) => Ok(
+                    aiway_plugin::wasm_types::WasmOutput {
+                        body: None,
+                        respond: Some(aiway_plugin::wasm_types::WasmRespond {
+                            status: resp.status,
+                            headers: resp.headers,
+                            body: resp.body,
+                        }),
+                    },
+                ),
+            }
         }
 
         /// 处理 on_response
@@ -257,20 +257,29 @@ macro_rules! export_wasm {
             input: &aiway_plugin::wasm_types::WasmInput,
         ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
             let config = parse_config(&input.config)?;
-            let mut dummy_head = build_dummy_response_parts(input.head.as_ref().unwrap());
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            aiway_plugin::block_on(async {
-                plugin.on_response(&config, &mut dummy_head, &mut ctx).await
+            let outcome = aiway_plugin::block_on(async {
+                plugin.on_response(&config, &mut ctx).await
             })
             .map_err(encode_plugin_error)?;
 
-            let output_head = aiway_plugin::wasm_types::WasmHead::from_response_parts(&dummy_head);
-
-            Ok(aiway_plugin::wasm_types::WasmOutput {
-                head: Some(output_head),
-                body: None,
-            })
+            match outcome {
+                aiway_plugin::Outcome::Continue => {
+                    Ok(aiway_plugin::wasm_types::WasmOutput {
+                        body: None,
+                        respond: None,
+                    })
+                }
+                aiway_plugin::Outcome::Respond(resp) => Ok(aiway_plugin::wasm_types::WasmOutput {
+                    body: None,
+                    respond: Some(aiway_plugin::wasm_types::WasmRespond {
+                        status: resp.status,
+                        headers: resp.headers,
+                        body: resp.body,
+                    }),
+                }),
+            }
         }
 
         /// 处理 on_response_body
@@ -285,15 +294,27 @@ macro_rules! export_wasm {
                 .map(|b| aiway_plugin::Bytes::from(b.clone()));
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            aiway_plugin::block_on(async {
+            let outcome = aiway_plugin::block_on(async {
                 plugin.on_response_body(&config, &mut body, &mut ctx).await
             })
             .map_err(encode_plugin_error)?;
 
-            Ok(aiway_plugin::wasm_types::WasmOutput {
-                head: None,
-                body: body.map(|b| b.to_vec()),
-            })
+            match outcome {
+                aiway_plugin::Outcome::Continue => Ok(aiway_plugin::wasm_types::WasmOutput {
+                    body: body.map(|b| b.to_vec()),
+                    respond: None,
+                }),
+                aiway_plugin::Outcome::Respond(resp) => Ok(
+                    aiway_plugin::wasm_types::WasmOutput {
+                        body: None,
+                        respond: Some(aiway_plugin::wasm_types::WasmRespond {
+                            status: resp.status,
+                            headers: resp.headers,
+                            body: resp.body,
+                        }),
+                    },
+                ),
+            }
         }
 
         /// 处理 on_logging
@@ -309,73 +330,9 @@ macro_rules! export_wasm {
             });
 
             Ok(aiway_plugin::wasm_types::WasmOutput {
-                head: None,
                 body: None,
+                respond: None,
             })
-        }
-
-        /// 构建虚拟的请求 Parts（用于传递给插件）
-        fn build_dummy_request_parts(
-            head: &aiway_plugin::wasm_types::WasmHead,
-        ) -> aiway_plugin::http::request::Parts {
-            let method: aiway_plugin::http::Method = head
-                .method
-                .as_deref()
-                .unwrap_or("GET")
-                .parse()
-                .unwrap_or(aiway_plugin::http::Method::GET);
-
-            let uri: aiway_plugin::http::Uri = head
-                .uri
-                .as_deref()
-                .unwrap_or("/")
-                .parse()
-                .unwrap_or_default();
-
-            let mut headers = aiway_plugin::http::HeaderMap::new();
-            for (k, v) in &head.headers {
-                if let (Ok(name), Ok(value)) = (
-                    aiway_plugin::http::HeaderName::from_bytes(k.as_bytes()),
-                    aiway_plugin::http::HeaderValue::from_str(v),
-                ) {
-                    headers.insert(name, value);
-                }
-            }
-
-            let (mut parts, _) = aiway_plugin::http::Request::builder()
-                .method(method)
-                .uri(uri)
-                .body(())
-                .unwrap()
-                .into_parts();
-            parts.headers = headers;
-            parts
-        }
-
-        /// 构建虚拟的响应 Parts（用于传递给插件）
-        fn build_dummy_response_parts(
-            head: &aiway_plugin::wasm_types::WasmHead,
-        ) -> aiway_plugin::http::response::Parts {
-            let status = aiway_plugin::http::StatusCode::from_u16(head.status.unwrap_or(200))
-                .unwrap_or(aiway_plugin::http::StatusCode::OK);
-
-            let mut headers = aiway_plugin::http::HeaderMap::new();
-            for (k, v) in &head.headers {
-                if let (Ok(name), Ok(value)) = (
-                    aiway_plugin::http::HeaderName::from_bytes(k.as_bytes()),
-                    aiway_plugin::http::HeaderValue::from_str(v),
-                ) {
-                    headers.insert(name, value);
-                }
-            }
-
-            let (mut parts, _) = aiway_plugin::http::Response::builder()
-                .status(status)
-                .body(())
-                .unwrap()
-                .into_parts();
-            parts.headers = headers;
-            parts
         }
     };
 }

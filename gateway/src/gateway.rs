@@ -14,6 +14,7 @@ use pingora::prelude::{HttpPeer, ProxyHttp, Session};
 use pingora::proxy::FailToProxy;
 use pingora::upstreams::peer::ALPN;
 use pingora::{Error, ErrorType};
+use plugin_manager::Response as PluginResponse;
 use plugin_manager::async_trait;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -100,7 +101,11 @@ impl ProxyHttp for Gateway {
         );
 
         // 执行全局请求阶段插件
-        plugin::run_on_request(PluginType::Global, session.req_header_mut(), ctx).await?;
+        if let Some(resp) =
+            plugin::run_on_request(PluginType::Global, session.req_header_mut(), ctx).await?
+        {
+            return respond_plugin(session, ctx, resp).await.map(|_| true);
+        }
 
         // 路由匹配
         handler::routing_handle(session, ctx).await?;
@@ -109,7 +114,11 @@ impl ProxyHttp for Gateway {
         handler::auth_handle(session, ctx).await?;
 
         // 执行路由请求阶段插件，可在此处修改http头部
-        plugin::run_on_request(PluginType::Route, session.req_header_mut(), ctx).await?;
+        if let Some(resp) =
+            plugin::run_on_request(PluginType::Route, session.req_header_mut(), ctx).await?
+        {
+            return respond_plugin(session, ctx, resp).await.map(|_| true);
+        }
 
         // 负载均衡，查找服务实例
         handler::lb_handle(session, ctx).await?;
@@ -192,10 +201,14 @@ impl ProxyHttp for Gateway {
         handler::response_handle(session, resp, ctx).await;
 
         // 执行路由响应阶段插件
-        plugin::run_on_response(PluginType::Route, resp, ctx).await?;
+        if let Some(plugin_resp) = plugin::run_on_response(PluginType::Route, resp, ctx).await? {
+            return respond_plugin(session, ctx, plugin_resp).await;
+        }
 
         // 执行全局响应阶段插件
-        plugin::run_on_response(PluginType::Global, resp, ctx).await?;
+        if let Some(plugin_resp) = plugin::run_on_response(PluginType::Global, resp, ctx).await? {
+            return respond_plugin(session, ctx, plugin_resp).await;
+        }
 
         Ok(())
     }
@@ -356,4 +369,35 @@ fn build_http_peer(
     }
 
     Ok(peer)
+}
+
+/// 将插件主动响应发送给客户端
+async fn respond_plugin(
+    session: &mut Session,
+    ctx: &mut HttpContext,
+    resp: PluginResponse,
+) -> pingora::Result<(), Box<Error>> {
+    let mut response = ResponseHeader::build(resp.status, None)?;
+    for (k, v) in &resp.headers {
+        response.insert_header(k.clone(), v.as_bytes().to_vec())?;
+    }
+
+    // 记录插件主动响应到上下文，供日志阶段使用。
+    // 插件主动响应不经过 upstream_response_filter，需要在此写入响应信息。
+    ctx.insert_state(
+        HttpContext::RESPONSE_SERDE_PARTS,
+        SerdeParts::from(response.deref()),
+    );
+    ctx.insert_state(HttpContext::RESPONSE_BODY_SIZE, resp.body.len());
+
+    session
+        .write_response_header(Box::new(response), false)
+        .await?;
+    session
+        .write_response_body(
+            (!resp.body.is_empty()).then_some(Bytes::from(resp.body)),
+            true,
+        )
+        .await?;
+    Ok(())
 }

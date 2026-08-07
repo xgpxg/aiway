@@ -10,6 +10,7 @@ pub(crate) async fn plugins() -> anyhow::Result<Vec<aiway_protocol::gateway::Plu
             //phase: plugin.phase.unwrap(),
             url: plugin.url.unwrap(),
             version: plugin.version.unwrap(),
+            checksum: plugin.checksum.unwrap_or_default(),
         });
     }
     Ok(list)

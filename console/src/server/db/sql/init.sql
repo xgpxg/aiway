@@ -78,8 +78,9 @@ create table if not exists plugin
     description    varchar(500),                   -- 插件描述
     url            varchar(500) not null,          -- 下载地址，该地址用于gateway下载插件，需保证从gateway处可以访问。
     version        varchar(50)  not null,          -- 插件版本，格式为0.1.0
+    checksum       varchar(64),                    -- 插件文件SHA256，用于网关下载校验和变更检测
     default_config text,                           -- 插件默认配置，JSON字符串
-    document       text,                           -- 插件说明文档，Markdown格式
+    readme         text,                           -- 插件说明文档，Markdown格式，取自插件包
     create_user_id bigint,                         -- 创建人ID
     update_user_id bigint,                         -- 修改人ID
     create_time    datetime,                       -- 创建时间

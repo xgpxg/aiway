@@ -8,8 +8,8 @@ pub mod wasm;
 pub use plugins::PluginFactory;
 
 pub use wasm::{
-    AsyncTryInto, NetworkPlugin, Plugin, PluginError, PluginInfo, WasmPlugin, async_trait,
-    plugin_from_bytes,
+    AsyncTryInto, NetworkPlugin, Outcome, Plugin, PluginError, PluginInfo, Response, WasmPlugin,
+    async_trait, plugin_from_bytes,
 };
 pub use wasm::{Bytes, Version, http, protocol, serde_json};
 

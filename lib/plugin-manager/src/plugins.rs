@@ -12,13 +12,14 @@
 
 use crate::CONSOLE;
 use crate::client::INNER_HTTP_CLIENT;
-use crate::wasm::{AsyncTryInto, Bytes, NetworkPlugin, Plugin, PluginError};
+use crate::wasm::{AsyncTryInto, Bytes, NetworkPlugin, Outcome, Plugin, PluginError};
 use aiway_protocol::context::HttpContext;
-use aiway_protocol::context::http::{request, response};
+
 use aiway_protocol::gateway::Plugin as PluginConfig;
 use aiway_protocol::gateway::plugin::ConfiguredPlugin;
 use dashmap::DashMap;
 use logging::log;
+use std::collections::HashSet;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -70,7 +71,13 @@ impl PluginFactory {
                 plugin.url.clone()
             };
 
-            let plugin_instance = match NetworkPlugin(url.clone()).async_try_into().await {
+            let plugin_instance = match (NetworkPlugin {
+                url: url.clone(),
+                checksum: plugin.checksum.clone(),
+            })
+            .async_try_into()
+            .await
+            {
                 Ok(instance) => instance,
                 Err(e) => {
                     log::error!(
@@ -121,11 +128,13 @@ impl PluginFactory {
 
                 log::info!("loaded {} plugins", list.len());
 
+                // 控制台当前插件名集合，用于剔除已下线插件
+                let names: HashSet<String> = list.iter().map(|p| p.name.clone()).collect();
+
                 let new_plugins = Self::process_plugins(list).await.unwrap();
                 {
-                    old_plugins
-                        .plugins
-                        .retain(|name, _| new_plugins.contains_key(name));
+                    // 只删除控制台已不存在的插件；下载失败的插件保留旧实例，避免误下线
+                    old_plugins.plugins.retain(|name, _| names.contains(name));
                     new_plugins.into_iter().for_each(|(name, plugin)| {
                         old_plugins.plugins.insert(name, plugin);
                     });
@@ -139,13 +148,12 @@ impl PluginFactory {
     pub async fn on_request(
         configured_plugin: &ConfiguredPlugin,
         ctx: &mut HttpContext,
-        head: &mut request::Parts,
-    ) -> Result<(), PluginError> {
+    ) -> Result<Outcome, PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
                 plugin
                     .1
-                    .on_request(&configured_plugin.config, head, ctx)
+                    .on_request(&configured_plugin.config, ctx)
                     .await
             }
             None => Err(PluginError::NotFound(configured_plugin.name.clone())),
@@ -156,7 +164,7 @@ impl PluginFactory {
         configured_plugin: &ConfiguredPlugin,
         ctx: &mut HttpContext,
         body: &mut Option<Bytes>,
-    ) -> Result<(), PluginError> {
+    ) -> Result<Outcome, PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
                 plugin
@@ -171,13 +179,12 @@ impl PluginFactory {
     pub async fn on_response(
         configured_plugin: &ConfiguredPlugin,
         ctx: &mut HttpContext,
-        head: &mut response::Parts,
-    ) -> Result<(), PluginError> {
+    ) -> Result<Outcome, PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
                 plugin
                     .1
-                    .on_response(&configured_plugin.config, head, ctx)
+                    .on_response(&configured_plugin.config, ctx)
                     .await
             }
             None => Err(PluginError::NotFound(configured_plugin.name.clone())),
@@ -188,7 +195,7 @@ impl PluginFactory {
         configured_plugin: &ConfiguredPlugin,
         ctx: &mut HttpContext,
         body: &mut Option<Bytes>,
-    ) -> Result<(), PluginError> {
+    ) -> Result<Outcome, PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
                 plugin

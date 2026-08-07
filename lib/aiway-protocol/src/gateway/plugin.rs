@@ -14,6 +14,8 @@ pub struct Plugin {
     pub url: String,
     /// 插件版本，只增不减的语义化版本号。
     pub version: String,
+    /// 插件文件 SHA256，网关下载后校验并用于变更检测
+    pub checksum: String,
 }
 
 /// 已配置的插件

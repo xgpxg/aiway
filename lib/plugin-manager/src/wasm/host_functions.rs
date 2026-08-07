@@ -10,10 +10,15 @@
 
 use super::WasmStoreCtx;
 use super::network::NETWORK;
+use aiway_plugin::PluginError::LoadError;
 use aiway_plugin::{
     HttpRequest, HttpResponse, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_TRACE, LOG_WARN,
 };
-use aiway_protocol::context::HttpContext;
+use aiway_protocol::context::{
+    HeaderOp, HttpContext, REQUEST_HEADER_PATCH, REQUEST_URI_PATCH, RESPONSE_HEADER_PATCH,
+    parts::SerdeParts,
+};
+use http::Uri;
 use mime;
 use std::future::Future;
 use std::time::Duration;
@@ -23,57 +28,99 @@ use wasmtime::{Caller, Linker};
 pub fn register(linker: &mut Linker<WasmStoreCtx>) -> Result<(), crate::wasm::PluginError> {
     linker
         .func_wrap("aiway", "host_request_id", host_request_id)
-        .map_err(|e| {
-            crate::wasm::PluginError::LoadError(format!("register host_request_id: {e}"))
-        })?;
+        .map_err(|e| LoadError(format!("register host_request_id: {e}")))?;
     linker
         .func_wrap("aiway", "host_request_ts", host_request_ts)
-        .map_err(|e| {
-            crate::wasm::PluginError::LoadError(format!("register host_request_ts: {e}"))
-        })?;
+        .map_err(|e| LoadError(format!("register host_request_ts: {e}")))?;
     linker
         .func_wrap("aiway", "host_is_sse", host_is_sse)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_is_sse: {e}")))?;
+        .map_err(|e| LoadError(format!("register host_is_sse: {e}")))?;
     linker
         .func_wrap("aiway", "host_is_websocket", host_is_websocket)
-        .map_err(|e| {
-            crate::wasm::PluginError::LoadError(format!("register host_is_websocket: {e}"))
-        })?;
+        .map_err(|e| LoadError(format!("register host_is_websocket: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_get_request_header", host_get_request_header)
+        .map_err(|e| LoadError(format!("register host_get_request_header: {e}")))?;
+    linker
+        .func_wrap(
+            "aiway",
+            "host_get_response_header",
+            host_get_response_header,
+        )
+        .map_err(|e| LoadError(format!("register host_get_response_header: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_method", host_method)
+        .map_err(|e| LoadError(format!("register host_method: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_uri", host_uri)
+        .map_err(|e| LoadError(format!("register host_uri: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_set_uri", host_set_uri)
+        .map_err(|e| LoadError(format!("register host_set_uri: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_status", host_status)
+        .map_err(|e| LoadError(format!("register host_status: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_set_request_header", host_set_request_header)
+        .map_err(|e| LoadError(format!("register host_set_request_header: {e}")))?;
+    linker
+        .func_wrap(
+            "aiway",
+            "host_set_response_header",
+            host_set_response_header,
+        )
+        .map_err(|e| LoadError(format!("register host_set_response_header: {e}")))?;
+    linker
+        .func_wrap(
+            "aiway",
+            "host_append_request_header",
+            host_append_request_header,
+        )
+        .map_err(|e| LoadError(format!("register host_append_request_header: {e}")))?;
+    linker
+        .func_wrap(
+            "aiway",
+            "host_append_response_header",
+            host_append_response_header,
+        )
+        .map_err(|e| LoadError(format!("register host_append_response_header: {e}")))?;
+    linker
+        .func_wrap(
+            "aiway",
+            "host_remove_request_header",
+            host_remove_request_header,
+        )
+        .map_err(|e| LoadError(format!("register host_remove_request_header: {e}")))?;
+    linker
+        .func_wrap(
+            "aiway",
+            "host_remove_response_header",
+            host_remove_response_header,
+        )
+        .map_err(|e| LoadError(format!("register host_remove_response_header: {e}")))?;
     linker
         .func_wrap("aiway", "host_get_route_name", host_get_route_name)
-        .map_err(|e| {
-            crate::wasm::PluginError::LoadError(format!("register host_get_route_name: {e}"))
-        })?;
+        .map_err(|e| LoadError(format!("register host_get_route_name: {e}")))?;
     linker
         .func_wrap("aiway", "host_get_routing_url", host_get_routing_url)
-        .map_err(|e| {
-            crate::wasm::PluginError::LoadError(format!("register host_get_routing_url: {e}"))
-        })?;
+        .map_err(|e| LoadError(format!("register host_get_routing_url: {e}")))?;
     linker
         .func_wrap(
             "aiway",
             "host_get_response_body_size",
             host_get_response_body_size,
         )
-        .map_err(|e| {
-            crate::wasm::PluginError::LoadError(format!(
-                "register host_get_response_body_size: {e}"
-            ))
-        })?;
+        .map_err(|e| LoadError(format!("register host_get_response_body_size: {e}")))?;
     linker
         .func_wrap(
             "aiway",
             "host_set_response_body_size",
             host_set_response_body_size,
         )
-        .map_err(|e| {
-            crate::wasm::PluginError::LoadError(format!(
-                "register host_set_response_body_size: {e}"
-            ))
-        })?;
+        .map_err(|e| LoadError(format!("register host_set_response_body_size: {e}")))?;
     linker
         .func_wrap("aiway", "host_log", host_log)
-        .map_err(|e| crate::wasm::PluginError::LoadError(format!("register host_log: {e}")))?;
+        .map_err(|e| LoadError(format!("register host_log: {e}")))?;
     linker
         .func_wrap_async(
             "aiway",
@@ -89,24 +136,16 @@ pub fn register(linker: &mut Linker<WasmStoreCtx>) -> Result<(), crate::wasm::Pl
                 )) as Box<dyn Future<Output = i32> + Send>
             },
         )
-        .map_err(|e| {
-            crate::wasm::PluginError::LoadError(format!("register host_http_request: {e}"))
-        })?;
+        .map_err(|e| LoadError(format!("register host_http_request: {e}")))?;
 
     #[cfg(feature = "model")]
     {
         linker
             .func_wrap("aiway", "host_get_model_name", host_get_model_name)
-            .map_err(|e| {
-                crate::wasm::PluginError::LoadError(format!("register host_get_model_name: {e}"))
-            })?;
+            .map_err(|e| LoadError(format!("register host_get_model_name: {e}")))?;
         linker
             .func_wrap("aiway", "host_get_model_provider", host_get_model_provider)
-            .map_err(|e| {
-                crate::wasm::PluginError::LoadError(format!(
-                    "register host_get_model_provider: {e}"
-                ))
-            })?;
+            .map_err(|e| LoadError(format!("register host_get_model_provider: {e}")))?;
     }
 
     Ok(())
@@ -135,6 +174,27 @@ fn host_is_sse(caller: Caller<'_, WasmStoreCtx>) -> i32 {
 /// 是否为 WebSocket 连接
 fn host_is_websocket(caller: Caller<'_, WasmStoreCtx>) -> i32 {
     http_ctx(&caller).is_websocket() as i32
+}
+
+/// 获取原始请求头，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
+fn host_get_request_header(
+    mut caller: Caller<'_, WasmStoreCtx>,
+    name_ptr: i32,
+    name_len: i32,
+    buf_ptr: i32,
+    buf_len: i32,
+) -> i32 {
+    let name = read_from_wasm(&mut caller, name_ptr, name_len);
+    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
+        Some(parts) => match parts.headers.as_ref().and_then(|h| h.get(&name)) {
+            Some(v) => v
+                .to_str()
+                .map(|s| write_to_wasm(&mut caller, buf_ptr, buf_len, s.as_bytes()))
+                .unwrap_or(0),
+            None => 0,
+        },
+        None => 0,
+    }
 }
 
 /// 获取路由名称，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
@@ -189,6 +249,148 @@ fn host_get_model_provider(
         }
         None => 0,
     }
+}
+
+/// 获取响应头，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
+fn host_get_response_header(
+    mut caller: Caller<'_, WasmStoreCtx>,
+    name_ptr: i32,
+    name_len: i32,
+    buf_ptr: i32,
+    buf_len: i32,
+) -> i32 {
+    let name = read_from_wasm(&mut caller, name_ptr, name_len);
+    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS) {
+        Some(parts) => match parts.headers.as_ref().and_then(|h| h.get(&name)) {
+            Some(v) => v
+                .to_str()
+                .map(|s| write_to_wasm(&mut caller, buf_ptr, buf_len, s.as_bytes()))
+                .unwrap_or(0),
+            None => 0,
+        },
+        None => 0,
+    }
+}
+
+/// 获取请求方法，写入 WASM 缓冲区
+fn host_method(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
+    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
+        Some(parts) => match parts.method {
+            Some(ref m) => write_to_wasm(&mut caller, buf_ptr, buf_len, m.as_str().as_bytes()),
+            None => 0,
+        },
+        None => 0,
+    }
+}
+
+/// 获取请求 URI，写入 WASM 缓冲区
+fn host_uri(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
+    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
+        Some(parts) => match parts.uri {
+            Some(ref u) => write_to_wasm(&mut caller, buf_ptr, buf_len, u.to_string().as_bytes()),
+            None => 0,
+        },
+        None => 0,
+    }
+}
+
+/// 设置请求 URI（路径改写场景，存 patch 供网关统一应用）
+fn host_set_uri(mut caller: Caller<'_, WasmStoreCtx>, uri_ptr: i32, uri_len: i32) {
+    let s = read_from_wasm(&mut caller, uri_ptr, uri_len);
+    if let Ok(uri) = s.parse::<Uri>() {
+        http_ctx_mut(&mut caller).insert_any_state(REQUEST_URI_PATCH, uri);
+    }
+}
+
+/// 获取响应状态码，不存在时返回 -1
+fn host_status(caller: Caller<'_, WasmStoreCtx>) -> i32 {
+    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS) {
+        Some(parts) => match parts.status_code {
+            Some(s) => s.as_u16() as i32,
+            None => -1,
+        },
+        None => -1,
+    }
+}
+
+/// 向 HeaderOp 列表追加操作
+fn push_header_op(ctx: &HttpContext, patch_key: &str, op: HeaderOp) {
+    let mut ops = ctx
+        .get_any_state::<Vec<HeaderOp>>(patch_key)
+        .map(|arc| (*arc).clone())
+        .unwrap_or_default();
+    ops.push(op);
+    ctx.insert_any_state(patch_key, ops);
+}
+
+/// 设置请求头（覆盖）
+fn host_set_request_header(
+    mut caller: Caller<'_, WasmStoreCtx>,
+    name_ptr: i32,
+    name_len: i32,
+    value_ptr: i32,
+    value_len: i32,
+) {
+    let name = read_from_wasm(&mut caller, name_ptr, name_len);
+    let value = read_from_wasm(&mut caller, value_ptr, value_len);
+    let ctx = http_ctx(&caller);
+    push_header_op(ctx, REQUEST_HEADER_PATCH, HeaderOp::Set(name, value));
+}
+
+/// 设置响应头（覆盖）
+fn host_set_response_header(
+    mut caller: Caller<'_, WasmStoreCtx>,
+    name_ptr: i32,
+    name_len: i32,
+    value_ptr: i32,
+    value_len: i32,
+) {
+    let name = read_from_wasm(&mut caller, name_ptr, name_len);
+    let value = read_from_wasm(&mut caller, value_ptr, value_len);
+    let ctx = http_ctx(&caller);
+    push_header_op(ctx, RESPONSE_HEADER_PATCH, HeaderOp::Set(name, value));
+}
+
+/// 追加请求头
+fn host_append_request_header(
+    mut caller: Caller<'_, WasmStoreCtx>,
+    name_ptr: i32,
+    name_len: i32,
+    value_ptr: i32,
+    value_len: i32,
+) {
+    let name = read_from_wasm(&mut caller, name_ptr, name_len);
+    let value = read_from_wasm(&mut caller, value_ptr, value_len);
+    let ctx = http_ctx(&caller);
+    push_header_op(ctx, REQUEST_HEADER_PATCH, HeaderOp::Append(name, value));
+}
+
+/// 追加响应头
+fn host_append_response_header(
+    mut caller: Caller<'_, WasmStoreCtx>,
+    name_ptr: i32,
+    name_len: i32,
+    value_ptr: i32,
+    value_len: i32,
+) {
+    let name = read_from_wasm(&mut caller, name_ptr, name_len);
+    let value = read_from_wasm(&mut caller, value_ptr, value_len);
+    let ctx = http_ctx(&caller);
+    push_header_op(ctx, RESPONSE_HEADER_PATCH, HeaderOp::Append(name, value));
+}
+
+/// 移除请求头
+fn host_remove_request_header(mut caller: Caller<'_, WasmStoreCtx>, name_ptr: i32, name_len: i32) {
+    let name = read_from_wasm(&mut caller, name_ptr, name_len);
+    let ctx = http_ctx(&caller);
+    push_header_op(ctx, REQUEST_HEADER_PATCH, HeaderOp::Remove(name));
+}
+
+/// 移除响应头
+fn host_remove_response_header(mut caller: Caller<'_, WasmStoreCtx>, name_ptr: i32, name_len: i32) {
+    let name = read_from_wasm(&mut caller, name_ptr, name_len);
+    let ctx = http_ctx(&caller);
+    push_header_op(ctx, RESPONSE_HEADER_PATCH, HeaderOp::Remove(name));
 }
 
 /// 输出插件日志，自动追加 `[plugin_name]` 前缀

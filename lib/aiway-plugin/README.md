@@ -20,8 +20,7 @@ aiway-plugin = "0.3"
 In `src/lib.rs`:
 
 ```rust
-use aiway_plugin::{async_trait, log_info, Plugin, PluginError, PluginInfo, PluginContext, Version};
-use http::request;
+use aiway_plugin::{async_trait, log_info, Outcome, Plugin, PluginError, PluginInfo, PluginContext, Version};
 use serde_json::Value;
 
 pub struct MyPlugin;
@@ -44,15 +43,19 @@ impl Plugin for MyPlugin {
     async fn on_request(
         &self,
         _config: &Value,
-        head: &mut request::Parts,
         ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
-        log_info!(ctx, "MyPlugin: received request {} {}", head.method, head.uri);
+    ) -> Result<Outcome, PluginError> {
+        log_info!(
+            ctx,
+            "MyPlugin: received request {:?} {:?}",
+            ctx.method(),
+            ctx.uri()
+        );
 
         // Modify request headers
-        head.headers.insert("X-Custom-Header", "my-value".parse().unwrap());
+        ctx.set_request_header("X-Custom-Header", "my-value");
 
-        Ok(())
+        Ok(Outcome::Continue)
     }
 }
 
@@ -73,7 +76,7 @@ cargo build --release --target wasm32-wasip1
 | `on_request`       | HTTP request headers received, before proxying |
 | `on_request_body`  | Request body received                          |
 | `on_response`      | Response headers received from upstream        |
-| `on_response_body` | Response body received (sync, not async)       |
+| `on_response_body` | Response body received                          |
 | `on_logging`       | After request completes (logging only)         |
 
 ## Logging

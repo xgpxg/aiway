@@ -7,12 +7,11 @@ use self::network::NETWORK;
 use aiway_plugin::PluginContext;
 use aiway_plugin::wasm_types::{
     HOOK_ON_LOGGING, HOOK_ON_REQUEST, HOOK_ON_REQUEST_BODY, HOOK_ON_RESPONSE,
-    HOOK_ON_RESPONSE_BODY, WasmHead, WasmInput, WasmOutput, WasmPluginInfo,
+    HOOK_ON_RESPONSE_BODY, WasmInput, WasmOutput, WasmPluginInfo,
 };
-pub use aiway_plugin::{Plugin, PluginError, PluginInfo};
+pub use aiway_plugin::{Outcome, Plugin, PluginError, PluginInfo, Response};
 pub use aiway_protocol as protocol;
 use aiway_protocol::context::HttpContext;
-use aiway_protocol::context::http::{request, response};
 pub use async_trait::async_trait;
 pub use bytes::Bytes;
 use crossbeam::queue::ArrayQueue;
@@ -23,8 +22,7 @@ use serde_json::Value;
 use std::cell::UnsafeCell;
 use std::fs;
 use std::ptr::NonNull;
-use std::sync::Arc;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 use wasmtime::{
     Engine, Instance, InstanceAllocationStrategy, Linker, Memory, Module, PoolingAllocationConfig,
     Store, TypedFunc,
@@ -186,9 +184,6 @@ pub struct WasmPlugin {
     plugin_info: PluginInfo,
     /// 实例池，每个插件一个
     pool: Arc<WasmInstancePool>,
-    /// 缓存序列化后的 config 字符串，避免每次 hook 调用重复的序列化。
-    /// 使用 Arc<str> 避免 clone 时的堆分配。
-    cached_config: OnceLock<Arc<str>>,
 }
 
 impl WasmPlugin {
@@ -209,7 +204,6 @@ impl WasmPlugin {
             plugin_name: name,
             plugin_info: info,
             pool,
-            cached_config: OnceLock::new(),
         })
     }
 
@@ -321,7 +315,7 @@ impl WasmPlugin {
     ) -> Result<WasmOutput, PluginError> {
         // 序列化输入
         let input_bytes = bincode::serialize(input)
-            .map_err(|e| PluginError::SerializeError(format!("serialize input failed: {}", e)))?;
+            .map_err(|e| PluginError::SerdeError(format!("serialize input failed: {}", e)))?;
 
         // 在 WASM 内存中分配空间并写入input数据
         let input_ptr = func
@@ -363,22 +357,9 @@ impl WasmPlugin {
                 .read(&*store, 1, &mut err_buf)
                 .map_err(|e| PluginError::ExecuteError(format!("read error msg failed: {}", e)))?;
 
-            // 尝试解析 Reject 格式：前 4 字节为 u32 BE 状态码，>0 表示 Reject
-            if err_buf.len() >= 4 {
-                let status = u32::from_be_bytes([err_buf[0], err_buf[1], err_buf[2], err_buf[3]]);
-                if status > 0 && status <= 599 {
-                    let message = String::from_utf8_lossy(&err_buf[4..]).to_string();
-                    Err(PluginError::Reject(status as u16, message))
-                } else {
-                    Err(PluginError::ExecuteError(
-                        String::from_utf8_lossy(&err_buf).to_string(),
-                    ))
-                }
-            } else {
-                Err(PluginError::ExecuteError(
-                    String::from_utf8_lossy(&err_buf).to_string(),
-                ))
-            }
+            Err(PluginError::ExecuteError(
+                String::from_utf8_lossy(&err_buf).to_string(),
+            ))
         } else {
             let mut result_buf = vec![0u8; result_len];
             func.memory
@@ -386,7 +367,7 @@ impl WasmPlugin {
                 .map_err(|e| PluginError::ExecuteError(format!("read result failed: {}", e)))?;
 
             bincode::deserialize(&result_buf).map_err(|e| {
-                PluginError::SerializeError(format!("deserialize output failed: {}", e))
+                PluginError::SerdeError(format!("deserialize output failed: {}", e))
             })
         };
 
@@ -416,16 +397,11 @@ impl Plugin for WasmPlugin {
     async fn on_request(
         &self,
         config: &Value,
-        head: &mut request::Parts,
         ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
+    ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: self
-                .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
-                .clone(),
-            head: Some(WasmHead::from_request_parts(head)),
+            config: serde_json::to_string(config).unwrap_or_default().into(),
             body: None,
             request_id: None,
             request_ts: None,
@@ -433,11 +409,14 @@ impl Plugin for WasmPlugin {
 
         let output = self.call_wasm(HOOK_ON_REQUEST, &input, http_ctx).await?;
 
-        if let Some(modified_head) = output.head {
-            modified_head.apply_to_request_parts(head);
+        match output.respond {
+            Some(r) => Ok(Outcome::Respond(Response {
+                status: r.status,
+                headers: r.headers,
+                body: r.body,
+            })),
+            None => Ok(Outcome::Continue),
         }
-
-        Ok(())
     }
 
     async fn on_request_body(
@@ -445,14 +424,10 @@ impl Plugin for WasmPlugin {
         config: &Value,
         body: &mut Option<Bytes>,
         ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
+    ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: self
-                .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
-                .clone(),
-            head: None,
+            config: serde_json::to_string(config).unwrap_or_default().into(),
             body: body.as_ref().map(|b| b.to_vec()),
             request_id: None,
             request_ts: None,
@@ -462,26 +437,30 @@ impl Plugin for WasmPlugin {
             .call_wasm(HOOK_ON_REQUEST_BODY, &input, http_ctx)
             .await?;
 
+        // 插件主动响应优先，body 修改仅在 Continue 时生效
+        if let Some(r) = output.respond {
+            return Ok(Outcome::Respond(Response {
+                status: r.status,
+                headers: r.headers,
+                body: r.body,
+            }));
+        }
+
         if let Some(modified_body) = output.body {
             *body = Some(Bytes::from(modified_body));
         }
 
-        Ok(())
+        Ok(Outcome::Continue)
     }
 
     async fn on_response(
         &self,
         config: &Value,
-        head: &mut response::Parts,
         ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
+    ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: self
-                .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
-                .clone(),
-            head: Some(WasmHead::from_response_parts(head)),
+            config: serde_json::to_string(config).unwrap_or_default().into(),
             body: None,
             request_id: None,
             request_ts: None,
@@ -489,11 +468,14 @@ impl Plugin for WasmPlugin {
 
         let output = self.call_wasm(HOOK_ON_RESPONSE, &input, http_ctx).await?;
 
-        if let Some(modified_head) = output.head {
-            modified_head.apply_to_response_parts(head);
+        match output.respond {
+            Some(r) => Ok(Outcome::Respond(Response {
+                status: r.status,
+                headers: r.headers,
+                body: r.body,
+            })),
+            None => Ok(Outcome::Continue),
         }
-
-        Ok(())
     }
 
     async fn on_response_body(
@@ -501,14 +483,10 @@ impl Plugin for WasmPlugin {
         config: &Value,
         body: &mut Option<Bytes>,
         ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
+    ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: self
-                .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
-                .clone(),
-            head: None,
+            config: serde_json::to_string(config).unwrap_or_default().into(),
             body: body.as_ref().map(|b| b.to_vec()),
             request_id: None,
             request_ts: None,
@@ -518,21 +496,26 @@ impl Plugin for WasmPlugin {
             .call_wasm(HOOK_ON_RESPONSE_BODY, &input, http_ctx)
             .await?;
 
+        // 插件主动响应优先，body 修改仅在 Continue 时生效
+        if let Some(r) = output.respond {
+            return Ok(Outcome::Respond(Response {
+                status: r.status,
+                headers: r.headers,
+                body: r.body,
+            }));
+        }
+
         if let Some(modified_body) = output.body {
             *body = Some(Bytes::from(modified_body));
         }
 
-        Ok(())
+        Ok(Outcome::Continue)
     }
 
     async fn on_logging(&self, config: &Value, ctx: &mut dyn PluginContext) {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: self
-                .cached_config
-                .get_or_init(|| serde_json::to_string(config).unwrap_or_default().into())
-                .clone(),
-            head: None,
+            config: serde_json::to_string(config).unwrap_or_default().into(),
             body: None,
             request_id: Some(http_ctx.request_id()),
             request_ts: Some(http_ctx.request_ts()),
@@ -547,7 +530,11 @@ impl Plugin for WasmPlugin {
 // ----------------------------------------------------------------------
 
 /// 从指定 URL 下载并加载 WASM 插件
-pub struct NetworkPlugin(pub String);
+pub struct NetworkPlugin {
+    pub url: String,
+    /// 期望的文件 SHA256，为空时跳过校验（兼容旧版控制台数据）
+    pub checksum: String,
+}
 
 #[async_trait]
 pub trait AsyncTryInto<T>: Sized {
@@ -562,7 +549,7 @@ impl AsyncTryInto<Box<dyn Plugin>> for NetworkPlugin {
     async fn async_try_into(self) -> Result<Box<dyn Plugin>, Self::Error> {
         let response = NETWORK
             .client
-            .get(&self.0)
+            .get(&self.url)
             .send()
             .await
             .map_err(|e| PluginError::LoadError(e.to_string()))?
@@ -574,9 +561,27 @@ impl AsyncTryInto<Box<dyn Plugin>> for NetworkPlugin {
             .await
             .map_err(|e| PluginError::LoadError(e.to_string()))?;
 
+        // 校验文件指纹，防止中间层缓存导致加载旧版本
+        if !self.checksum.is_empty() {
+            let actual = sha256_hex(&bytes);
+            if actual != self.checksum {
+                return Err(PluginError::LoadError(format!(
+                    "checksum mismatch: expected {}, got {}",
+                    self.checksum, actual
+                )));
+            }
+        }
+
         let plugin = WasmPlugin::from_bytes(&bytes)?;
         Ok(Box::new(plugin))
     }
+}
+
+/// 计算字节内容 SHA256，返回十六进制字符串
+fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(bytes);
+    digest.iter().map(|b| format!("{:02x}", b)).collect()
 }
 
 /// 从 WASM 字节码创建插件实例

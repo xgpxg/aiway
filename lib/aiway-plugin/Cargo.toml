@@ -1,6 +1,6 @@
 [package]
 name = "aiway-plugin"
-version = "0.3.4"
+version = "0.3.5"
 edition = "2024"
 authors = ["wxg <1584929962@qq.com>"]
 description = "The aiway plugin SDK"
@@ -19,6 +19,7 @@ serde = { version = "1.0", features = ["derive", "rc"] }
 bytes = "1"
 http = "1"
 log = "0.4"
+thiserror = { version = "2.0" }
 
 [features]
 model = ["aiway-protocol/model"]

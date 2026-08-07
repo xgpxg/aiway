@@ -2,7 +2,7 @@ use crate::server::auth::UserPrincipal;
 use crate::server::db;
 use crate::server::db::models::plugin::{Plugin, PluginBuilder};
 use crate::server::db::{Pool, tools};
-use crate::server::file::file_util::{make_download_file, make_save_file};
+use crate::server::file::file_util::{make_download_file, make_save_file, sha256_hex};
 use crate::server::plugin::request::{PluginAddReq, PluginInfoReq, PluginListReq, PluginUpdateReq};
 use crate::server::plugin::response::{PluginInfoRes, PluginListRes};
 use anyhow::bail;
@@ -38,7 +38,6 @@ pub async fn add(mut req: PluginAddReq<'_>, user: UserPrincipal) -> anyhow::Resu
         .name(Some(req.name))
         .description(Some(req.description))
         .version(Some(req.version))
-        //.document(req.document)
         .create_user_id(Some(user.id))
         .create_time(Some(tools::now()))
         .build()?;
@@ -56,13 +55,27 @@ pub async fn add(mut req: PluginAddReq<'_>, user: UserPrincipal) -> anyhow::Resu
         bail!("Plugin with name {} already exists", name);
     }
 
-    plugin.url = Some(save_file_and_gen_plugin_url(&mut req.file).await?);
+    let (url, checksum) = save_file_and_gen_plugin_url(&mut req.file).await?;
+    plugin.url = Some(url);
+    plugin.checksum = Some(checksum);
+    // readme 取自插件包，与 checksum 同步刷新
+    plugin.readme = parse_plugin_readme(&req.file).await?;
 
     Plugin::insert(Pool::get()?, &plugin).await?;
     Ok(())
 }
 
-async fn save_file_and_gen_plugin_url(file: &mut TempFile<'_>) -> anyhow::Result<String> {
+/// 从插件文件解析 readme（Markdown）
+async fn parse_plugin_readme(file: &TempFile<'_>) -> anyhow::Result<Option<String>> {
+    let mut stream = file.open().await?;
+    let mut buffer = Vec::new();
+    io::copy(&mut stream, &mut buffer).await?;
+    let plugin = plugin_manager::plugin_from_bytes(&buffer)
+        .map_err(|e| anyhow::anyhow!("Invalid plugin: {e}"))?;
+    Ok(plugin.info().readme.clone())
+}
+
+async fn save_file_and_gen_plugin_url(file: &mut TempFile<'_>) -> anyhow::Result<(String, String)> {
     // 原始文件名
     let file_name = file
         .raw_name()
@@ -79,9 +92,12 @@ async fn save_file_and_gen_plugin_url(file: &mut TempFile<'_>) -> anyhow::Result
 
     file.copy_to(&mut dest).await?;
 
+    // 计算文件SHA256，供网关下载后校验
+    let checksum = sha256_hex(&std::fs::read(&save_file_path)?);
+
     let url = make_download_file(&save_file_name);
 
-    Ok(url)
+    Ok((url, checksum))
 }
 
 async fn check_exists(plugin: &Plugin, exclude_id: Option<i64>) -> anyhow::Result<bool> {
@@ -120,18 +136,17 @@ pub async fn update(req: PluginUpdateReq<'_>, user: UserPrincipal) -> anyhow::Re
     if old.is_empty() {
         bail!("Plugin not found")
     }
-    let old = old.first().unwrap();
+    //let old = old.first().unwrap();
 
-    if semver::Version::parse(&req.version)?
-        <= semver::Version::parse(&old.version.clone().unwrap())?
-    {
-        bail!("Plugin version must be greater than the current version")
-    }
+    // if semver::Version::parse(&req.version)?
+    //     < semver::Version::parse(&old.version.clone().unwrap())?
+    // {
+    //     bail!("Plugin version must be greater or equal than the current version")
+    // }
 
     let mut update = PluginBuilder::default()
         .description(req.description)
         .version(Some(req.version))
-        .document(req.document)
         .update_user_id(Some(user.id))
         .update_time(Some(tools::now()))
         .build()?;
@@ -143,7 +158,11 @@ pub async fn update(req: PluginUpdateReq<'_>, user: UserPrincipal) -> anyhow::Re
     update.default_config = Some(default_config);
 
     if let Some(mut file) = req.file {
-        update.url = Some(save_file_and_gen_plugin_url(&mut file).await?);
+        let (url, checksum) = save_file_and_gen_plugin_url(&mut file).await?;
+        update.url = Some(url);
+        update.checksum = Some(checksum);
+        // readme 随插件包刷新
+        update.readme = parse_plugin_readme(&file).await?;
     }
 
     Plugin::update_by_map(tx, &update, value! { "id": req.id}).await?;

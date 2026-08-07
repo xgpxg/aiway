@@ -1,13 +1,6 @@
 //! # aiway-plugin
 //!
-//! 网关插件 SDK，定义插件接口和数据交换类型。
-//!
-//! ## 架构
-//! - **插件侧**：插件开发者依赖此 crate，实现 `Plugin` trait，使用 `export_wasm!` 宏导出 WASM
-//! - **宿主侧**：`plugin-manager` crate 提供 wasmtime 运行时，加载并执行 WASM 插件
-//!
-//! ## 数据交换
-//! Host 与 WASM 之间通过 bincode 序列化传递数据，定义在 [`wasm_types`] 模块中。
+//! 网关插件 SDK，用于实现自定义插件。
 
 pub mod wasm_types;
 
@@ -19,15 +12,53 @@ pub use crate::plugin_ctx::{
     FormPart, HttpRequest, HttpRequestBuilder, HttpResponse, LOG_DEBUG, LOG_ERROR, LOG_INFO,
     LOG_TRACE, LOG_WARN, PluginContext,
 };
-use aiway_protocol::context::http::{request, response};
 pub use async_trait::async_trait;
 pub use bincode;
 pub use bytes::Bytes;
 pub use http;
 pub use semver::Version;
+use serde::de::DeserializeOwned;
 pub use serde_json;
 use serde_json::Value;
 pub use wasm_ctx::WasmHttpContext;
+
+/// 插件信息
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PluginInfo {
+    /// 插件版本
+    pub version: Version,
+    /// 默认配置
+    pub default_config: Value,
+    /// 插件描述，用于简要描述插件的功能
+    pub description: String,
+    /// 插件使用手册，通常是一个内容为 `markdown` 格式的字符串
+    pub readme: Option<String>,
+}
+
+/// 插件控制流
+///
+/// 插件阶段返回此枚举，决定网关是继续执行后续插件/流程，还是由插件主动响应并终止。
+#[derive(Debug)]
+pub enum Outcome {
+    /// 继续执行下一个插件或后续流程
+    Continue,
+    /// 主动响应，会终止后续流程，当某个插件处理后，不想继续后续流程时，返回该值
+    Respond(Response),
+}
+
+/// 插件主动响应
+///
+/// 当插件需要直接返回响应时使用（如预检、缓存命中、mock 等场景）。
+#[derive(Debug)]
+pub struct Response {
+    /// HTTP 状态码
+    pub status: u16,
+    /// 响应头
+    pub headers: Vec<(String, String)>,
+    /// 响应体
+    pub body: Vec<u8>,
+}
+
 /// 插件错误类型
 #[derive(Debug)]
 pub enum PluginError {
@@ -38,14 +69,46 @@ pub enum PluginError {
     /// 从磁盘或网络加载插件时错误
     LoadError(String),
     /// 序列化/反序列化错误
-    SerializeError(String),
+    SerdeError(String),
     /// HTTP 错误（发起HTTP调用错误）
     HttpError(String),
-    /// 插件主动拒绝请求，携带 HTTP 状态码和消息
+}
+
+pub type PluginResult = Result<Outcome, PluginError>;
+
+impl Outcome {
+    /// 继续执行，等价于 `Ok(Outcome::Continue)`
+    pub fn goon() -> PluginResult {
+        Ok(Outcome::Continue)
+    }
+
+    /// 主动响应，会终止后续流程
+    pub fn respond(status: u16, headers: Vec<(String, String)>, body: Vec<u8>) -> PluginResult {
+        Ok(Outcome::Respond(Response {
+            status,
+            headers,
+            body,
+        }))
+    }
+
+    /// 拒绝请求，等价于 `respond(status, vec![], msg)`
     ///
-    /// 用于限流(429)、鉴权失败(403)、参数校验(400) 等场景，
-    /// 网关会透传 status 作为 HTTP 响应码返回给客户端。
-    Reject(u16, String),
+    /// 用于限流(429)、鉴权失败(403)、参数校验(400) 等场景。
+    pub fn reject(status: u16, msg: impl Into<String>) -> PluginResult {
+        Ok(Outcome::Respond(Response {
+            status,
+            headers: Vec::new(),
+            body: msg.into().into_bytes(),
+        }))
+    }
+
+    pub fn execute_error(msg: impl Into<String>) -> PluginResult {
+        Err(PluginError::ExecuteError(msg.into()))
+    }
+
+    pub fn not_found(msg: impl Into<String>) -> PluginResult {
+        Err(PluginError::NotFound(msg.into()))
+    }
 }
 
 impl std::fmt::Display for PluginError {
@@ -54,17 +117,15 @@ impl std::fmt::Display for PluginError {
             PluginError::ExecuteError(msg) => write!(f, "{}", msg),
             PluginError::NotFound(msg) => write!(f, "{}", msg),
             PluginError::LoadError(msg) => write!(f, "{}", msg),
-            PluginError::SerializeError(msg) => write!(f, "{}", msg),
+            PluginError::SerdeError(msg) => write!(f, "{}", msg),
             PluginError::HttpError(msg) => write!(f, "{}", msg),
-            PluginError::Reject(status, message) => write!(f, "[{}] {}", status, message),
         }
     }
 }
 
-/// 插件接口 trait
+/// 插件定义
 ///
-/// 插件开发者实现此 trait，宿主侧通过 `plugin-manager` 调用。
-/// 上下文参数使用 `&mut dyn PluginContext`，宿主侧和 WASM 侧分别有不同实现。
+/// 插件开发者实现此 trait。
 #[async_trait]
 pub trait Plugin: Send + Sync {
     /// 插件名称
@@ -72,62 +133,45 @@ pub trait Plugin: Send + Sync {
     /// 插件信息
     fn info(&self) -> PluginInfo;
 
-    /// 请求阶段，可改写头部
-    async fn on_request(
-        &self,
-        _config: &Value,
-        _head: &mut request::Parts,
-        _ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
-        Ok(())
+    /// 请求阶段，可改写请求头
+    async fn on_request(&self, _config: &Value, _ctx: &mut dyn PluginContext) -> PluginResult {
+        Ok(Outcome::Continue)
     }
 
     /// 请求体阶段，可改写请求体
-    async fn on_request_body(
-        &self,
-        _config: &Value,
-        _body: &mut Option<Bytes>,
-        _ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
-        Ok(())
+    #[rustfmt::skip]
+    async fn on_request_body(&self, _config: &Value, _body: &mut Option<Bytes>, _ctx: &mut dyn PluginContext) -> PluginResult {
+        Ok(Outcome::Continue)
     }
 
-    /// 响应阶段，可改写头部
-    async fn on_response(
-        &self,
-        _config: &Value,
-        _head: &mut response::Parts,
-        _ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
-        Ok(())
+    /// 响应阶段，可改写响应头
+    async fn on_response(&self, _config: &Value, _ctx: &mut dyn PluginContext) -> PluginResult {
+        Ok(Outcome::Continue)
     }
 
     /// 响应体阶段，可改写响应体
-    async fn on_response_body(
-        &self,
-        _config: &Value,
-        _body: &mut Option<Bytes>,
-        _ctx: &mut dyn PluginContext,
-    ) -> Result<(), PluginError> {
-        Ok(())
+    #[rustfmt::skip]
+    async fn on_response_body(&self, _config: &Value, _body: &mut Option<Bytes>, _ctx: &mut dyn PluginContext) -> PluginResult {
+        Ok(Outcome::Continue)
     }
 
     /// 日志阶段
     async fn on_logging(&self, _: &Value, _: &mut dyn PluginContext) {}
 }
 
-/// 插件信息
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct PluginInfo {
-    /// 插件版本
-    pub version: Version,
-    /// 默认配置
-    pub default_config: Value,
-    /// 描述
-    pub description: String,
-    /// 插件使用手册
-    pub readme: Option<String>,
+pub trait PluginConfigExt: Plugin {
+    /// 解析插件配置，这个只是方便调用，手动使用`serde_json`转换也可
+    fn parse_config<T>(&self, config: &Value) -> Result<T, PluginError>
+    where
+        T: DeserializeOwned,
+    {
+        serde_json::from_value(config.clone()).map_err(|e| {
+            PluginError::SerdeError(format!("[{}] pase plugin config error: {}", self.name(), e))
+        })
+    }
 }
+
+impl<T: Plugin> PluginConfigExt for T {}
 
 /// 简易 block_on，用于在同步上下文（WASM 内部）中执行 async 函数。
 ///

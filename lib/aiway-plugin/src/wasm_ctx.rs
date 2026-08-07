@@ -7,6 +7,7 @@ use crate::PluginError;
 use crate::plugin_ctx::{HttpRequest, HttpResponse, PluginContext};
 #[cfg(feature = "model")]
 use aiway_protocol::model::Provider;
+use http::Uri;
 use std::any::Any;
 // ---------------------------------------------------------------------------
 // 宿主函数 FFI 声明
@@ -18,6 +19,22 @@ unsafe extern "C" {
     fn host_request_ts() -> i64;
     fn host_is_sse() -> i32;
     fn host_is_websocket() -> i32;
+    fn host_get_request_header(
+        name_ptr: *const u8,
+        name_len: i32,
+        buf_ptr: *mut u8,
+        buf_len: i32,
+    ) -> i32;
+    fn host_get_response_header(
+        name_ptr: *const u8,
+        name_len: i32,
+        buf_ptr: *mut u8,
+        buf_len: i32,
+    ) -> i32;
+    fn host_method(buf_ptr: *mut u8, buf_len: i32) -> i32;
+    fn host_uri(buf_ptr: *mut u8, buf_len: i32) -> i32;
+    fn host_set_uri(uri_ptr: *const u8, uri_len: i32);
+    fn host_status() -> i32;
     fn host_get_route_name(buf_ptr: *mut u8, buf_len: i32) -> i32;
     fn host_get_routing_url(buf_ptr: *mut u8, buf_len: i32) -> i32;
     fn host_get_response_body_size() -> i64;
@@ -27,6 +44,32 @@ unsafe extern "C" {
     fn host_get_model_name(buf_ptr: *mut u8, buf_len: i32) -> i32;
     #[cfg(feature = "model")]
     fn host_get_model_provider(buf_ptr: *mut u8, buf_len: i32) -> i32;
+    fn host_set_request_header(
+        name_ptr: *const u8,
+        name_len: i32,
+        value_ptr: *const u8,
+        value_len: i32,
+    );
+    fn host_set_response_header(
+        name_ptr: *const u8,
+        name_len: i32,
+        value_ptr: *const u8,
+        value_len: i32,
+    );
+    fn host_append_request_header(
+        name_ptr: *const u8,
+        name_len: i32,
+        value_ptr: *const u8,
+        value_len: i32,
+    );
+    fn host_append_response_header(
+        name_ptr: *const u8,
+        name_len: i32,
+        value_ptr: *const u8,
+        value_len: i32,
+    );
+    fn host_remove_request_header(name_ptr: *const u8, name_len: i32);
+    fn host_remove_response_header(name_ptr: *const u8, name_len: i32);
     fn host_http_request(
         req_ptr: *const u8,
         req_len: i32,
@@ -111,12 +154,131 @@ impl PluginContext for WasmHttpContext {
         unsafe { host_is_websocket() != 0 }
     }
 
+    fn get_request_header(&self, name: &str) -> Option<String> {
+        let name_bytes = name.as_bytes();
+        let mut buf = vec![0u8; 256];
+        let needed = unsafe {
+            host_get_request_header(
+                name_bytes.as_ptr(),
+                name_bytes.len() as i32,
+                buf.as_mut_ptr(),
+                buf.len() as i32,
+            )
+        };
+        if needed <= 0 {
+            return None;
+        }
+        let needed = needed as usize;
+        if needed > buf.len() {
+            buf.resize(needed, 0);
+            let len = unsafe {
+                host_get_request_header(
+                    name_bytes.as_ptr(),
+                    name_bytes.len() as i32,
+                    buf.as_mut_ptr(),
+                    buf.len() as i32,
+                )
+            };
+            if len <= 0 {
+                return None;
+            }
+            return Some(String::from_utf8_lossy(&buf[..len as usize]).to_string());
+        }
+        Some(String::from_utf8_lossy(&buf[..needed]).to_string())
+    }
+
     fn get_route_name(&self) -> Option<String> {
         read_host_string(host_get_route_name, 256)
     }
 
     fn get_routing_url(&self) -> Option<String> {
         read_host_string(host_get_routing_url, 512)
+    }
+
+    fn get_response_header(&self, name: &str) -> Option<String> {
+        let name_bytes = name.as_bytes();
+        let mut buf = vec![0u8; 256];
+        let needed = unsafe {
+            host_get_response_header(
+                name_bytes.as_ptr(),
+                name_bytes.len() as i32,
+                buf.as_mut_ptr(),
+                buf.len() as i32,
+            )
+        };
+        if needed <= 0 {
+            return None;
+        }
+        let needed = needed as usize;
+        if needed > buf.len() {
+            buf.resize(needed, 0);
+            let len = unsafe {
+                host_get_response_header(
+                    name_bytes.as_ptr(),
+                    name_bytes.len() as i32,
+                    buf.as_mut_ptr(),
+                    buf.len() as i32,
+                )
+            };
+            if len <= 0 {
+                return None;
+            }
+            return Some(String::from_utf8_lossy(&buf[..len as usize]).to_string());
+        }
+        Some(String::from_utf8_lossy(&buf[..needed]).to_string())
+    }
+
+    fn method(&self) -> Option<String> {
+        read_host_string(host_method, 16)
+    }
+
+    fn uri(&self) -> Option<Uri> {
+        read_host_string(host_uri, 512).and_then(|s| s.parse().ok())
+    }
+
+    fn set_uri(&mut self, uri: Uri) {
+        let bytes = uri.to_string();
+        let b = bytes.as_bytes();
+        unsafe { host_set_uri(b.as_ptr(), b.len() as i32) }
+    }
+
+    fn status(&self) -> Option<u16> {
+        let v = unsafe { host_status() };
+        if v < 0 { None } else { Some(v as u16) }
+    }
+
+    fn set_request_header(&mut self, name: &str, value: &str) {
+        let nb = name.as_bytes();
+        let vb = value.as_bytes();
+        unsafe { host_set_request_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32) }
+    }
+
+    fn set_response_header(&mut self, name: &str, value: &str) {
+        let nb = name.as_bytes();
+        let vb = value.as_bytes();
+        unsafe { host_set_response_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32) }
+    }
+
+    fn append_request_header(&mut self, name: &str, value: &str) {
+        let nb = name.as_bytes();
+        let vb = value.as_bytes();
+        unsafe { host_append_request_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32) }
+    }
+
+    fn append_response_header(&mut self, name: &str, value: &str) {
+        let nb = name.as_bytes();
+        let vb = value.as_bytes();
+        unsafe { host_append_response_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32) }
+    }
+
+    fn remove_request_header(&mut self, name: &str) {
+        let nb = name.as_bytes();
+        unsafe { host_remove_request_header(nb.as_ptr(), nb.len() as i32) }
+    }
+
+    fn remove_response_header(&mut self, name: &str) {
+        let nb = name.as_bytes();
+        unsafe { host_remove_response_header(nb.as_ptr(), nb.len() as i32) }
     }
 
     fn get_response_body_size(&self) -> Option<i64> {

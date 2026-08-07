@@ -9,7 +9,11 @@ use std::any::Any;
 use std::collections::HashMap;
 
 use crate::PluginError;
-use aiway_protocol::context::HttpContext;
+use aiway_protocol::context::{
+    HeaderOp, HttpContext, REQUEST_HEADER_PATCH, REQUEST_URI_PATCH, RESPONSE_HEADER_PATCH,
+    parts::SerdeParts,
+};
+use http::Uri;
 
 /// 日志级别常量，与 WASM 侧和 Host 侧保持一致
 pub const LOG_ERROR: i32 = 1;
@@ -89,7 +93,9 @@ impl HttpRequestBuilder {
 
     /// 添加单个表单字段
     pub fn add_form_field(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.form.get_or_insert_with(HashMap::new).insert(key.into(), value.into());
+        self.form
+            .get_or_insert_with(HashMap::new)
+            .insert(key.into(), value.into());
         self
     }
 
@@ -143,7 +149,7 @@ impl HttpResponse {
     /// 将响应体作为 JSON 反序列化
     pub fn json<T: serde::de::DeserializeOwned>(&self) -> Result<T, PluginError> {
         serde_json::from_slice(&self.body)
-            .map_err(|e| PluginError::SerializeError(format!("JSON deserialize failed: {e}")))
+            .map_err(|e| PluginError::SerdeError(format!("JSON deserialize failed: {e}")))
     }
 }
 
@@ -160,6 +166,18 @@ pub trait PluginContext: Send {
     fn is_sse(&self) -> bool;
     /// 是否为 WebSocket 连接
     fn is_websocket(&self) -> bool;
+    /// 获取原始请求头（从 REQUEST_RAW_PARTS 读取，跨阶段可用）
+    fn get_request_header(&self, name: &str) -> Option<String>;
+    /// 获取原始响应头（从 RESPONSE_SERDE_PARTS 读取，跨阶段可用）
+    fn get_response_header(&self, name: &str) -> Option<String>;
+    /// 请求方法（仅 on_request 阶段有值）
+    fn method(&self) -> Option<String>;
+    /// 请求 URI（仅 on_request 阶段有值）
+    fn uri(&self) -> Option<Uri>;
+    /// 覆盖写入请求 URI（仅 on_request 阶段生效，路径改写场景）
+    fn set_uri(&mut self, uri: Uri);
+    /// 响应状态码（仅 on_response 阶段有值）
+    fn status(&self) -> Option<u16>;
     /// 路由名称
     fn get_route_name(&self) -> Option<String>;
     /// 路由目标地址
@@ -168,6 +186,19 @@ pub trait PluginContext: Send {
     fn get_response_body_size(&self) -> Option<i64>;
     /// 设置响应体大小
     fn set_response_body_size(&mut self, size: i64);
+
+    /// 覆盖写入请求头
+    fn set_request_header(&mut self, name: &str, value: &str);
+    /// 覆盖写入响应头
+    fn set_response_header(&mut self, name: &str, value: &str);
+    /// 多值追加请求头
+    fn append_request_header(&mut self, name: &str, value: &str);
+    /// 多值追加响应头
+    fn append_response_header(&mut self, name: &str, value: &str);
+    /// 移除请求头
+    fn remove_request_header(&mut self, name: &str);
+    /// 移除响应头
+    fn remove_response_header(&mut self, name: &str);
     /// 模型名称（仅模型插件可用）
     #[cfg(feature = "model")]
     fn get_model_name(&self) -> Option<String>;
@@ -178,19 +209,31 @@ pub trait PluginContext: Send {
     /// 输出日志（底层接口，level 使用 LOG_* 常量）
     fn log(&self, level: i32, msg: &str);
     /// 输出 ERROR 级别日志
-    fn log_error(&self, msg: &str) { self.log(LOG_ERROR, msg); }
+    fn log_error(&self, msg: &str) {
+        self.log(LOG_ERROR, msg);
+    }
     /// 输出 WARN 级别日志
-    fn log_warn(&self, msg: &str) { self.log(LOG_WARN, msg); }
+    fn log_warn(&self, msg: &str) {
+        self.log(LOG_WARN, msg);
+    }
     /// 输出 INFO 级别日志
-    fn log_info(&self, msg: &str) { self.log(LOG_INFO, msg); }
+    fn log_info(&self, msg: &str) {
+        self.log(LOG_INFO, msg);
+    }
     /// 输出 DEBUG 级别日志
-    fn log_debug(&self, msg: &str) { self.log(LOG_DEBUG, msg); }
+    fn log_debug(&self, msg: &str) {
+        self.log(LOG_DEBUG, msg);
+    }
     /// 输出 TRACE 级别日志
-    fn log_trace(&self, msg: &str) { self.log(LOG_TRACE, msg); }
+    fn log_trace(&self, msg: &str) {
+        self.log(LOG_TRACE, msg);
+    }
 
     /// 发起 HTTP 请求（默认实现返回错误，WASM 侧通过宿主函数重写）
     fn http_request(&self, _req: &HttpRequest) -> Result<HttpResponse, PluginError> {
-        Err(PluginError::HttpError("http_request not supported in this context".into()))
+        Err(PluginError::HttpError(
+            "http_request not supported in this context".into(),
+        ))
     }
 
     /// 类型擦除，供宿主侧 downcast 获取 `HttpContext`
@@ -214,6 +257,49 @@ impl PluginContext for HttpContext {
         HttpContext::is_websocket(self)
     }
 
+    fn get_request_header(&self, name: &str) -> Option<String> {
+        self.get_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
+            .and_then(|parts| {
+                parts
+                    .headers
+                    .as_ref()?
+                    .get(name)
+                    .and_then(|v| v.to_str().ok())
+                    .map(|s| s.to_string())
+            })
+    }
+
+    fn get_response_header(&self, name: &str) -> Option<String> {
+        self.get_state::<SerdeParts>(Self::RESPONSE_SERDE_PARTS)
+            .and_then(|parts| {
+                parts
+                    .headers
+                    .as_ref()?
+                    .get(name)
+                    .and_then(|v| v.to_str().ok())
+                    .map(|s| s.to_string())
+            })
+    }
+
+    fn method(&self) -> Option<String> {
+        self.get_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
+            .and_then(|parts| parts.method.map(|m| m.to_string()))
+    }
+
+    fn uri(&self) -> Option<Uri> {
+        self.get_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
+            .and_then(|parts| parts.uri)
+    }
+
+    fn set_uri(&mut self, uri: Uri) {
+        self.insert_any_state(REQUEST_URI_PATCH, uri);
+    }
+
+    fn status(&self) -> Option<u16> {
+        self.get_state::<SerdeParts>(Self::RESPONSE_SERDE_PARTS)
+            .and_then(|parts| parts.status_code.map(|s| s.as_u16()))
+    }
+
     fn get_route_name(&self) -> Option<String> {
         self.get_route().map(|r| r.name.clone())
     }
@@ -228,6 +314,60 @@ impl PluginContext for HttpContext {
 
     fn set_response_body_size(&mut self, size: i64) {
         self.insert_state(Self::RESPONSE_BODY_SIZE, size);
+    }
+
+    fn set_request_header(&mut self, name: &str, value: &str) {
+        let mut ops = self
+            .get_any_state::<Vec<HeaderOp>>(REQUEST_HEADER_PATCH)
+            .map(|arc| (*arc).clone())
+            .unwrap_or_default();
+        ops.push(HeaderOp::Set(name.to_string(), value.to_string()));
+        self.insert_any_state(REQUEST_HEADER_PATCH, ops);
+    }
+
+    fn set_response_header(&mut self, name: &str, value: &str) {
+        let mut ops = self
+            .get_any_state::<Vec<HeaderOp>>(RESPONSE_HEADER_PATCH)
+            .map(|arc| (*arc).clone())
+            .unwrap_or_default();
+        ops.push(HeaderOp::Set(name.to_string(), value.to_string()));
+        self.insert_any_state(RESPONSE_HEADER_PATCH, ops);
+    }
+
+    fn append_request_header(&mut self, name: &str, value: &str) {
+        let mut ops = self
+            .get_any_state::<Vec<HeaderOp>>(REQUEST_HEADER_PATCH)
+            .map(|arc| (*arc).clone())
+            .unwrap_or_default();
+        ops.push(HeaderOp::Append(name.to_string(), value.to_string()));
+        self.insert_any_state(REQUEST_HEADER_PATCH, ops);
+    }
+
+    fn append_response_header(&mut self, name: &str, value: &str) {
+        let mut ops = self
+            .get_any_state::<Vec<HeaderOp>>(RESPONSE_HEADER_PATCH)
+            .map(|arc| (*arc).clone())
+            .unwrap_or_default();
+        ops.push(HeaderOp::Append(name.to_string(), value.to_string()));
+        self.insert_any_state(RESPONSE_HEADER_PATCH, ops);
+    }
+
+    fn remove_request_header(&mut self, name: &str) {
+        let mut ops = self
+            .get_any_state::<Vec<HeaderOp>>(REQUEST_HEADER_PATCH)
+            .map(|arc| (*arc).clone())
+            .unwrap_or_default();
+        ops.push(HeaderOp::Remove(name.to_string()));
+        self.insert_any_state(REQUEST_HEADER_PATCH, ops);
+    }
+
+    fn remove_response_header(&mut self, name: &str) {
+        let mut ops = self
+            .get_any_state::<Vec<HeaderOp>>(RESPONSE_HEADER_PATCH)
+            .map(|arc| (*arc).clone())
+            .unwrap_or_default();
+        ops.push(HeaderOp::Remove(name.to_string()));
+        self.insert_any_state(RESPONSE_HEADER_PATCH, ops);
     }
 
     #[cfg(feature = "model")]

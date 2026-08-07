@@ -5,6 +5,7 @@ use aiway_protocol::model::{Provider, TokenUsageConfig};
 use bytes::Bytes;
 use pingora::prelude::Session;
 use pingora::{Error, ErrorType};
+use plugin_manager::Response as PluginResponse;
 use reqwest::Response;
 use serde_json::Value;
 use tokio_stream::StreamExt;
@@ -72,11 +73,18 @@ pub(crate) async fn handle_model_request(
         let body_bytes = Bytes::from(serde_json::to_vec(&mapped_body).unwrap());
 
         // 执行请求阶段插件
-        if let Err(e) = execute_request_plugins(session, &plugin_type, ctx).await {
-            log::error!("[ModelProxy] 请求阶段插件执行失败：{:?}", e);
-            return crate::service::send_error_response(session, e.0, e.1)
-                .await
-                .map(|_| true);
+        match execute_request_plugins(session, &plugin_type, ctx).await {
+            Ok(Some(resp)) => {
+                // 插件主动响应
+                return send_plugin_response(session, resp).await.map(|_| true);
+            }
+            Ok(None) => {}
+            Err(e) => {
+                log::error!("[ModelProxy] 请求阶段插件执行失败：{:?}", e);
+                return crate::service::send_error_response(session, e.0, e.1)
+                    .await
+                    .map(|_| true);
+            }
         }
 
         // 执行请求体阶段插件
@@ -169,7 +177,7 @@ async fn execute_request_plugins(
     session: &mut Session,
     plugin_type: &PluginType,
     ctx: &mut HttpContext,
-) -> Result<(), HandlerError> {
+) -> Result<Option<PluginResponse>, HandlerError> {
     plugin::run_on_request(plugin_type.clone(), session.req_header_mut(), ctx).await
 }
 
@@ -203,11 +211,18 @@ async fn execute_response_and_send(
 
     // 执行响应阶段插件
     log::info!("[ModelProxy] 执行响应阶段插件");
-    if let Err(e) = plugin::run_on_response(plugin_type.clone(), &mut response_header, ctx).await {
-        log::error!("[ModelProxy] 响应阶段插件执行失败：{:?}", e);
-        return crate::service::send_error_response(session, e.0, e.1)
-            .await
-            .map(|_| true);
+    match plugin::run_on_response(plugin_type.clone(), &mut response_header, ctx).await {
+        Ok(Some(resp)) => {
+            // 插件主动响应（替换上游响应）
+            return send_plugin_response(session, resp).await.map(|_| true);
+        }
+        Ok(None) => {}
+        Err(e) => {
+            log::error!("[ModelProxy] 响应阶段插件执行失败：{:?}", e);
+            return crate::service::send_error_response(session, e.0, e.1)
+                .await
+                .map(|_| true);
+        }
     }
 
     // 发送响应头
@@ -430,4 +445,30 @@ pub(crate) fn log_model_call(ctx: &HttpContext, node_address: &str) {
     if let Ok(json) = serde_json::to_vec(&log) {
         logging::log_model_call(json);
     }
+}
+
+/// 发送插件主动响应
+async fn send_plugin_response(
+    session: &mut Session,
+    resp: PluginResponse,
+) -> pingora::Result<(), Box<Error>> {
+    use pingora::prelude::ResponseHeader;
+    let mut response = ResponseHeader::build(resp.status, None)?;
+    for (k, v) in &resp.headers {
+        response.insert_header(k.clone(), v.as_bytes().to_vec())?;
+    }
+    session
+        .write_response_header(Box::new(response), false)
+        .await?;
+    session
+        .write_response_body(
+            if resp.body.is_empty() {
+                None
+            } else {
+                Some(Bytes::from(resp.body))
+            },
+            true,
+        )
+        .await?;
+    Ok(())
 }
