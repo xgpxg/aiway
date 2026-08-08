@@ -401,10 +401,8 @@ impl Plugin for WasmPlugin {
     ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default().into(),
+            config: serde_json::to_string(config).unwrap_or_default(),
             body: None,
-            request_id: None,
-            request_ts: None,
         };
 
         let output = self.call_wasm(HOOK_ON_REQUEST, &input, http_ctx).await?;
@@ -427,10 +425,8 @@ impl Plugin for WasmPlugin {
     ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default().into(),
+            config: serde_json::to_string(config).unwrap_or_default(),
             body: body.as_ref().map(|b| b.to_vec()),
-            request_id: None,
-            request_ts: None,
         };
 
         let output = self
@@ -460,10 +456,8 @@ impl Plugin for WasmPlugin {
     ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default().into(),
+            config: serde_json::to_string(config).unwrap_or_default(),
             body: None,
-            request_id: None,
-            request_ts: None,
         };
 
         let output = self.call_wasm(HOOK_ON_RESPONSE, &input, http_ctx).await?;
@@ -486,10 +480,8 @@ impl Plugin for WasmPlugin {
     ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default().into(),
+            config: serde_json::to_string(config).unwrap_or_default(),
             body: body.as_ref().map(|b| b.to_vec()),
-            request_id: None,
-            request_ts: None,
         };
 
         let output = self
@@ -515,10 +507,8 @@ impl Plugin for WasmPlugin {
     async fn on_logging(&self, config: &Value, ctx: &mut dyn PluginContext) {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
         let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default().into(),
+            config: serde_json::to_string(config).unwrap_or_default(),
             body: None,
-            request_id: Some(http_ctx.request_id()),
-            request_ts: Some(http_ctx.request_ts()),
         };
 
         let _ = self.call_wasm(HOOK_ON_LOGGING, &input, http_ctx).await;

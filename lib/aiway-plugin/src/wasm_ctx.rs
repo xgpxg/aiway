@@ -187,14 +187,6 @@ impl PluginContext for WasmHttpContext {
         Some(String::from_utf8_lossy(&buf[..needed]).to_string())
     }
 
-    fn get_route_name(&self) -> Option<String> {
-        read_host_string(host_get_route_name, 256)
-    }
-
-    fn get_routing_url(&self) -> Option<String> {
-        read_host_string(host_get_routing_url, 512)
-    }
-
     fn get_response_header(&self, name: &str) -> Option<String> {
         let name_bytes = name.as_bytes();
         let mut buf = vec![0u8; 256];
@@ -247,28 +239,53 @@ impl PluginContext for WasmHttpContext {
         if v < 0 { None } else { Some(v as u16) }
     }
 
+    fn get_route_name(&self) -> Option<String> {
+        read_host_string(host_get_route_name, 256)
+    }
+
+    fn get_routing_url(&self) -> Option<String> {
+        read_host_string(host_get_routing_url, 512)
+    }
+
+    fn get_response_body_size(&self) -> Option<i64> {
+        let v = unsafe { host_get_response_body_size() };
+        if v < 0 { None } else { Some(v) }
+    }
+
+    fn set_response_body_size(&mut self, size: i64) {
+        unsafe { host_set_response_body_size(size) }
+    }
+
     fn set_request_header(&mut self, name: &str, value: &str) {
         let nb = name.as_bytes();
         let vb = value.as_bytes();
-        unsafe { host_set_request_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32) }
+        unsafe {
+            host_set_request_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32)
+        }
     }
 
     fn set_response_header(&mut self, name: &str, value: &str) {
         let nb = name.as_bytes();
         let vb = value.as_bytes();
-        unsafe { host_set_response_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32) }
+        unsafe {
+            host_set_response_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32)
+        }
     }
 
     fn append_request_header(&mut self, name: &str, value: &str) {
         let nb = name.as_bytes();
         let vb = value.as_bytes();
-        unsafe { host_append_request_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32) }
+        unsafe {
+            host_append_request_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32)
+        }
     }
 
     fn append_response_header(&mut self, name: &str, value: &str) {
         let nb = name.as_bytes();
         let vb = value.as_bytes();
-        unsafe { host_append_response_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32) }
+        unsafe {
+            host_append_response_header(nb.as_ptr(), nb.len() as i32, vb.as_ptr(), vb.len() as i32)
+        }
     }
 
     fn remove_request_header(&mut self, name: &str) {
@@ -279,15 +296,6 @@ impl PluginContext for WasmHttpContext {
     fn remove_response_header(&mut self, name: &str) {
         let nb = name.as_bytes();
         unsafe { host_remove_response_header(nb.as_ptr(), nb.len() as i32) }
-    }
-
-    fn get_response_body_size(&self) -> Option<i64> {
-        let v = unsafe { host_get_response_body_size() };
-        if v < 0 { None } else { Some(v) }
-    }
-
-    fn set_response_body_size(&mut self, size: i64) {
-        unsafe { host_set_response_body_size(size) }
     }
 
     #[cfg(feature = "model")]
