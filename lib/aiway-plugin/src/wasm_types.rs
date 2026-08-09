@@ -1,7 +1,15 @@
 //! WASM 插件边界序列化类型
 //!
 //! 定义 Host（网关）与 WASM 插件之间数据交换的格式。
-//! 使用 bincode 序列化，性能优于 JSON。
+//!
+//! 插件输入（config/body）与输出（主动响应）均通过宿主函数从 HttpContext
+//! 上下文存取，边界上不再传递数据结构体，仅保留插件元信息结构。
+//!
+//! # `aiway_call` 返回协议
+//!
+//! `aiway_call(hook_id) -> i64`，返回值编码：
+//! - 高 32 位：状态标记（`0` = 成功，非 `0` = 错误）
+//! - 低 32 位：成功时为控制流（[`HookControl`]）；错误时为错误信息长度（字符串写入固定地址 [`ERROR_BUF_PTR`]）
 
 use serde::{Deserialize, Serialize};
 
@@ -12,35 +20,20 @@ pub const HOOK_ON_RESPONSE: i32 = 3;
 pub const HOOK_ON_RESPONSE_BODY: i32 = 4;
 pub const HOOK_ON_LOGGING: i32 = 5;
 
-/// 传递给 WASM 插件的输入数据
-#[derive(Serialize, Deserialize)]
-pub struct WasmInput {
-    /// 插件配置（JSON 字符串）
-    pub config: String,
-    /// Body 数据
-    pub body: Option<Vec<u8>>,
+/// 插件钩子执行控制流
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(i32)]
+pub enum HookControl {
+    /// 继续执行后续插件/流程
+    Continue = 0,
+    /// 主动响应（数据已通过 `host_respond` 写入上下文）
+    Respond = 1,
 }
 
-/// WASM 插件返回的输出数据
-#[derive(Serialize, Deserialize)]
-pub struct WasmOutput {
-    /// 修改后的 Body（None 表示不修改）
-    pub body: Option<Vec<u8>>,
-    /// 插件主动响应（Some 时网关应终止后续流程并返回此响应）
-    /// 目前仅 `on_request` 和 `on_response` 阶段有效
-    pub respond: Option<WasmRespond>,
-}
-
-/// 插件主动响应数据
-#[derive(Serialize, Deserialize)]
-pub struct WasmRespond {
-    /// HTTP 状态码
-    pub status: u16,
-    /// 响应头
-    pub headers: Vec<(String, String)>,
-    /// 响应体
-    pub body: Vec<u8>,
-}
+/// 插件错误信息在 WASM 线性内存中的固定写入地址
+///
+/// `aiway_call` 错误时，错误信息写入该地址，低 32 位为长度。
+pub const ERROR_BUF_PTR: u32 = 1;
 
 /// WASM 插件元信息（由 plugin_info 导出返回）
 #[derive(Serialize, Deserialize)]

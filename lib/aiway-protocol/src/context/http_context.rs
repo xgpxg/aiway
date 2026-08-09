@@ -30,29 +30,8 @@ pub struct Routing {
     target: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct State(DashMap<String, Vec<u8>>);
-
-impl Default for State {
-    fn default() -> Self {
-        let data = DashMap::new();
-
-        // 插入请求 ID
-        let request_id = uuid::Uuid::new_v4().to_string();
-        let encoded_id = bincode::serialize(&request_id).unwrap();
-        data.insert(HttpContext::REQUEST_ID.to_string(), encoded_id);
-
-        // 插入请求时间戳
-        let request_ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
-        let encoded_ts = bincode::serialize(&request_ts).unwrap();
-        data.insert(HttpContext::REQUEST_TS.to_string(), encoded_ts);
-
-        State(data)
-    }
-}
 
 impl State {
     pub fn insert<T: Serialize>(&self, key: &str, value: T) -> Option<Vec<u8>> {
@@ -142,12 +121,31 @@ impl HttpContext {
     pub const MODEL_TTFT_MS: &'static str = ":model:ttft_ms";
     /// 响应状态码
     pub const RESPONSE_STATUS_CODE: &'static str = ":resp:status_code";
+    /// 插件配置（JSON 字符串，any_state 存储 `String`）
+    pub const PLUGIN_CONFIG: &'static str = ":plugin:config";
+    /// 当前请求体（any_state 存储 `bytes::Bytes`）
+    pub const REQUEST_BODY: &'static str = ":req:body";
+    /// 当前响应体（any_state 存储 `bytes::Bytes`）
+    pub const RESPONSE_BODY: &'static str = ":resp:body";
+    /// 插件主动响应（any_state 存储 plugin-manager 的 `RespondData`）
+    pub const RESPOND: &'static str = ":plugin:respond";
     pub fn new() -> Self {
-        Self {
+        let ctx = Self {
             routing: Default::default(),
             state: Default::default(),
             any_state: Default::default(),
-        }
+        };
+        // 插入请求 ID
+        ctx.insert_any_state(Self::REQUEST_ID, uuid::Uuid::new_v4().to_string());
+        // 插入请求时间戳
+        ctx.insert_any_state(
+            Self::REQUEST_TS,
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as i64,
+        );
+        ctx
     }
 
     #[inline]
@@ -208,17 +206,19 @@ impl HttpContext {
     /// 获取请求ID
     pub fn request_id(&self) -> String {
         //SAFE
-        self.state.get(Self::REQUEST_ID).unwrap()
+        self.get_any_state::<String>(Self::REQUEST_ID)
+            .map(|v| (*v).clone())
+            .unwrap()
     }
 
     /// 获取请求时间戳（网关收到请求的时间）
     pub fn request_ts(&self) -> i64 {
         //SAFE
-        self.state.get(Self::REQUEST_TS).unwrap()
+        *self.get_any_state::<i64>(Self::REQUEST_TS).unwrap()
     }
 
     pub fn request_raw_parts(&self) -> Option<SerdeParts> {
-        self.state.get(Self::REQUEST_RAW_PARTS)
+        self.get_any_state::<SerdeParts>(Self::REQUEST_RAW_PARTS).map(|v| (*v).clone())
     }
 
     /// 获取请求的模型名称
@@ -227,7 +227,8 @@ impl HttpContext {
     #[cfg(feature = "model")]
     #[inline]
     pub fn get_proxy_model_name(&self) -> Option<String> {
-        self.state.get(Self::MODEL_PROXY_MODEL)
+        self.get_any_state::<String>(Self::MODEL_PROXY_MODEL)
+            .map(|v| (*v).clone())
     }
 
     /// 获取命中的模型代理商
@@ -236,16 +237,17 @@ impl HttpContext {
     #[cfg(feature = "model")]
     #[inline]
     pub fn get_proxy_model_provider(&self) -> Option<Provider> {
-        self.state.get(Self::MODEL_PROXY_PROVIDER)
+        self.get_any_state::<Provider>(Self::MODEL_PROXY_PROVIDER)
+            .map(|v| (*v).clone())
     }
 
     #[inline]
     pub fn is_sse(&self) -> bool {
-        self.state.exists(Self::IS_SSE)
+        self.exists_any_state(Self::IS_SSE)
     }
 
     #[inline]
     pub fn is_websocket(&self) -> bool {
-        self.state.exists(Self::IS_WEBSOCKET)
+        self.exists_any_state(Self::IS_WEBSOCKET)
     }
 }

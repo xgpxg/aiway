@@ -22,9 +22,9 @@ pub enum PluginType {
 }
 /// 执行单个插件并处理错误（异步版本）
 macro_rules! execute_plugin_async {
-    ($plugin:expr, $ctx:expr, $method:ident $(, $arg:expr)*) => {{
+    ($plugin:expr, $ctx:expr, $method:ident) => {{
         log::debug!("execute plugin: {}", $plugin.name);
-        PluginFactory::$method(&$plugin, $ctx $(, $arg)*).await.map_err(|e| {
+        PluginFactory::$method(&$plugin, $ctx).await.map_err(|e| {
             // 插件自身异常，统一 502
             log::error!("execute plugin {} error: {}", $plugin.name, e);
             HandlerError::new(502, "BadPlugin")
@@ -113,7 +113,9 @@ pub async fn run_on_request_body(
         PluginType::Global => {
             let plugins = GlobalPluginFactory::get_plugins();
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, ctx, on_request_body, body);
+                sync_request_body(ctx, body);
+                execute_plugin_async!(plugin, ctx, on_request_body);
+                fetch_request_body(ctx, body);
             }
         }
         PluginType::Route => {
@@ -121,7 +123,9 @@ pub async fn run_on_request_body(
             let route = ctx.get_route().unwrap();
             let plugins = &route.plugins;
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, ctx, on_request_body, body);
+                sync_request_body(ctx, body);
+                execute_plugin_async!(plugin, ctx, on_request_body);
+                fetch_request_body(ctx, body);
             }
         }
         PluginType::Model {
@@ -134,7 +138,9 @@ pub async fn run_on_request_body(
                     "execute model provider request converter plugin: {}",
                     plugin.name
                 );
-                execute_plugin_async!(plugin, ctx, on_request_body, body);
+                sync_request_body(ctx, body);
+                execute_plugin_async!(plugin, ctx, on_request_body);
+                fetch_request_body(ctx, body);
             }
         }
     }
@@ -209,7 +215,9 @@ pub async fn run_on_response_body(
         PluginType::Global => {
             let plugins = GlobalPluginFactory::get_plugins();
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, ctx, on_response_body, body);
+                sync_response_body(ctx, body);
+                execute_plugin_async!(plugin, ctx, on_response_body);
+                fetch_response_body(ctx, body);
             }
         }
         PluginType::Route => {
@@ -217,7 +225,9 @@ pub async fn run_on_response_body(
             let route = ctx.get_route().unwrap();
             let plugins = &route.plugins;
             for plugin in plugins.iter() {
-                execute_plugin_async!(plugin, ctx, on_response_body, body);
+                sync_response_body(ctx, body);
+                execute_plugin_async!(plugin, ctx, on_response_body);
+                fetch_response_body(ctx, body);
             }
         }
         PluginType::Model {
@@ -230,7 +240,9 @@ pub async fn run_on_response_body(
                     "execute model provider request converter plugin: {}",
                     plugin.name
                 );
-                execute_plugin_async!(plugin, ctx, on_response_body, body);
+                sync_response_body(ctx, body);
+                execute_plugin_async!(plugin, ctx, on_response_body);
+                fetch_response_body(ctx, body);
             }
         }
     }
@@ -319,4 +331,38 @@ fn apply_request_uri_patch(ctx: &HttpContext, head: &mut RequestHeader) {
         return;
     };
     head.uri = (*uri).clone();
+}
+
+// ---------------------------------------------------------------------------
+// 插件 Body 数据流辅助：网关持有的 body 与 HttpContext 上下文同步
+// ---------------------------------------------------------------------------
+
+/// 将请求体同步到 HttpContext，供 WASM 侧 `host_get_request_body` 读取
+fn sync_request_body(ctx: &HttpContext, body: &Option<Bytes>) {
+    match body {
+        Some(b) => ctx.insert_any_state(HttpContext::REQUEST_BODY, b.clone()),
+        None => ctx.remove_any_state::<Bytes>(HttpContext::REQUEST_BODY),
+    }
+}
+
+/// 从 HttpContext 取回插件可能修改后的请求体
+fn fetch_request_body(ctx: &HttpContext, body: &mut Option<Bytes>) {
+    if let Some(b) = ctx.get_any_state::<Bytes>(HttpContext::REQUEST_BODY) {
+        *body = Some((*b).clone());
+    }
+}
+
+/// 将响应体同步到 HttpContext，供 WASM 侧 `host_get_response_body` 读取
+fn sync_response_body(ctx: &HttpContext, body: &Option<Bytes>) {
+    match body {
+        Some(b) => ctx.insert_any_state(HttpContext::RESPONSE_BODY, b.clone()),
+        None => ctx.remove_any_state::<Bytes>(HttpContext::RESPONSE_BODY),
+    }
+}
+
+/// 从 HttpContext 取回插件可能修改后的响应体
+fn fetch_response_body(ctx: &HttpContext, body: &mut Option<Bytes>) {
+    if let Some(b) = ctx.get_any_state::<Bytes>(HttpContext::RESPONSE_BODY) {
+        *body = Some((*b).clone());
+    }
 }

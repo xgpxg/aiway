@@ -1,17 +1,25 @@
 use crate::server::auth::UserPrincipal;
 use crate::server::db;
+use crate::server::db::models::model_provider::ModelProvider;
 use crate::server::db::models::plugin::{Plugin, PluginBuilder};
+use crate::server::db::models::route::Route;
+use crate::server::db::models::system_config::{ConfigKey, SystemConfig};
 use crate::server::db::{Pool, tools};
-use crate::server::file::file_util::{make_download_file, make_save_file, sha256_hex};
+use crate::server::file::file_util::{
+    delete_download_file, make_download_file, make_save_file, sha256_hex,
+};
 use crate::server::plugin::request::{PluginAddReq, PluginInfoReq, PluginListReq, PluginUpdateReq};
 use crate::server::plugin::response::{PluginInfoRes, PluginListRes};
+use aiway_protocol::gateway::GlobalPlugin;
 use anyhow::bail;
 use busi::req::{IdsReq, Pagination};
 use busi::res::{IntoPageRes, PageRes};
 use common::id;
+use logging::log;
 use rbs::value;
 use rocket::fs::TempFile;
 use rocket::tokio::io;
+use std::collections::HashSet;
 use std::path::Path;
 
 pub async fn info(req: PluginInfoReq<'_>, _user: UserPrincipal) -> anyhow::Result<PluginInfoRes> {
@@ -115,9 +123,83 @@ async fn check_exists(plugin: &Plugin, exclude_id: Option<i64>) -> anyhow::Resul
 }
 
 pub async fn delete(req: IdsReq) -> anyhow::Result<()> {
-    //TODO 删除文件
-    Plugin::delete_by_map(Pool::get()?, value! { "id": req.ids}).await?;
+    let plugins = Plugin::select_by_map(Pool::get()?, value! { "id": &req.ids }).await?;
+    if plugins.is_empty() {
+        return Ok(());
+    }
+
+    // 引用检查：被路由、全局配置或模型提供商引用的插件禁止删除
+    let names: HashSet<String> = plugins.iter().filter_map(|p| p.name.clone()).collect();
+    let references = find_plugin_references(&names).await?;
+    if !references.is_empty() {
+        let names = names.into_iter().collect::<Vec<_>>().join(", ");
+        bail!(
+            "插件 「{}」 在以下位置被引用：{}，请先解除引用后再删除。",
+            names,
+            references.join("、")
+        );
+    }
+
+    let urls: Vec<String> = plugins.iter().filter_map(|p| p.url.clone()).collect();
+    let tx = Pool::get()?.acquire_begin().await?;
+    if let Err(e) = Plugin::delete_by_map(&tx, value! { "id": &req.ids }).await {
+        tx.rollback().await?;
+        return Err(e.into());
+    }
+    tx.commit().await?;
+
+    for url in urls {
+        if let Err(e) = delete_download_file(&url) {
+            log::error!("delete plugin file failed, url: {}, error: {}", url, e);
+        }
+    }
     Ok(())
+}
+
+/// 查找插件被引用的位置，返回引用描述列表（空列表表示无引用）
+///
+/// 引用来源：路由插件配置、全局插件配置、模型提供商插件。
+async fn find_plugin_references(names: &HashSet<String>) -> anyhow::Result<Vec<String>> {
+    let mut refs = Vec::new();
+
+    // 路由插件引用
+    for route in Route::select_all(Pool::get()?).await? {
+        let Some(plugins) = &route.plugins else {
+            continue;
+        };
+        if plugins.iter().any(|p| names.contains(&p.name)) {
+            refs.push(format!("路由「{}」", route.name.unwrap_or_default()));
+        }
+    }
+
+    // 全局插件配置引用
+    let configs = SystemConfig::select_by_map(
+        Pool::get()?,
+        value! { "config_key": ConfigKey::GlobalPlugin },
+    )
+    .await?;
+
+    if let Some(config) = configs.first()
+        && let Some(value) = &config.config_value
+        && let Ok(global) = serde_json::from_str::<GlobalPlugin>(value)
+        && global.plugins.iter().any(|p| names.contains(&p.name))
+    {
+        refs.push("全局插件".to_string());
+    }
+
+    // 模型提供商插件引用
+    for provider in ModelProvider::select_all(Pool::get()?).await? {
+        if let Some(p) = &provider.plugins
+            && names.contains(&p.name)
+        {
+            refs.push(format!(
+                "模型提供商「{}」",
+                provider.name.unwrap_or_default()
+            ));
+        }
+    }
+
+    Ok(refs)
 }
 
 pub async fn list(req: PluginListReq) -> anyhow::Result<PageRes<PluginListRes>> {

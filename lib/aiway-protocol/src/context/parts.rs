@@ -1,6 +1,6 @@
 use http::{request, response, Uri};
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SerdeParts {
     #[serde(with = "http_serde::option::method")]
     pub method: Option<http::Method>,

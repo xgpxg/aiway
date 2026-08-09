@@ -12,13 +12,13 @@
 
 use crate::CONSOLE;
 use crate::client::INNER_HTTP_CLIENT;
-use crate::wasm::{AsyncTryInto, Bytes, NetworkPlugin, Outcome, Plugin, PluginError};
+use crate::wasm::{AsyncTryInto, NetworkPlugin, Outcome, Plugin, PluginError};
 use aiway_protocol::context::HttpContext;
-
 use aiway_protocol::gateway::Plugin as PluginConfig;
 use aiway_protocol::gateway::plugin::ConfiguredPlugin;
 use dashmap::DashMap;
 use logging::log;
+use serde_json::Value;
 use std::collections::HashSet;
 use std::process::exit;
 use std::sync::{Arc, OnceLock};
@@ -145,16 +145,22 @@ impl PluginFactory {
         });
     }
 
+    /// 将插件配置注入 HttpContext，供 WASM 侧 `host_config` 宿主函数读取
+    fn inject_config(ctx: &HttpContext, config: &Value) {
+        ctx.insert_any_state(
+            HttpContext::PLUGIN_CONFIG,
+            serde_json::to_string(config).unwrap_or_default(),
+        );
+    }
+
     pub async fn on_request(
         configured_plugin: &ConfiguredPlugin,
         ctx: &mut HttpContext,
     ) -> Result<Outcome, PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
-                plugin
-                    .1
-                    .on_request(&configured_plugin.config, ctx)
-                    .await
+                Self::inject_config(ctx, &configured_plugin.config);
+                plugin.1.on_request(ctx).await
             }
             None => Err(PluginError::NotFound(configured_plugin.name.clone())),
         }
@@ -163,14 +169,11 @@ impl PluginFactory {
     pub async fn on_request_body(
         configured_plugin: &ConfiguredPlugin,
         ctx: &mut HttpContext,
-        body: &mut Option<Bytes>,
     ) -> Result<Outcome, PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
-                plugin
-                    .1
-                    .on_request_body(&configured_plugin.config, body, ctx)
-                    .await
+                Self::inject_config(ctx, &configured_plugin.config);
+                plugin.1.on_request_body(ctx).await
             }
             None => Err(PluginError::NotFound(configured_plugin.name.clone())),
         }
@@ -182,10 +185,8 @@ impl PluginFactory {
     ) -> Result<Outcome, PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
-                plugin
-                    .1
-                    .on_response(&configured_plugin.config, ctx)
-                    .await
+                Self::inject_config(ctx, &configured_plugin.config);
+                plugin.1.on_response(ctx).await
             }
             None => Err(PluginError::NotFound(configured_plugin.name.clone())),
         }
@@ -194,14 +195,11 @@ impl PluginFactory {
     pub async fn on_response_body(
         configured_plugin: &ConfiguredPlugin,
         ctx: &mut HttpContext,
-        body: &mut Option<Bytes>,
     ) -> Result<Outcome, PluginError> {
         match PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
             Some(plugin) => {
-                plugin
-                    .1
-                    .on_response_body(&configured_plugin.config, body, ctx)
-                    .await
+                Self::inject_config(ctx, &configured_plugin.config);
+                plugin.1.on_response_body(ctx).await
             }
             None => Err(PluginError::NotFound(configured_plugin.name.clone())),
         }
@@ -209,7 +207,8 @@ impl PluginFactory {
 
     pub async fn on_logging(configured_plugin: &ConfiguredPlugin, ctx: &mut HttpContext) {
         if let Some(plugin) = PLUGINS.get().unwrap().plugins.get(&configured_plugin.name) {
-            let _ = plugin.1.on_logging(&configured_plugin.config, ctx).await;
+            Self::inject_config(ctx, &configured_plugin.config);
+            let _ = plugin.1.on_logging(ctx).await;
         }
     }
 }

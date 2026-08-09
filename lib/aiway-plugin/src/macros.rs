@@ -48,13 +48,6 @@ macro_rules! log_trace {
 }
 
 /// 导出 WASM 插件
-///
-/// 生成以下导出函数：
-/// - `plugin_info()` -> i64：返回插件元信息（bincode 编码）
-/// - `aiway_call(hook_id, input_ptr, input_len)` -> i64：插件钩子调用入口
-/// - `aiway_alloc(size)` -> i32：内存分配
-/// - `aiway_dealloc(ptr, size)`：内存释放
-///
 /// # 用法
 /// ```ignore
 /// struct MyPlugin;
@@ -69,15 +62,15 @@ macro_rules! export_wasm {
         static PLUGIN: std::sync::LazyLock<$plugin_type> =
             std::sync::LazyLock::new(|| <$plugin_type>::new());
 
-        /// 分配内存（供 Host 写入输入数据）
-        #[unsafe(no_mangle)]
-        pub extern "C" fn aiway_alloc(size: i32) -> i32 {
-            let layout = std::alloc::Layout::from_size_align(size as usize, 1).unwrap();
-            unsafe {
-                let ptr = std::alloc::alloc(layout);
-                ptr as i32
-            }
-        }
+        // /// 分配内存（供 Host 写入输入数据）
+        // #[unsafe(no_mangle)]
+        // pub extern "C" fn aiway_alloc(size: i32) -> i32 {
+        //     let layout = std::alloc::Layout::from_size_align(size as usize, 1).unwrap();
+        //     unsafe {
+        //         let ptr = std::alloc::alloc(layout);
+        //         ptr as i32
+        //     }
+        // }
 
         /// 释放内存
         #[unsafe(no_mangle)]
@@ -88,7 +81,7 @@ macro_rules! export_wasm {
             }
         }
 
-        /// 返回插件元信息
+        /// 返回插件元数据
         ///
         /// 返回 i64，高 32 位 = 数据指针，低 32 位 = 数据长度
         #[unsafe(no_mangle)]
@@ -99,7 +92,7 @@ macro_rules! export_wasm {
                 description: PLUGIN.info().description.clone(),
                 default_config: aiway_plugin::serde_json::to_string(&PLUGIN.info().default_config)
                     .unwrap_or_default(),
-                readme:  PLUGIN.info().readme.clone(),
+                readme: PLUGIN.info().readme.clone(),
             };
 
             let bytes = $crate::bincode::serialize(&info).unwrap();
@@ -110,68 +103,65 @@ macro_rules! export_wasm {
             ((ptr as i64) << 32) | (len as i64)
         }
 
-        /// 插件钩子调用入口
+        /// 插件Hook调用入口
         ///
         /// # 参数
-        /// - `hook_id`: 钩子 ID（见 `wasm_types` 常量）
-        /// - `input_ptr`: 输入数据在 WASM 内存中的指针
-        /// - `input_len`: 输入数据长度
+        /// - `hook_id`: Hook ID（见 `wasm_types` 常量）
+        ///
+        /// 插件输入数据（config/body）通过宿主函数从 HttpContext 按需获取，不再经参数传递。
         ///
         /// # 返回
-        /// i64，高 32 位 = 结果指针，低 32 位 = 结果长度。
-        /// 若高 32 位为 0，表示错误，低 32 位是错误信息长度（数据在 ptr=1 处）。
+        /// i64，高 32 位 = 状态标记（0 = 成功，非 0 = 错误），
+        /// 成功时低 32 位 = 控制流（0 = Continue，1 = Respond），
+        /// 错误时低 32 位 = 错误信息长度（数据写入固定地址 [`ERROR_BUF_PTR`](aiway_plugin::wasm_types::ERROR_BUF_PTR)）。
         #[unsafe(no_mangle)]
-        pub extern "C" fn aiway_call(hook_id: i32, input_ptr: i32, input_len: i32) -> i64 {
-            // 读取输入数据
-            let input_slice =
-                unsafe { std::slice::from_raw_parts(input_ptr as *const u8, input_len as usize) };
-
-            let input: $crate::wasm_types::WasmInput = match $crate::bincode::deserialize(input_slice)
-            {
-                Ok(v) => v,
-                Err(e) => return encode_error(&format!("deserialize input failed: {}", e)),
-            };
-
+        pub extern "C" fn aiway_call(hook_id: i32) -> i64 {
             // 根据 hook_id 分发
-            let result: Result<aiway_plugin::wasm_types::WasmOutput, String> = match hook_id {
-                aiway_plugin::wasm_types::HOOK_ON_REQUEST => handle_on_request(&PLUGIN, &input),
-                aiway_plugin::wasm_types::HOOK_ON_REQUEST_BODY => {
-                    handle_on_request_body(&PLUGIN, &input)
-                }
-                aiway_plugin::wasm_types::HOOK_ON_RESPONSE => handle_on_response(&PLUGIN, &input),
-                aiway_plugin::wasm_types::HOOK_ON_RESPONSE_BODY => {
-                    handle_on_response_body(&PLUGIN, &input)
-                }
-                aiway_plugin::wasm_types::HOOK_ON_LOGGING => handle_on_logging(&PLUGIN, &input),
+            let result: Result<aiway_plugin::Outcome, String> = match hook_id {
+                aiway_plugin::wasm_types::HOOK_ON_REQUEST => handle_on_request(&PLUGIN),
+                aiway_plugin::wasm_types::HOOK_ON_REQUEST_BODY => handle_on_request_body(&PLUGIN),
+                aiway_plugin::wasm_types::HOOK_ON_RESPONSE => handle_on_response(&PLUGIN),
+                aiway_plugin::wasm_types::HOOK_ON_RESPONSE_BODY => handle_on_response_body(&PLUGIN),
+                aiway_plugin::wasm_types::HOOK_ON_LOGGING => handle_on_logging(&PLUGIN),
                 _ => Err(format!("unknown hook_id: {}", hook_id)),
             };
 
             match result {
-                Ok(output) => encode_output(&output),
-                Err(err_bytes) => encode_error(&err_bytes),
+                Ok(outcome) => encode_outcome(&outcome),
+                Err(err_msg) => encode_error(&err_msg),
             }
         }
 
-        /// 编码成功输出
-        fn encode_output(output: &aiway_plugin::wasm_types::WasmOutput) -> i64 {
-            match $crate::bincode::serialize(output) {
-                Ok(bytes) => {
-                    let len = bytes.len();
-                    let ptr = bytes.as_ptr() as i32;
-                    std::mem::forget(bytes);
-                    ((ptr as i64) << 32) | (len as i64)
+        /// 编码成功控制流：高位 0 = 成功（无错误），低位为 [`HookControl`](aiway_plugin::wasm_types::HookControl)
+        fn encode_outcome(outcome: &aiway_plugin::Outcome) -> i64 {
+            match outcome {
+                aiway_plugin::Outcome::Continue => {
+                    aiway_plugin::wasm_types::HookControl::Continue as i64
                 }
-                Err(e) => encode_error(&format!("serialize output failed: {}", e)),
+                aiway_plugin::Outcome::Respond(resp) => {
+                    // 主动响应数据写入 Host 侧 HttpContext，仅返回 Respond 控制流标记
+                    aiway_plugin::respond_to_host(
+                        resp.status,
+                        resp.headers.clone(),
+                        resp.body.clone(),
+                    );
+                    aiway_plugin::wasm_types::HookControl::Respond as i64
+                }
             }
         }
 
-        /// 编码错误信息：写入 ptr=1，返回 ptr=0 标记错误
+        /// 编码错误信息：写入固定地址，返回高位非 0 标记错误（低位为错误信息长度）
         fn encode_error(msg: &str) -> i64 {
             let bytes = msg.as_bytes();
-            // 将错误信息写入 ptr=1 处
-            let dst = unsafe { std::slice::from_raw_parts_mut(1 as *mut u8, bytes.len()) };
+            // 将错误信息写入 ERROR_BUF_PTR 处
+            let dst = unsafe {
+                std::slice::from_raw_parts_mut(
+                    aiway_plugin::wasm_types::ERROR_BUF_PTR as *mut u8,
+                    bytes.len(),
+                )
+            };
             dst.copy_from_slice(bytes);
-            (0i64 << 32) | (bytes.len() as i64)
+            (1i64 << 32) | (bytes.len() as i64)
         }
 
         /// 将 PluginError 编码为错误消息
@@ -179,160 +169,47 @@ macro_rules! export_wasm {
             format!("{}", e)
         }
 
-        /// 解析 JSON 配置字符串
-        fn parse_config(config_str: &str) -> Result<aiway_plugin::serde_json::Value, String> {
-            aiway_plugin::serde_json::from_str(config_str)
-                .map_err(|e| format!("parse config failed: {}", e))
-        }
-
         /// 处理 on_request
-        fn handle_on_request(
-            plugin: &$plugin_type,
-            input: &aiway_plugin::wasm_types::WasmInput,
-        ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
-            let config = parse_config(&input.config)?;
+        fn handle_on_request(plugin: &$plugin_type) -> Result<aiway_plugin::Outcome, String> {
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            let outcome = aiway_plugin::block_on(async {
-                plugin.on_request(&config, &mut ctx).await
-            })
-            .map_err(encode_plugin_error)?;
-
-            match outcome {
-                aiway_plugin::Outcome::Continue => {
-                    Ok(aiway_plugin::wasm_types::WasmOutput {
-                        body: None,
-                        respond: None,
-                    })
-                }
-                aiway_plugin::Outcome::Respond(resp) => Ok(aiway_plugin::wasm_types::WasmOutput {
-                    body: None,
-                    respond: Some(aiway_plugin::wasm_types::WasmRespond {
-                        status: resp.status,
-                        headers: resp.headers,
-                        body: resp.body,
-                    }),
-                }),
-            }
+            aiway_plugin::block_on(async { plugin.on_request(&mut ctx).await })
+                .map_err(encode_plugin_error)
         }
 
         /// 处理 on_request_body
-        fn handle_on_request_body(
-            plugin: &$plugin_type,
-            input: &aiway_plugin::wasm_types::WasmInput,
-        ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
-            let config = parse_config(&input.config)?;
-            let mut body = input
-                .body
-                .as_ref()
-                .map(|b| aiway_plugin::Bytes::from(b.clone()));
+        fn handle_on_request_body(plugin: &$plugin_type) -> Result<aiway_plugin::Outcome, String> {
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            let outcome = aiway_plugin::block_on(async {
-                plugin.on_request_body(&config, &mut body, &mut ctx).await
-            })
-            .map_err(encode_plugin_error)?;
-
-            match outcome {
-                aiway_plugin::Outcome::Continue => Ok(aiway_plugin::wasm_types::WasmOutput {
-                    body: body.map(|b| b.to_vec()),
-                    respond: None,
-                }),
-                aiway_plugin::Outcome::Respond(resp) => Ok(
-                    aiway_plugin::wasm_types::WasmOutput {
-                        body: None,
-                        respond: Some(aiway_plugin::wasm_types::WasmRespond {
-                            status: resp.status,
-                            headers: resp.headers,
-                            body: resp.body,
-                        }),
-                    },
-                ),
-            }
+            aiway_plugin::block_on(async { plugin.on_request_body(&mut ctx).await })
+                .map_err(encode_plugin_error)
         }
 
         /// 处理 on_response
-        fn handle_on_response(
-            plugin: &$plugin_type,
-            input: &aiway_plugin::wasm_types::WasmInput,
-        ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
-            let config = parse_config(&input.config)?;
+        fn handle_on_response(plugin: &$plugin_type) -> Result<aiway_plugin::Outcome, String> {
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            let outcome = aiway_plugin::block_on(async {
-                plugin.on_response(&config, &mut ctx).await
-            })
-            .map_err(encode_plugin_error)?;
-
-            match outcome {
-                aiway_plugin::Outcome::Continue => {
-                    Ok(aiway_plugin::wasm_types::WasmOutput {
-                        body: None,
-                        respond: None,
-                    })
-                }
-                aiway_plugin::Outcome::Respond(resp) => Ok(aiway_plugin::wasm_types::WasmOutput {
-                    body: None,
-                    respond: Some(aiway_plugin::wasm_types::WasmRespond {
-                        status: resp.status,
-                        headers: resp.headers,
-                        body: resp.body,
-                    }),
-                }),
-            }
+            aiway_plugin::block_on(async { plugin.on_response(&mut ctx).await })
+                .map_err(encode_plugin_error)
         }
 
         /// 处理 on_response_body
-        fn handle_on_response_body(
-            plugin: &$plugin_type,
-            input: &aiway_plugin::wasm_types::WasmInput,
-        ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
-            let config = parse_config(&input.config)?;
-            let mut body = input
-                .body
-                .as_ref()
-                .map(|b| aiway_plugin::Bytes::from(b.clone()));
+        fn handle_on_response_body(plugin: &$plugin_type) -> Result<aiway_plugin::Outcome, String> {
             let mut ctx = aiway_plugin::WasmHttpContext;
 
-            let outcome = aiway_plugin::block_on(async {
-                plugin.on_response_body(&config, &mut body, &mut ctx).await
-            })
-            .map_err(encode_plugin_error)?;
-
-            match outcome {
-                aiway_plugin::Outcome::Continue => Ok(aiway_plugin::wasm_types::WasmOutput {
-                    body: body.map(|b| b.to_vec()),
-                    respond: None,
-                }),
-                aiway_plugin::Outcome::Respond(resp) => Ok(
-                    aiway_plugin::wasm_types::WasmOutput {
-                        body: None,
-                        respond: Some(aiway_plugin::wasm_types::WasmRespond {
-                            status: resp.status,
-                            headers: resp.headers,
-                            body: resp.body,
-                        }),
-                    },
-                ),
-            }
+            aiway_plugin::block_on(async { plugin.on_response_body(&mut ctx).await })
+                .map_err(encode_plugin_error)
         }
 
         /// 处理 on_logging
-        fn handle_on_logging(
-            plugin: &$plugin_type,
-            input: &aiway_plugin::wasm_types::WasmInput,
-        ) -> Result<aiway_plugin::wasm_types::WasmOutput, String> {
-            let config = parse_config(&input.config)?;
+        fn handle_on_logging(plugin: &$plugin_type) -> Result<aiway_plugin::Outcome, String> {
             let mut ctx = aiway_plugin::WasmHttpContext;
 
             aiway_plugin::block_on(async {
-                plugin.on_logging(&config, &mut ctx).await;
+                plugin.on_logging(&mut ctx).await;
             });
 
-            Ok(aiway_plugin::wasm_types::WasmOutput {
-                body: None,
-                respond: None,
-            })
+            Ok(aiway_plugin::Outcome::Continue)
         }
     };
 }

@@ -6,8 +6,8 @@ mod network;
 use self::network::NETWORK;
 use aiway_plugin::PluginContext;
 use aiway_plugin::wasm_types::{
-    HOOK_ON_LOGGING, HOOK_ON_REQUEST, HOOK_ON_REQUEST_BODY, HOOK_ON_RESPONSE,
-    HOOK_ON_RESPONSE_BODY, WasmInput, WasmOutput, WasmPluginInfo,
+    ERROR_BUF_PTR, HookControl, HOOK_ON_LOGGING, HOOK_ON_REQUEST, HOOK_ON_REQUEST_BODY,
+    HOOK_ON_RESPONSE, HOOK_ON_RESPONSE_BODY, WasmPluginInfo,
 };
 pub use aiway_plugin::{Outcome, Plugin, PluginError, PluginInfo, Response};
 pub use aiway_protocol as protocol;
@@ -18,7 +18,6 @@ use crossbeam::queue::ArrayQueue;
 pub use http;
 pub use semver::Version;
 pub use serde_json;
-use serde_json::Value;
 use std::cell::UnsafeCell;
 use std::fs;
 use std::ptr::NonNull;
@@ -96,9 +95,7 @@ fn create_load_linker(store: &mut Store<()>, module: &Module) -> Result<Linker<(
 #[derive(Clone)]
 struct CachedFunc {
     memory: Memory,
-    alloc_fn: TypedFunc<i32, i32>,
-    call_fn: TypedFunc<(i32, i32, i32), i64>,
-    dealloc_fn: Option<TypedFunc<(i32, i32), ()>>,
+    call_fn: TypedFunc<i32, i64>,
 }
 
 impl CachedFunc {
@@ -107,21 +104,10 @@ impl CachedFunc {
         let memory = instance
             .get_memory(&mut *store, "memory")
             .ok_or_else(|| PluginError::ExecuteError("no 'memory' export".into()))?;
-        let alloc_fn = instance
-            .get_typed_func::<i32, i32>(&mut *store, "aiway_alloc")
-            .map_err(|e| PluginError::ExecuteError(format!("get aiway_alloc failed: {}", e)))?;
         let call_fn = instance
-            .get_typed_func::<(i32, i32, i32), i64>(&mut *store, "aiway_call")
+            .get_typed_func::<i32, i64>(&mut *store, "aiway_call")
             .map_err(|e| PluginError::ExecuteError(format!("get aiway_call failed: {}", e)))?;
-        let dealloc_fn = instance
-            .get_typed_func::<(i32, i32), ()>(&mut *store, "aiway_dealloc")
-            .ok();
-        Ok(Self {
-            memory,
-            alloc_fn,
-            call_fn,
-            dealloc_fn,
-        })
+        Ok(Self { memory, call_fn })
     }
 }
 
@@ -174,6 +160,17 @@ impl WasmInstancePool {
         // 队列满则丢弃（ArrayQueue 满时返回 Err，自动清理）
         let _ = self.pool.push((store, instance, func));
     }
+}
+
+/// 插件主动响应数据（由 `host_respond` 宿主函数写入 HttpContext，调用后读取）
+#[derive(Debug, Clone)]
+pub(crate) struct RespondData {
+    /// HTTP 状态码
+    pub status: u16,
+    /// 响应头
+    pub headers: Vec<(String, String)>,
+    /// 响应体
+    pub body: Vec<u8>,
 }
 
 /// WASM 插件包装器
@@ -278,21 +275,25 @@ impl WasmPlugin {
 
     /// 调用 WASM 插件的指定 Hook
     ///
+    /// 插件输入数据（config/body）通过宿主函数从 HttpContext 按需获取。
     /// 调用前注入 HttpContext 指针，调用后清除，确保宿主函数可访问真实请求数据。
+    /// 返回 `Some(RespondData)` 表示插件主动响应。
     async fn call_wasm(
         &self,
         hook_id: i32,
-        input: &WasmInput,
         ctx: &mut HttpContext,
-    ) -> Result<WasmOutput, PluginError> {
+    ) -> Result<Option<RespondData>, PluginError> {
+        // 清除上一阶段可能残留的主动响应标记，防止状态泄漏
+        ctx.remove_any_state::<RespondData>(HttpContext::RESPOND);
+
         let (mut store, instance, func) = self.pool.acquire().await?;
 
         // 注入 HttpContext 指针和插件名
         unsafe {
-            *store.data().http_ctx.get() = Some(NonNull::from(ctx));
+            *store.data().http_ctx.get() = Some(NonNull::from(&mut *ctx));
             *store.data().plugin_name.get() = Some(NonNull::from(self.plugin_name.as_str()));
         }
-        let result = self.execute_wasm(hook_id, input, &mut store, &func).await;
+        let result = self.execute_wasm(hook_id, &mut store, &func).await;
         // 清除指针
         unsafe {
             *store.data().http_ctx.get() = None;
@@ -302,85 +303,76 @@ impl WasmPlugin {
         // 无论成功失败，都归还到池
         self.pool.release(store, instance, func);
 
-        result
+        let control = result?;
+        if control == HookControl::Respond {
+            // 插件主动响应：从上下文读取 RespondData
+            Ok(ctx
+                .get_any_state::<RespondData>(HttpContext::RESPOND)
+                .map(|r| (*r).clone()))
+        } else {
+            Ok(None)
+        }
     }
 
     /// 实际执行 WASM 调用
+    ///
+    /// 插件输入数据通过宿主函数从 HttpContext 按需获取，无输入参数传递。
+    /// 返回插件执行控制流。
     async fn execute_wasm(
         &self,
         hook_id: i32,
-        input: &WasmInput,
         store: &mut Store<WasmStoreCtx>,
         func: &CachedFunc,
-    ) -> Result<WasmOutput, PluginError> {
-        // 序列化输入
-        let input_bytes = bincode::serialize(input)
-            .map_err(|e| PluginError::SerdeError(format!("serialize input failed: {}", e)))?;
-
-        // 在 WASM 内存中分配空间并写入input数据
-        let input_ptr = func
-            .alloc_fn
-            .call_async(&mut *store, input_bytes.len() as i32)
-            .await
-            .map_err(|e| PluginError::ExecuteError(format!("aiway_alloc failed: {}", e)))?;
-
-        func.memory
-            .write(&mut *store, input_ptr as usize, &input_bytes)
-            .map_err(|e| {
-                PluginError::ExecuteError(format!("write input to memory failed: {}", e))
-            })?;
-
+    ) -> Result<HookControl, PluginError> {
         // 调用插件钩子函数（使用缓存的 call_fn）
-        let call_result = func
+        let result = func
             .call_fn
-            .call_async(&mut *store, (hook_id, input_ptr, input_bytes.len() as i32))
-            .await;
-
-        // 无论 call_fn 成功或 trap，都释放 input_ptr
-        if let Some(dealloc_fn) = &func.dealloc_fn {
-            let _ = dealloc_fn
-                .call_async(&mut *store, (input_ptr, input_bytes.len() as i32))
-                .await;
-        }
-
-        let result = call_result
+            .call_async(&mut *store, hook_id)
+            .await
             .map_err(|e| PluginError::ExecuteError(format!("aiway_call trap: {}", e)))?;
 
-        // 解码返回值
-        let result_ptr = (result >> 32) as usize;
-        let result_len = (result & 0xFFFFFFFF) as usize;
+        // 解码返回值：高 32 位状态标记 + 低 32 位控制流/错误长度
+        decode_call_result(&func.memory, store, result)
+    }
 
-        // 用 result 变量保存最终结果，确保 result_ptr 的 dealloc 在 return 之前执行
-        let output_result = if result_ptr == 0 {
-            let mut err_buf = vec![0u8; result_len];
-            func.memory
-                .read(&*store, 1, &mut err_buf)
-                .map_err(|e| PluginError::ExecuteError(format!("read error msg failed: {}", e)))?;
+    /// 将插件调用结果（可能含主动响应）转换为 Outcome
+    fn finish(
+        &self,
+        result: Result<Option<RespondData>, PluginError>,
+    ) -> Result<Outcome, PluginError> {
+        Ok(match result? {
+            Some(r) => Outcome::Respond(Response {
+                status: r.status,
+                headers: r.headers,
+                body: r.body,
+            }),
+            None => Outcome::Continue,
+        })
+    }
+}
 
-            Err(PluginError::ExecuteError(
-                String::from_utf8_lossy(&err_buf).to_string(),
-            ))
-        } else {
-            let mut result_buf = vec![0u8; result_len];
-            func.memory
-                .read(&*store, result_ptr, &mut result_buf)
-                .map_err(|e| PluginError::ExecuteError(format!("read result failed: {}", e)))?;
-
-            bincode::deserialize(&result_buf).map_err(|e| {
-                PluginError::SerdeError(format!("deserialize output failed: {}", e))
-            })
-        };
-
-        // 释放 result_ptr 的 WASM 内存（在 return 之前统一释放）
-        if result_ptr > 0
-            && let Some(dealloc_fn) = &func.dealloc_fn
-        {
-            let _ = dealloc_fn
-                .call_async(&mut *store, (result_ptr as i32, result_len as i32))
-                .await;
-        }
-
-        output_result
+/// 解码 `aiway_call` 返回值
+fn decode_call_result(
+    memory: &Memory,
+    store: &mut Store<WasmStoreCtx>,
+    result: i64,
+) -> Result<HookControl, PluginError> {
+    let status = result >> 32;
+    let low = (result & 0xFFFFFFFF) as u32;
+    if status != 0 {
+        let mut err_buf = vec![0u8; low as usize];
+        memory
+            .read(&*store, ERROR_BUF_PTR as usize, &mut err_buf)
+            .map_err(|e| PluginError::ExecuteError(format!("read error msg failed: {}", e)))?;
+        return Err(PluginError::ExecuteError(
+            String::from_utf8_lossy(&err_buf).to_string(),
+        ));
+    }
+    // 成功：低 32 位为控制流
+    match low {
+        c if c == HookControl::Continue as u32 => Ok(HookControl::Continue),
+        c if c == HookControl::Respond as u32 => Ok(HookControl::Respond),
+        c => Err(PluginError::ExecuteError(format!("unknown hook control: {c}"))),
     }
 }
 
@@ -396,122 +388,39 @@ impl Plugin for WasmPlugin {
 
     async fn on_request(
         &self,
-        config: &Value,
         ctx: &mut dyn PluginContext,
     ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
-        let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default(),
-            body: None,
-        };
-
-        let output = self.call_wasm(HOOK_ON_REQUEST, &input, http_ctx).await?;
-
-        match output.respond {
-            Some(r) => Ok(Outcome::Respond(Response {
-                status: r.status,
-                headers: r.headers,
-                body: r.body,
-            })),
-            None => Ok(Outcome::Continue),
-        }
+        self.finish(self.call_wasm(HOOK_ON_REQUEST, http_ctx).await)
     }
 
     async fn on_request_body(
         &self,
-        config: &Value,
-        body: &mut Option<Bytes>,
         ctx: &mut dyn PluginContext,
     ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
-        let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default(),
-            body: body.as_ref().map(|b| b.to_vec()),
-        };
-
-        let output = self
-            .call_wasm(HOOK_ON_REQUEST_BODY, &input, http_ctx)
-            .await?;
-
-        // 插件主动响应优先，body 修改仅在 Continue 时生效
-        if let Some(r) = output.respond {
-            return Ok(Outcome::Respond(Response {
-                status: r.status,
-                headers: r.headers,
-                body: r.body,
-            }));
-        }
-
-        if let Some(modified_body) = output.body {
-            *body = Some(Bytes::from(modified_body));
-        }
-
-        Ok(Outcome::Continue)
+        self.finish(self.call_wasm(HOOK_ON_REQUEST_BODY, http_ctx).await)
     }
 
     async fn on_response(
         &self,
-        config: &Value,
         ctx: &mut dyn PluginContext,
     ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
-        let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default(),
-            body: None,
-        };
-
-        let output = self.call_wasm(HOOK_ON_RESPONSE, &input, http_ctx).await?;
-
-        match output.respond {
-            Some(r) => Ok(Outcome::Respond(Response {
-                status: r.status,
-                headers: r.headers,
-                body: r.body,
-            })),
-            None => Ok(Outcome::Continue),
-        }
+        self.finish(self.call_wasm(HOOK_ON_RESPONSE, http_ctx).await)
     }
 
     async fn on_response_body(
         &self,
-        config: &Value,
-        body: &mut Option<Bytes>,
         ctx: &mut dyn PluginContext,
     ) -> Result<Outcome, PluginError> {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
-        let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default(),
-            body: body.as_ref().map(|b| b.to_vec()),
-        };
-
-        let output = self
-            .call_wasm(HOOK_ON_RESPONSE_BODY, &input, http_ctx)
-            .await?;
-
-        // 插件主动响应优先，body 修改仅在 Continue 时生效
-        if let Some(r) = output.respond {
-            return Ok(Outcome::Respond(Response {
-                status: r.status,
-                headers: r.headers,
-                body: r.body,
-            }));
-        }
-
-        if let Some(modified_body) = output.body {
-            *body = Some(Bytes::from(modified_body));
-        }
-
-        Ok(Outcome::Continue)
+        self.finish(self.call_wasm(HOOK_ON_RESPONSE_BODY, http_ctx).await)
     }
 
-    async fn on_logging(&self, config: &Value, ctx: &mut dyn PluginContext) {
+    async fn on_logging(&self, ctx: &mut dyn PluginContext) {
         let http_ctx = ctx.as_any_mut().downcast_mut::<HttpContext>().unwrap();
-        let input = WasmInput {
-            config: serde_json::to_string(config).unwrap_or_default(),
-            body: None,
-        };
-
-        let _ = self.call_wasm(HOOK_ON_LOGGING, &input, http_ctx).await;
+        let _ = self.call_wasm(HOOK_ON_LOGGING, http_ctx).await;
     }
 }
 

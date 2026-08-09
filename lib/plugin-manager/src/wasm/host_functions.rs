@@ -8,8 +8,8 @@
 //! 指针在 `call_wasm` 前注入、调用后清除，期间当前线程被阻塞或独占，
 //! 因此指针始终有效且不存在数据竞争。
 
-use super::WasmStoreCtx;
 use super::network::NETWORK;
+use super::{RespondData, WasmStoreCtx};
 use aiway_plugin::PluginError::LoadError;
 use aiway_plugin::{
     HttpRequest, HttpResponse, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_TRACE, LOG_WARN,
@@ -18,6 +18,7 @@ use aiway_protocol::context::{
     HeaderOp, HttpContext, REQUEST_HEADER_PATCH, REQUEST_URI_PATCH, RESPONSE_HEADER_PATCH,
     parts::SerdeParts,
 };
+use bytes::Bytes;
 use http::Uri;
 use mime;
 use std::future::Future;
@@ -137,6 +138,24 @@ pub fn register(linker: &mut Linker<WasmStoreCtx>) -> Result<(), crate::wasm::Pl
             },
         )
         .map_err(|e| LoadError(format!("register host_http_request: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_config", host_config)
+        .map_err(|e| LoadError(format!("register host_config: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_get_request_body", host_get_request_body)
+        .map_err(|e| LoadError(format!("register host_get_request_body: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_set_request_body", host_set_request_body)
+        .map_err(|e| LoadError(format!("register host_set_request_body: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_get_response_body", host_get_response_body)
+        .map_err(|e| LoadError(format!("register host_get_response_body: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_set_response_body", host_set_response_body)
+        .map_err(|e| LoadError(format!("register host_set_response_body: {e}")))?;
+    linker
+        .func_wrap("aiway", "host_respond", host_respond)
+        .map_err(|e| LoadError(format!("register host_respond: {e}")))?;
 
     #[cfg(feature = "model")]
     {
@@ -185,7 +204,7 @@ fn host_get_request_header(
     buf_len: i32,
 ) -> i32 {
     let name = read_from_wasm(&mut caller, name_ptr, name_len);
-    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
+    match http_ctx(&caller).get_any_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
         Some(parts) => match parts.headers.as_ref().and_then(|h| h.get(&name)) {
             Some(v) => v
                 .to_str()
@@ -217,13 +236,14 @@ fn host_get_routing_url(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_
 /// 获取响应体大小，不存在时返回 -1
 fn host_get_response_body_size(caller: Caller<'_, WasmStoreCtx>) -> i64 {
     http_ctx(&caller)
-        .get_state::<i64>(HttpContext::RESPONSE_BODY_SIZE)
+        .get_any_state::<i64>(HttpContext::RESPONSE_BODY_SIZE)
+        .map(|v| *v)
         .unwrap_or(-1)
 }
 
 /// 设置响应体大小
 fn host_set_response_body_size(mut caller: Caller<'_, WasmStoreCtx>, size: i64) {
-    http_ctx_mut(&mut caller).insert_state(HttpContext::RESPONSE_BODY_SIZE, size);
+    http_ctx_mut(&mut caller).insert_any_state(HttpContext::RESPONSE_BODY_SIZE, size);
 }
 
 /// 获取模型名称，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
@@ -260,7 +280,7 @@ fn host_get_response_header(
     buf_len: i32,
 ) -> i32 {
     let name = read_from_wasm(&mut caller, name_ptr, name_len);
-    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS) {
+    match http_ctx(&caller).get_any_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS) {
         Some(parts) => match parts.headers.as_ref().and_then(|h| h.get(&name)) {
             Some(v) => v
                 .to_str()
@@ -274,7 +294,7 @@ fn host_get_response_header(
 
 /// 获取请求方法，写入 WASM 缓冲区
 fn host_method(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
-    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
+    match http_ctx(&caller).get_any_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
         Some(parts) => match parts.method {
             Some(ref m) => write_to_wasm(&mut caller, buf_ptr, buf_len, m.as_str().as_bytes()),
             None => 0,
@@ -285,7 +305,7 @@ fn host_method(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32)
 
 /// 获取请求 URI，写入 WASM 缓冲区
 fn host_uri(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
-    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
+    match http_ctx(&caller).get_any_state::<SerdeParts>(HttpContext::REQUEST_RAW_PARTS) {
         Some(parts) => match parts.uri {
             Some(ref u) => write_to_wasm(&mut caller, buf_ptr, buf_len, u.to_string().as_bytes()),
             None => 0,
@@ -304,7 +324,7 @@ fn host_set_uri(mut caller: Caller<'_, WasmStoreCtx>, uri_ptr: i32, uri_len: i32
 
 /// 获取响应状态码，不存在时返回 -1
 fn host_status(caller: Caller<'_, WasmStoreCtx>) -> i32 {
-    match http_ctx(&caller).get_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS) {
+    match http_ctx(&caller).get_any_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS) {
         Some(parts) => match parts.status_code {
             Some(s) => s.as_u16() as i32,
             None => -1,
@@ -587,4 +607,67 @@ async fn host_http_request(
     let resp_bytes = bincode::serialize(&http_response).expect("serialize HttpResponse failed");
 
     write_to_wasm(&mut caller, resp_buf_ptr, resp_buf_len, &resp_bytes)
+}
+
+// ---------------------------------------------------------------------------
+// 插件数据流宿主函数：config/body/respond 均从 HttpContext 上下文存取
+// ---------------------------------------------------------------------------
+
+/// 获取插件配置（JSON 字符串），写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
+fn host_config(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
+    let config = http_ctx(&caller)
+        .get_any_state::<String>(HttpContext::PLUGIN_CONFIG)
+        .map(|v| (*v).clone())
+        .unwrap_or_default();
+    write_to_wasm(&mut caller, buf_ptr, buf_len, config.as_bytes())
+}
+
+/// 获取当前请求体，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
+fn host_get_request_body(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
+    match http_ctx(&caller).get_any_state::<Bytes>(HttpContext::REQUEST_BODY) {
+        Some(body) => write_to_wasm(&mut caller, buf_ptr, buf_len, &body[..]),
+        None => 0,
+    }
+}
+
+/// 覆盖请求体（写入 HttpContext，后续插件与转发上游均可见）
+fn host_set_request_body(mut caller: Caller<'_, WasmStoreCtx>, body_ptr: i32, body_len: i32) {
+    let body = read_bytes_from_wasm(&mut caller, body_ptr, body_len);
+    http_ctx(&caller).insert_any_state(HttpContext::REQUEST_BODY, Bytes::from(body));
+}
+
+/// 获取当前响应体，写入 WASM 缓冲区，返回数据实际长度（snprintf 语义）
+fn host_get_response_body(mut caller: Caller<'_, WasmStoreCtx>, buf_ptr: i32, buf_len: i32) -> i32 {
+    match http_ctx(&caller).get_any_state::<Bytes>(HttpContext::RESPONSE_BODY) {
+        Some(body) => write_to_wasm(&mut caller, buf_ptr, buf_len, &body[..]),
+        None => 0,
+    }
+}
+
+/// 覆盖响应体（写入 HttpContext，后续插件与客户端均可见）
+fn host_set_response_body(mut caller: Caller<'_, WasmStoreCtx>, body_ptr: i32, body_len: i32) {
+    let body = read_bytes_from_wasm(&mut caller, body_ptr, body_len);
+    http_ctx(&caller).insert_any_state(HttpContext::RESPONSE_BODY, Bytes::from(body));
+}
+
+/// 记录插件主动响应（status + bincode(headers) + body），存入 HttpContext RESPOND state
+fn host_respond(
+    mut caller: Caller<'_, WasmStoreCtx>,
+    status: i32,
+    hdr_ptr: i32,
+    hdr_len: i32,
+    body_ptr: i32,
+    body_len: i32,
+) {
+    let headers_bytes = read_bytes_from_wasm(&mut caller, hdr_ptr, hdr_len);
+    let headers = bincode::deserialize::<Vec<(String, String)>>(&headers_bytes).unwrap_or_default();
+    let body = read_bytes_from_wasm(&mut caller, body_ptr, body_len);
+    http_ctx(&caller).insert_any_state(
+        HttpContext::RESPOND,
+        RespondData {
+            status: status.max(0) as u16,
+            headers,
+            body,
+        },
+    );
 }

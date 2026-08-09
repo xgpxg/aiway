@@ -10,7 +10,7 @@ mod wasm_ctx;
 
 pub use crate::plugin_ctx::{
     FormPart, HttpRequest, HttpRequestBuilder, HttpResponse, LOG_DEBUG, LOG_ERROR, LOG_INFO,
-    LOG_TRACE, LOG_WARN, PluginContext,
+    LOG_TRACE, LOG_WARN, PluginContext, PluginContextExt,
 };
 pub use async_trait::async_trait;
 pub use bincode;
@@ -20,7 +20,7 @@ pub use semver::Version;
 use serde::de::DeserializeOwned;
 pub use serde_json;
 use serde_json::Value;
-pub use wasm_ctx::WasmHttpContext;
+pub use wasm_ctx::{respond_to_host, WasmHttpContext};
 
 /// 插件信息
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -134,29 +134,33 @@ pub trait Plugin: Send + Sync {
     fn info(&self) -> PluginInfo;
 
     /// 请求阶段，可改写请求头
-    async fn on_request(&self, _config: &Value, _ctx: &mut dyn PluginContext) -> PluginResult {
+    ///
+    /// 插件配置通过 `ctx.config()` 获取，请求头通过 `ctx` 读写。
+    async fn on_request(&self, _ctx: &mut dyn PluginContext) -> PluginResult {
         Ok(Outcome::Continue)
     }
 
     /// 请求体阶段，可改写请求体
-    #[rustfmt::skip]
-    async fn on_request_body(&self, _config: &Value, _body: &mut Option<Bytes>, _ctx: &mut dyn PluginContext) -> PluginResult {
+    ///
+    /// 请求体通过 `ctx.request_body()` 读取、`ctx.set_request_body()` 覆盖。
+    async fn on_request_body(&self, _ctx: &mut dyn PluginContext) -> PluginResult {
         Ok(Outcome::Continue)
     }
 
     /// 响应阶段，可改写响应头
-    async fn on_response(&self, _config: &Value, _ctx: &mut dyn PluginContext) -> PluginResult {
+    async fn on_response(&self, _ctx: &mut dyn PluginContext) -> PluginResult {
         Ok(Outcome::Continue)
     }
 
     /// 响应体阶段，可改写响应体
-    #[rustfmt::skip]
-    async fn on_response_body(&self, _config: &Value, _body: &mut Option<Bytes>, _ctx: &mut dyn PluginContext) -> PluginResult {
+    ///
+    /// 响应体通过 `ctx.response_body()` 读取、`ctx.set_response_body()` 覆盖。
+    async fn on_response_body(&self, _ctx: &mut dyn PluginContext) -> PluginResult {
         Ok(Outcome::Continue)
     }
 
     /// 日志阶段
-    async fn on_logging(&self, _: &Value, _: &mut dyn PluginContext) {}
+    async fn on_logging(&self, _: &mut dyn PluginContext) {}
 }
 
 pub trait PluginConfigExt: Plugin {

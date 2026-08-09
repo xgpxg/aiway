@@ -95,7 +95,7 @@ impl ProxyHttp for Gateway {
         ctx: &mut Self::CTX,
     ) -> pingora::Result<bool, Box<Error>> {
         // 记录原始Parts
-        ctx.insert_state(
+        ctx.insert_any_state(
             HttpContext::REQUEST_RAW_PARTS,
             SerdeParts::from(session.req_header().deref()),
         );
@@ -161,6 +161,9 @@ impl ProxyHttp for Gateway {
     where
         Self::CTX: Send + Sync,
     {
+        // 执行全局响应阶段插件
+        plugin::run_on_request_body(PluginType::Global, body, ctx).await?;
+
         // 执行插件
         plugin::run_on_request_body(PluginType::Route, body, ctx).await?;
 
@@ -192,7 +195,7 @@ impl ProxyHttp for Gateway {
         resp: &mut ResponseHeader,
         ctx: &mut Self::CTX,
     ) -> pingora::Result<(), Box<Error>> {
-        ctx.insert_state(
+        ctx.insert_any_state(
             HttpContext::RESPONSE_SERDE_PARTS,
             SerdeParts::from(&**resp.deref()),
         );
@@ -232,9 +235,9 @@ impl ProxyHttp for Gateway {
             })
         })?;
 
-        ctx.insert_state(
+        ctx.insert_any_state(
             HttpContext::RESPONSE_BODY_SIZE,
-            body.as_ref().map(|b| b.len()),
+            body.as_ref().map(|b| b.len() as i64),
         );
 
         Ok(None)
@@ -384,11 +387,11 @@ async fn respond_plugin(
 
     // 记录插件主动响应到上下文，供日志阶段使用。
     // 插件主动响应不经过 upstream_response_filter，需要在此写入响应信息。
-    ctx.insert_state(
+    ctx.insert_any_state(
         HttpContext::RESPONSE_SERDE_PARTS,
         SerdeParts::from(response.deref()),
     );
-    ctx.insert_state(HttpContext::RESPONSE_BODY_SIZE, resp.body.len());
+    ctx.insert_any_state(HttpContext::RESPONSE_BODY_SIZE, resp.body.len() as i64);
 
     session
         .write_response_header(Box::new(response), false)

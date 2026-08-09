@@ -4,6 +4,7 @@
 
 #[cfg(feature = "model")]
 use aiway_protocol::model::Provider;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -13,7 +14,9 @@ use aiway_protocol::context::{
     HeaderOp, HttpContext, REQUEST_HEADER_PATCH, REQUEST_URI_PATCH, RESPONSE_HEADER_PATCH,
     parts::SerdeParts,
 };
+use bytes::Bytes;
 use http::Uri;
+use serde_json::Value;
 
 /// 日志级别常量，与 WASM 侧和 Host 侧保持一致
 pub const LOG_ERROR: i32 = 1;
@@ -160,70 +163,95 @@ impl HttpResponse {
 pub trait PluginContext: Send {
     /// 请求 ID
     fn request_id(&self) -> String;
+
     /// 请求时间戳（毫秒）
     fn request_ts(&self) -> i64;
+
     /// 是否为 SSE 连接
     fn is_sse(&self) -> bool;
+
     /// 是否为 WebSocket 连接
     fn is_websocket(&self) -> bool;
+
     /// 获取原始请求头（从 REQUEST_RAW_PARTS 读取，跨阶段可用）
     fn get_request_header(&self, name: &str) -> Option<String>;
+
     /// 获取原始响应头（从 RESPONSE_SERDE_PARTS 读取，跨阶段可用）
     fn get_response_header(&self, name: &str) -> Option<String>;
+
     /// 请求方法（仅 on_request 阶段有值）
     fn method(&self) -> Option<String>;
+
     /// 请求 URI（仅 on_request 阶段有值）
     fn uri(&self) -> Option<Uri>;
+
     /// 覆盖写入请求 URI（仅 on_request 阶段生效，路径改写场景）
     fn set_uri(&mut self, uri: Uri);
+
     /// 响应状态码（仅 on_response 阶段有值）
     fn status(&self) -> Option<u16>;
+
     /// 路由名称
     fn get_route_name(&self) -> Option<String>;
+
     /// 路由目标地址
     fn get_routing_url(&self) -> Option<String>;
+
     /// 响应体大小
     fn get_response_body_size(&self) -> Option<i64>;
+
     /// 设置响应体大小
     fn set_response_body_size(&mut self, size: i64);
 
     /// 覆盖写入请求头
     fn set_request_header(&mut self, name: &str, value: &str);
+
     /// 覆盖写入响应头
     fn set_response_header(&mut self, name: &str, value: &str);
+
     /// 多值追加请求头
     fn append_request_header(&mut self, name: &str, value: &str);
+
     /// 多值追加响应头
     fn append_response_header(&mut self, name: &str, value: &str);
+
     /// 移除请求头
     fn remove_request_header(&mut self, name: &str);
+
     /// 移除响应头
     fn remove_response_header(&mut self, name: &str);
+
     /// 模型名称（仅模型插件可用）
     #[cfg(feature = "model")]
     fn get_model_name(&self) -> Option<String>;
+
     /// 模型提供商（仅模型插件可用）
     #[cfg(feature = "model")]
     fn get_model_provider(&self) -> Option<Provider>;
 
     /// 输出日志（底层接口，level 使用 LOG_* 常量）
     fn log(&self, level: i32, msg: &str);
+
     /// 输出 ERROR 级别日志
     fn log_error(&self, msg: &str) {
         self.log(LOG_ERROR, msg);
     }
+
     /// 输出 WARN 级别日志
     fn log_warn(&self, msg: &str) {
         self.log(LOG_WARN, msg);
     }
+
     /// 输出 INFO 级别日志
     fn log_info(&self, msg: &str) {
         self.log(LOG_INFO, msg);
     }
+
     /// 输出 DEBUG 级别日志
     fn log_debug(&self, msg: &str) {
         self.log(LOG_DEBUG, msg);
     }
+
     /// 输出 TRACE 级别日志
     fn log_trace(&self, msg: &str) {
         self.log(LOG_TRACE, msg);
@@ -235,6 +263,21 @@ pub trait PluginContext: Send {
             "http_request not supported in this context".into(),
         ))
     }
+
+    /// 插件配置（JSON 字符串），由 Host 在调用前注入到上下文
+    fn config(&self) -> Option<String>;
+
+    /// 当前请求体（仅 `on_request_body` 阶段有值）
+    fn request_body(&self) -> Option<Bytes>;
+
+    /// 设置请求体（后续插件与转发上游均可见）
+    fn set_request_body(&mut self, _body: Vec<u8>);
+
+    /// 当前响应体（仅 `on_response_body` 阶段有值）
+    fn response_body(&self) -> Option<Bytes>;
+
+    /// 设置响应体
+    fn set_response_body(&mut self, _body: Vec<u8>);
 
     /// 类型擦除，供宿主侧 downcast 获取 `HttpContext`
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -258,7 +301,7 @@ impl PluginContext for HttpContext {
     }
 
     fn get_request_header(&self, name: &str) -> Option<String> {
-        self.get_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
+        self.get_any_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
             .and_then(|parts| {
                 parts
                     .headers
@@ -270,7 +313,7 @@ impl PluginContext for HttpContext {
     }
 
     fn get_response_header(&self, name: &str) -> Option<String> {
-        self.get_state::<SerdeParts>(Self::RESPONSE_SERDE_PARTS)
+        self.get_any_state::<SerdeParts>(Self::RESPONSE_SERDE_PARTS)
             .and_then(|parts| {
                 parts
                     .headers
@@ -282,13 +325,13 @@ impl PluginContext for HttpContext {
     }
 
     fn method(&self) -> Option<String> {
-        self.get_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
-            .and_then(|parts| parts.method.map(|m| m.to_string()))
+        self.get_any_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
+            .and_then(|parts| parts.method.as_ref().map(|m| m.to_string()))
     }
 
     fn uri(&self) -> Option<Uri> {
-        self.get_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
-            .and_then(|parts| parts.uri)
+        self.get_any_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
+            .and_then(|parts| parts.uri.clone())
     }
 
     fn set_uri(&mut self, uri: Uri) {
@@ -296,7 +339,7 @@ impl PluginContext for HttpContext {
     }
 
     fn status(&self) -> Option<u16> {
-        self.get_state::<SerdeParts>(Self::RESPONSE_SERDE_PARTS)
+        self.get_any_state::<SerdeParts>(Self::RESPONSE_SERDE_PARTS)
             .and_then(|parts| parts.status_code.map(|s| s.as_u16()))
     }
 
@@ -309,11 +352,12 @@ impl PluginContext for HttpContext {
     }
 
     fn get_response_body_size(&self) -> Option<i64> {
-        self.get_state::<i64>(Self::RESPONSE_BODY_SIZE)
+        self.get_any_state::<i64>(Self::RESPONSE_BODY_SIZE)
+            .map(|v| *v)
     }
 
     fn set_response_body_size(&mut self, size: i64) {
-        self.insert_state(Self::RESPONSE_BODY_SIZE, size);
+        self.insert_any_state(Self::RESPONSE_BODY_SIZE, size);
     }
 
     fn set_request_header(&mut self, name: &str, value: &str) {
@@ -391,7 +435,50 @@ impl PluginContext for HttpContext {
         }
     }
 
+    fn config(&self) -> Option<String> {
+        self.get_any_state::<String>(Self::PLUGIN_CONFIG)
+            .map(|v| (*v).clone())
+    }
+
+    fn request_body(&self) -> Option<Bytes> {
+        self.get_any_state::<Bytes>(Self::REQUEST_BODY)
+            .map(|b| (*b).clone())
+    }
+
+    fn set_request_body(&mut self, body: Vec<u8>) {
+        self.insert_any_state(Self::REQUEST_BODY, Bytes::from(body));
+    }
+
+    fn response_body(&self) -> Option<Bytes> {
+        self.get_any_state::<Bytes>(Self::RESPONSE_BODY)
+            .map(|b| (*b).clone())
+    }
+
+    fn set_response_body(&mut self, body: Vec<u8>) {
+        self.insert_any_state(Self::RESPONSE_BODY, Bytes::from(body));
+    }
+
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }
+
+pub trait PluginContextExt: PluginContext {
+    /// 解析插件配置为 JSON Value（基于 `config`）
+    fn config_as_json(&self) -> Option<Value> {
+        self.config().and_then(|s| serde_json::from_str(&s).ok())
+    }
+    /// 解析插件配置到指定类型（基于 `config_json`）
+    fn config_as<T>(&self) -> Result<T, PluginError>
+    where
+        T: DeserializeOwned,
+    {
+        let json = self
+            .config_as_json()
+            .ok_or_else(|| PluginError::SerdeError("plugin config not set in context".into()))?;
+        serde_json::from_value(json)
+            .map_err(|e| PluginError::SerdeError(format!("parse plugin config failed: {e}")))
+    }
+}
+
+impl<T: PluginContext + ?Sized> PluginContextExt for T {}

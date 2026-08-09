@@ -47,7 +47,7 @@ pub(crate) async fn handle_model_request(
             .join(", ")
     );
 
-    ctx.insert_state(HttpContext::MODEL_PROXY_MODEL, model.to_string());
+    ctx.insert_any_state(HttpContext::MODEL_PROXY_MODEL, model.to_string());
 
     // 故障自动切换：依次尝试每个候选提供商
     for (i, provider) in providers.iter().enumerate() {
@@ -59,7 +59,7 @@ pub(crate) async fn handle_model_request(
         );
 
         // 更新上下文中的提供商信息
-        ctx.insert_state(HttpContext::MODEL_PROXY_PROVIDER, provider.clone());
+        ctx.insert_any_state(HttpContext::MODEL_PROXY_PROVIDER, provider.clone());
 
         // 插件类型（与当前提供商绑定）
         let plugin_type = PluginType::Model {
@@ -135,7 +135,7 @@ pub(crate) async fn handle_model_request(
         .await
         .map(|_| true);
 
-    ctx.insert_state(HttpContext::RESPONSE_STATUS_CODE, 502);
+    ctx.insert_any_state(HttpContext::RESPONSE_STATUS_CODE, 502);
 
     log_model_call(ctx, &format!("{}:{}", args.address, args.port));
 
@@ -201,7 +201,7 @@ async fn execute_response_and_send(
     log::info!("[ModelProxy] 构建响应头，状态码：{}", response.status());
 
     // 存储响应状态码
-    ctx.insert_state(
+    ctx.insert_any_state(
         HttpContext::RESPONSE_STATUS_CODE,
         response.status().as_u16(),
     );
@@ -268,7 +268,7 @@ async fn stream_response_body(
 
     // 标记 SSE 状态到上下文
     if is_sse {
-        ctx.insert_state(HttpContext::IS_SSE, true);
+        ctx.insert_any_state(HttpContext::IS_SSE, true);
     }
 
     let mut stream = response.bytes_stream();
@@ -325,7 +325,7 @@ async fn stream_response_body(
 
     // TTFT 存入上下文
     if let Some(ts) = first_chunk_ts {
-        ctx.insert_state(HttpContext::MODEL_TTFT_MS, ts - ctx.request_ts());
+        ctx.insert_any_state(HttpContext::MODEL_TTFT_MS, ts - ctx.request_ts());
     }
 
     // 发送结束标记
@@ -382,17 +382,17 @@ fn extract_and_store_tokens(body: &[u8], config: &TokenUsageConfig, ctx: &HttpCo
     if let Some(path) = &config.prompt_tokens
         && let Some(v) = json_path_extract(&json, path)
     {
-        ctx.insert_state(HttpContext::MODEL_USAGE_PROMPT_TOKENS, v);
+        ctx.insert_any_state(HttpContext::MODEL_USAGE_PROMPT_TOKENS, v);
     }
     if let Some(path) = &config.completion_tokens
         && let Some(v) = json_path_extract(&json, path)
     {
-        ctx.insert_state(HttpContext::MODEL_USAGE_COMPLETION_TOKENS, v);
+        ctx.insert_any_state(HttpContext::MODEL_USAGE_COMPLETION_TOKENS, v);
     }
     if let Some(path) = &config.total_tokens
         && let Some(v) = json_path_extract(&json, path)
     {
-        ctx.insert_state(HttpContext::MODEL_USAGE_TOTAL_TOKENS, v);
+        ctx.insert_any_state(HttpContext::MODEL_USAGE_TOTAL_TOKENS, v);
     }
 }
 
@@ -420,11 +420,21 @@ pub(crate) fn log_model_call(ctx: &HttpContext, node_address: &str) {
     let request_time = ctx.request_ts();
     let is_stream = ctx.is_sse();
 
-    let ttft_ms: Option<i64> = ctx.get_state(HttpContext::MODEL_TTFT_MS);
-    let prompt_tokens: Option<i64> = ctx.get_state(HttpContext::MODEL_USAGE_PROMPT_TOKENS);
-    let completion_tokens: Option<i64> = ctx.get_state(HttpContext::MODEL_USAGE_COMPLETION_TOKENS);
-    let total_tokens: Option<i64> = ctx.get_state(HttpContext::MODEL_USAGE_TOTAL_TOKENS);
-    let status_code: Option<u16> = ctx.get_state(HttpContext::RESPONSE_STATUS_CODE);
+    let ttft_ms: Option<i64> = ctx
+        .get_any_state::<i64>(HttpContext::MODEL_TTFT_MS)
+        .map(|v| *v);
+    let prompt_tokens: Option<i64> = ctx
+        .get_any_state::<i64>(HttpContext::MODEL_USAGE_PROMPT_TOKENS)
+        .map(|v| *v);
+    let completion_tokens: Option<i64> = ctx
+        .get_any_state::<i64>(HttpContext::MODEL_USAGE_COMPLETION_TOKENS)
+        .map(|v| *v);
+    let total_tokens: Option<i64> = ctx
+        .get_any_state::<i64>(HttpContext::MODEL_USAGE_TOTAL_TOKENS)
+        .map(|v| *v);
+    let status_code: Option<u16> = ctx
+        .get_any_state::<u16>(HttpContext::RESPONSE_STATUS_CODE)
+        .map(|v| *v);
 
     let log = ModelCallLog {
         request_id: ctx.request_id(),

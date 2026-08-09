@@ -7,6 +7,7 @@ use crate::PluginError;
 use crate::plugin_ctx::{HttpRequest, HttpResponse, PluginContext};
 #[cfg(feature = "model")]
 use aiway_protocol::model::Provider;
+use bytes::Bytes;
 use http::Uri;
 use std::any::Any;
 // ---------------------------------------------------------------------------
@@ -76,6 +77,18 @@ unsafe extern "C" {
         resp_buf_ptr: *mut u8,
         resp_buf_len: i32,
     ) -> i32;
+    fn host_config(buf_ptr: *mut u8, buf_len: i32) -> i32;
+    fn host_get_request_body(buf_ptr: *mut u8, buf_len: i32) -> i32;
+    fn host_set_request_body(body_ptr: *const u8, body_len: i32);
+    fn host_get_response_body(buf_ptr: *mut u8, buf_len: i32) -> i32;
+    fn host_set_response_body(body_ptr: *const u8, body_len: i32);
+    fn host_respond(
+        status: i32,
+        hdr_ptr: *const u8,
+        hdr_len: i32,
+        body_ptr: *const u8,
+        body_len: i32,
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +108,16 @@ fn read_host_string(
     f: unsafe extern "C" fn(*mut u8, i32) -> i32,
     initial_len: i32,
 ) -> Option<String> {
+    read_host_bytes(f, initial_len).map(|bytes| String::from_utf8_lossy(&bytes).to_string())
+}
+
+/// 通过宿主函数读取字节数组。
+///
+/// 语义同 [`read_host_string`]：初始缓冲区不足时自动扩容重试。
+fn read_host_bytes(
+    f: unsafe extern "C" fn(*mut u8, i32) -> i32,
+    initial_len: i32,
+) -> Option<Vec<u8>> {
     let mut buf = vec![0u8; initial_len as usize];
     let needed = unsafe { f(buf.as_mut_ptr(), initial_len) };
     if needed <= 0 {
@@ -107,9 +130,25 @@ fn read_host_string(
         if len <= 0 {
             return None;
         }
-        return Some(String::from_utf8_lossy(&buf[..len as usize]).to_string());
+        return Some(buf[..len as usize].to_vec());
     }
-    Some(String::from_utf8_lossy(&buf[..needed]).to_string())
+    Some(buf[..needed].to_vec())
+}
+
+/// 通知宿主记录插件主动响应（由 SDK 导出宏在 `Outcome::Respond` 时调用）。
+///
+/// headers 以 bincode 序列化传入，Host 侧反序列化后存入 HttpContext。
+pub fn respond_to_host(status: u16, headers: Vec<(String, String)>, body: Vec<u8>) {
+    let headers_bytes = bincode::serialize(&headers).unwrap_or_default();
+    unsafe {
+        host_respond(
+            status as i32,
+            headers_bytes.as_ptr(),
+            headers_bytes.len() as i32,
+            body.as_ptr(),
+            body.len() as i32,
+        );
+    }
 }
 
 /// 通过宿主函数读取 bincode 序列化数据并反序列化。
@@ -346,6 +385,26 @@ impl PluginContext for WasmHttpContext {
             return bincode::deserialize(&buf[..needed])
                 .map_err(|e| PluginError::HttpError(format!("deserialize response failed: {e}")));
         }
+    }
+
+    fn config(&self) -> Option<String> {
+        read_host_string(host_config, 1024)
+    }
+
+    fn request_body(&self) -> Option<Bytes> {
+        read_host_bytes(host_get_request_body, 4096).map(Bytes::from)
+    }
+
+    fn set_request_body(&mut self, body: Vec<u8>) {
+        unsafe { host_set_request_body(body.as_ptr(), body.len() as i32) }
+    }
+
+    fn response_body(&self) -> Option<Bytes> {
+        read_host_bytes(host_get_response_body, 4096).map(Bytes::from)
+    }
+
+    fn set_response_body(&mut self, body: Vec<u8>) {
+        unsafe { host_set_response_body(body.as_ptr(), body.len() as i32) }
     }
 
     fn as_any_mut(&mut self) -> &mut dyn Any {

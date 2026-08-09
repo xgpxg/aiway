@@ -67,7 +67,7 @@ pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContex
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
-    let response_parts = ctx.get_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS);
+    let response_parts = ctx.get_any_state::<SerdeParts>(HttpContext::RESPONSE_SERDE_PARTS);
 
     let status_code = response_parts
         .as_ref()
@@ -79,7 +79,7 @@ pub async fn log_handle(session: &Session, err: Option<&Error>, ctx: &HttpContex
             })
         });
 
-    let body_size = ctx.get_state::<usize>(HttpContext::RESPONSE_BODY_SIZE);
+    let body_size = ctx.get_any_state::<i64>(HttpContext::RESPONSE_BODY_SIZE).map(|v| *v as usize);
 
     let content_type = response_parts
         .as_ref()
