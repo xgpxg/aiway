@@ -82,10 +82,11 @@ parse_wrk_output() {
     local requests_per_sec=$(echo "$output" | grep -oP 'Requests/sec:\s+\K[\d.]+' || echo "0")
     local transfer_per_sec=$(echo "$output" | grep -oP 'Transfer/sec:\s+\K[\d.]+\s*\w+' || echo "N/A")
     local total_requests=$(echo "$output" | grep -oP '\d+\s+requests in ' | grep -oP '^\d+' || echo "0")
-    local errors_connect=$(echo "$output" | grep -oP 'Connect\s+\K\d+' || echo "0")
-    local errors_read=$(echo "$output" | grep -oP 'Read\s+\K\d+' || echo "0")
-    local errors_write=$(echo "$output" | grep -oP 'Write\s+\K\d+' || echo "0")
-    local errors_timeout=$(echo "$output" | grep -oP 'Timeout\s+\K\d+' || echo "0")
+    local errors_connect=$(echo "$output" | grep -oP 'connect\s+\K\d+' || echo "0")
+    local errors_read=$(echo "$output" | grep -oP 'read\s+\K\d+' || echo "0")
+    local errors_write=$(echo "$output" | grep -oP 'write\s+\K\d+' || echo "0")
+    local errors_timeout=$(echo "$output" | grep -oP 'timeout\s+\K\d+' || echo "0")
+    local errors_http=$(echo "$output" | grep -oP 'Non-2xx or 3xx responses:\s+\K\d+' || echo "0")
     # Latency 行格式: "    Latency     4.12ms   22.06ms 208.97ms   97.02%"
     # 第2列=Avg, 第3列=Stdev, 第4列=Max
     local latency_line=$(echo "$output" | grep -P '^\s+Latency\s' | grep -v 'Distribution' || echo "")
@@ -96,7 +97,7 @@ parse_wrk_output() {
     local latency_p50=$(echo "$output" | grep -oP '50%\s+\K[\d.]+\w+' || echo "N/A")
     local latency_p99=$(echo "$output" | grep -oP '99%\s+\K[\d.]+\w+' || echo "N/A")
 
-    echo "${requests_per_sec}|${transfer_per_sec}|${total_requests}|${errors_connect}|${errors_read}|${errors_write}|${errors_timeout}|${lat_avg}|${lat_max}|${latency_p50}|${latency_p99}"
+    echo "${requests_per_sec}|${transfer_per_sec}|${total_requests}|${errors_connect}|${errors_read}|${errors_write}|${errors_timeout}|${errors_http}|${lat_avg}|${lat_max}|${latency_p50}|${latency_p99}"
 }
 
 # -------------------- 单轮压测 --------------------
@@ -115,20 +116,20 @@ run_single_bench() {
     local parsed
     parsed=$(parse_wrk_output "$output")
 
-    IFS='|' read -r rps transfer total_req err_conn err_read err_write err_timeout lat_avg lat_max lat_p50 lat_p99 <<< "$parsed"
+    IFS='|' read -r rps transfer total_req err_conn err_read err_write err_timeout err_http lat_avg lat_max lat_p50 lat_p99 <<< "$parsed"
 
-    local total_errors=$((err_conn + err_read + err_write + err_timeout))
+    local total_errors=$((err_conn + err_read + err_write + err_timeout + err_http))
 
     echo -e "  ${GREEN}QPS:${NC} ${rps}  ${GREEN}吞吐:${NC} ${transfer}  ${GREEN}总请求:${NC} ${total_req}"
     echo -e "  ${GREEN}延迟 Avg:${NC} ${lat_avg}  ${GREEN}P50:${NC} ${lat_p50}  ${GREEN}P99:${NC} ${lat_p99}  ${GREEN}Max:${NC} ${lat_max}"
     if [[ ${total_errors} -gt 0 ]]; then
-        echo -e "  ${RED}错误: 连接=${err_conn} 读取=${err_read} 写入=${err_write} 超时=${err_timeout}${NC}"
+        echo -e "  ${RED}错误: 连接=${err_conn} 读取=${err_read} 写入=${err_write} 超时=${err_timeout} HTTP非2xx/3xx=${err_http}${NC}"
     else
         echo -e "  ${GREEN}错误: 0${NC}"
     fi
     echo ""
 
-    echo "${threads}|${connections}|${rps}|${transfer}|${total_req}|${err_conn}|${err_read}|${err_write}|${err_timeout}|${lat_avg}|${lat_max}|${lat_p50}|${lat_p99}" >> "$SUMMARY_FILE"
+    echo "${threads}|${connections}|${rps}|${transfer}|${total_req}|${err_conn}|${err_read}|${err_write}|${err_timeout}|${err_http}|${lat_avg}|${lat_max}|${lat_p50}|${lat_p99}" >> "$SUMMARY_FILE"
 }
 
 # -------------------- 汇总报告 --------------------
@@ -136,13 +137,13 @@ print_summary() {
     echo ""
     echo -e "${BOLD}======================================== 汇总报告 ========================================${NC}"
     echo ""
-    printf "${BOLD}%-10s %-12s %-12s %-16s %-12s %-12s %-12s %-12s %-12s %-14s %-12s %-12s %-12s${NC}\n" \
-        "线程" "连接" "QPS" "吞吐/s" "总请求" "连接错" "读错" "写错" "超时" "Avg延迟" "P50" "P99" "Max"
+    printf "${BOLD}%-10s %-12s %-12s %-16s %-12s %-12s %-12s %-12s %-12s %-12s %-14s %-12s %-12s %-12s${NC}\n" \
+        "线程" "连接" "QPS" "吞吐/s" "总请求" "连接错" "读错" "写错" "超时" "HTTP错" "Avg延迟" "P50" "P99" "Max"
     printf '%.0s─' $(seq 1 160); echo ""
 
-    while IFS='|' read -r t c rps transfer total_req err_conn err_read err_write err_timeout lat_avg lat_max lat_p50 lat_p99; do
-        printf "%-8s %-10s %-12s %-14s %-10s %-10s %-10s %-10s %-10s %-12s %-12s %-12s %-12s\n" \
-            "$t" "$c" "$rps" "$transfer" "$total_req" "$err_conn" "$err_read" "$err_write" "$err_timeout" "$lat_avg" "$lat_p50" "$lat_p99" "$lat_max"
+    while IFS='|' read -r t c rps transfer total_req err_conn err_read err_write err_timeout err_http lat_avg lat_max lat_p50 lat_p99; do
+        printf "%-8s %-10s %-12s %-14s %-10s %-10s %-10s %-10s %-10s %-10s %-12s %-12s %-12s %-12s\n" \
+            "$t" "$c" "$rps" "$transfer" "$total_req" "$err_conn" "$err_read" "$err_write" "$err_timeout" "$err_http" "$lat_avg" "$lat_p50" "$lat_p99" "$lat_max"
     done < "$SUMMARY_FILE"
 
     echo ""
