@@ -1,6 +1,6 @@
 [package]
 name = "aiway-protocol"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 authors = ["wxg <1584929962@qq.com>"]
 description = "The aiway protocol lib"
