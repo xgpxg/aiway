@@ -100,6 +100,28 @@ unsafe extern "C" {
 /// 不持有任何状态，所有数据通过宿主函数按需获取。
 pub struct WasmHttpContext;
 
+fn read_host_bytes_with<F>(mut call: F, initial_len: i32) -> Option<Vec<u8>>
+where
+    F: FnMut(*mut u8, i32) -> i32,
+{
+    let mut buf = vec![0u8; initial_len as usize];
+    let needed = call(buf.as_mut_ptr(), initial_len);
+    if needed <= 0 {
+        return None;
+    }
+    let mut needed = needed as usize;
+    if needed > buf.len() {
+        buf.resize(needed, 0);
+        let len = call(buf.as_mut_ptr(), buf.len() as i32);
+        if len <= 0 {
+            return None;
+        }
+        needed = (len as usize).min(buf.len());
+    }
+    buf.truncate(needed);
+    Some(buf)
+}
+
 /// 通过宿主函数读取字符串。
 ///
 /// `f` 为宿主函数，遵循 snprintf 语义：返回数据实际长度（可能大于 `buf_len`）。
@@ -108,7 +130,7 @@ fn read_host_string(
     f: unsafe extern "C" fn(*mut u8, i32) -> i32,
     initial_len: i32,
 ) -> Option<String> {
-    read_host_bytes(f, initial_len).map(|bytes| String::from_utf8_lossy(&bytes).to_string())
+    read_host_bytes(f, initial_len).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
 }
 
 /// 通过宿主函数读取字节数组。
@@ -118,21 +140,10 @@ fn read_host_bytes(
     f: unsafe extern "C" fn(*mut u8, i32) -> i32,
     initial_len: i32,
 ) -> Option<Vec<u8>> {
-    let mut buf = vec![0u8; initial_len as usize];
-    let needed = unsafe { f(buf.as_mut_ptr(), initial_len) };
-    if needed <= 0 {
-        return None;
-    }
-    let needed = needed as usize;
-    if needed > buf.len() {
-        buf.resize(needed, 0);
-        let len = unsafe { f(buf.as_mut_ptr(), needed as i32) };
-        if len <= 0 {
-            return None;
-        }
-        return Some(buf[..len as usize].to_vec());
-    }
-    Some(buf[..needed].to_vec())
+    read_host_bytes_with(
+        |buf_ptr, buf_len| unsafe { f(buf_ptr, buf_len) },
+        initial_len,
+    )
 }
 
 /// 通知宿主记录插件主动响应（由 SDK 导出宏在 `Outcome::Respond` 时调用）。
@@ -159,21 +170,7 @@ fn read_host_bincode<T: serde::de::DeserializeOwned>(
     f: unsafe extern "C" fn(*mut u8, i32) -> i32,
     initial_len: i32,
 ) -> Option<T> {
-    let mut buf = vec![0u8; initial_len as usize];
-    let needed = unsafe { f(buf.as_mut_ptr(), initial_len) };
-    if needed <= 0 {
-        return None;
-    }
-    let needed = needed as usize;
-    if needed > buf.len() {
-        buf.resize(needed, 0);
-        let len = unsafe { f(buf.as_mut_ptr(), needed as i32) };
-        if len <= 0 {
-            return None;
-        }
-        return bincode::deserialize(&buf[..len as usize]).ok();
-    }
-    bincode::deserialize(&buf[..needed]).ok()
+    read_host_bytes(f, initial_len).and_then(|bytes| bincode::deserialize(&bytes).ok())
 }
 
 impl PluginContext for WasmHttpContext {
@@ -195,68 +192,34 @@ impl PluginContext for WasmHttpContext {
 
     fn get_request_header(&self, name: &str) -> Option<String> {
         let name_bytes = name.as_bytes();
-        let mut buf = vec![0u8; 256];
-        let needed = unsafe {
-            host_get_request_header(
-                name_bytes.as_ptr(),
-                name_bytes.len() as i32,
-                buf.as_mut_ptr(),
-                buf.len() as i32,
-            )
-        };
-        if needed <= 0 {
-            return None;
-        }
-        let needed = needed as usize;
-        if needed > buf.len() {
-            buf.resize(needed, 0);
-            let len = unsafe {
+        read_host_bytes_with(
+            |buf_ptr, buf_len| unsafe {
                 host_get_request_header(
                     name_bytes.as_ptr(),
                     name_bytes.len() as i32,
-                    buf.as_mut_ptr(),
-                    buf.len() as i32,
+                    buf_ptr,
+                    buf_len,
                 )
-            };
-            if len <= 0 {
-                return None;
-            }
-            return Some(String::from_utf8_lossy(&buf[..len as usize]).to_string());
-        }
-        Some(String::from_utf8_lossy(&buf[..needed]).to_string())
+            },
+            256,
+        )
+        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
     }
 
     fn get_response_header(&self, name: &str) -> Option<String> {
         let name_bytes = name.as_bytes();
-        let mut buf = vec![0u8; 256];
-        let needed = unsafe {
-            host_get_response_header(
-                name_bytes.as_ptr(),
-                name_bytes.len() as i32,
-                buf.as_mut_ptr(),
-                buf.len() as i32,
-            )
-        };
-        if needed <= 0 {
-            return None;
-        }
-        let needed = needed as usize;
-        if needed > buf.len() {
-            buf.resize(needed, 0);
-            let len = unsafe {
+        read_host_bytes_with(
+            |buf_ptr, buf_len| unsafe {
                 host_get_response_header(
                     name_bytes.as_ptr(),
                     name_bytes.len() as i32,
-                    buf.as_mut_ptr(),
-                    buf.len() as i32,
+                    buf_ptr,
+                    buf_len,
                 )
-            };
-            if len <= 0 {
-                return None;
-            }
-            return Some(String::from_utf8_lossy(&buf[..len as usize]).to_string());
-        }
-        Some(String::from_utf8_lossy(&buf[..needed]).to_string())
+            },
+            256,
+        )
+        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
     }
 
     fn method(&self) -> Option<String> {

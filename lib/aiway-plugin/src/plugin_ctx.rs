@@ -150,16 +150,13 @@ impl HttpResponse {
     }
 
     /// 将响应体作为 JSON 反序列化
-    pub fn json<T: serde::de::DeserializeOwned>(&self) -> Result<T, PluginError> {
+    pub fn json<T: DeserializeOwned>(&self) -> Result<T, PluginError> {
         serde_json::from_slice(&self.body)
             .map_err(|e| PluginError::SerdeError(format!("JSON deserialize failed: {e}")))
     }
 }
 
-/// 插件上下文接口
-///
-/// 宿主侧通过 `HttpContext` 实现，WASM 侧通过 `WasmHttpContext` 实现。
-/// 插件开发者面向此 trait 编程，不依赖具体实现。
+/// 插件上下文
 pub trait PluginContext: Send {
     /// 请求 ID
     fn request_id(&self) -> String;
