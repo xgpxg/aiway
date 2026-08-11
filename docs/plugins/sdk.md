@@ -1,157 +1,217 @@
-# 开发一个插件
+## 插件 SDK
 
-本文介绍如何开发一个 WASM 插件，并在网关中使用。
+详情可参考：[插件 SDK](https://docs.rs/aiway-plugin/)
 
-> 更详细的 API 参考，可查阅：[aiway-plugin](https://docs.rs/aiway-plugin)。
+## Plugin trait
 
-## 添加依赖
+| 方法                   | 说明                                 |
+|----------------------|------------------------------------|
+| `name()`             | 插件名称（全局唯一）                         |
+| `info()`             | 返回 `PluginInfo`（版本、默认配置、描述、README） |
+| `on_request()`       | 请求阶段，可读写请求头、改写 URI                 |
+| `on_request_body()`  | 请求体阶段，可读写请求体                       |
+| `on_response()`      | 响应阶段，可读写响应头                        |
+| `on_response_body()` | 响应体阶段，可读写响应体                       |
+| `on_logging()`       | 日志阶段，请求结束后执行，不可中断流程                |
 
-```toml
-[dependencies]
-aiway-plugin = "0.3"
+## PluginInfo
 
-[lib]
-crate-type = ["cdylib"]
-```
+| 字段               | 类型               | 说明                |
+|------------------|------------------|-------------------|
+| `version`        | `Version`        | 插件版本（语义化版本）       |
+| `default_config` | `Value`          | 默认配置              |
+| `description`    | `String`         | 插件功能描述            |
+| `readme`         | `Option<String>` | 使用手册（Markdown 文本） |
 
-## 实现 Plugin trait
+## 控制流 Outcome
 
-```rust
-use aiway_plugin::{
-    async_trait, log_info, serde_json::Value, Outcome, Plugin, PluginInfo, PluginResult,
-    PluginContext, Version,
-};
+各阶段返回 `PluginResult`（`Result<Outcome, PluginError>`）：
 
-struct MyPlugin;
+| 值                            | 含义                          |
+|------------------------------|-----------------------------|
+| `Outcome::Continue`          | 继续执行下一个插件或后续流程              |
+| `Outcome::Respond(Response)` | 终止插件链，直接发送响应（如预检、缓存命中、mock） |
 
-impl MyPlugin {
-    pub fn new() -> Self {
-        MyPlugin
-    }
-}
+`Response` 结构：`status: u16`、`headers: Vec<(String, String)>`、`body: Vec<u8>`。
 
-#[async_trait]
-impl Plugin for MyPlugin {
-    fn name(&self) -> &str {
-        "my-plugin"
-    }
+便捷方法：
 
-    fn info(&self) -> PluginInfo {
-        PluginInfo {
-            version: Version::new(0, 1, 0),
-            default_config: Value::Null,
-            description: "My first plugin".into(),
-            readme: None,
-        }
-    }
+- `Outcome::goon()`：继续执行
+- `Outcome::respond(status, headers, body)`：主动响应
+- `Outcome::reject(status, msg)`：拒绝请求，用于限流（429）、鉴权失败（403）、参数校验（400）等
+- `Outcome::execute_error(msg)` / `Outcome::not_found(msg)`：返回对应错误
 
-    async fn on_request(&self, ctx: &mut dyn PluginContext) -> PluginResult {
-        log_info!(ctx, "My First Plugin!");
-        Ok(Outcome::Continue)
-    }
-}
-```
+## PluginError
 
-## 导出插件
+| 变体             | 说明           |
+|----------------|--------------|
+| `ExecuteError` | 插件业务逻辑错误     |
+| `NotFound`     | 插件不存在        |
+| `LoadError`    | 插件加载失败       |
+| `SerdeError`   | 序列化/反序列化错误   |
+| `HttpError`    | 发起 HTTP 调用错误 |
+
+插件返回 `Err` 统一映射为网关 502。
+
+## 导出宏
 
 ```rust
 aiway_plugin::export_wasm!(MyPlugin);
 ```
 
-## 编译
+生成 WASM 导出函数（`plugin_info`、`aiway_call` 等），插件必须调用。内部通过 `block_on` 执行异步钩子，WASM 环境无真正异步
+I/O，插件中禁止使用异步网络等操作。
 
-```bash
-cargo build --release --target wasm32-wasip1
+## 日志宏
 
-# 产物路径：target/wasm32-wasip1/release/my-plugin.wasm
-```
-
-## Plugin trait 接口
-
-| 方法                 | 阶段    | 说明                                                      |
-|--------------------|-------|---------------------------------------------------------|
-| `on_request`       | 请求阶段  | 可改写请求头、请求 URI                                           |
-| `on_request_body`  | 请求体阶段 | 通过 `ctx.request_body()` 读取、`set_request_body()` 改写请求体   |
-| `on_response`      | 响应阶段  | 可改写响应头                                                  |
-| `on_response_body` | 响应体阶段 | 通过 `ctx.response_body()` 读取、`set_response_body()` 改写响应体 |
-| `on_logging`       | 日志阶段  | 请求结束后记录日志，无返回值                                          |
-
-阶段方法返回 `PluginResult`（即 `Result<Outcome, PluginError>`），通过 `Outcome` 控制流程：
-
-| 返回值                          | 行为                                |
-|------------------------------|-----------------------------------|
-| `Outcome::Continue`          | 继续执行下一个插件                         |
-| `Outcome::Respond(Response)` | 插件直接响应，终止后续插件与转发（如鉴权失败、缓存命中、mock） |
-
-常用便捷构造：
-
-- `Outcome::goon()`：继续执行，等价于 `Ok(Outcome::Continue)`
-- `Outcome::reject(status, msg)`：拒绝请求，常用于限流(429)、鉴权失败(403)、参数校验(400)
-- `Outcome::respond(status, headers, body)`：自定义主动响应
-- `Outcome::execute_error(msg)` / `Outcome::not_found(msg)`：返回业务错误
-
-## 上下文 API
-
-`PluginContext` 提供请求全生命周期的数据读写，插件开发者面向此 trait 编程：
-
-| 分类   | 方法                                                                                                    |
-|------|-------------------------------------------------------------------------------------------------------|
-| 请求信息 | `request_id()` `request_ts()` `method()` `uri()` `set_uri()` `is_sse()` `is_websocket()`              |
-| 路由信息 | `get_route_name()` `get_routing_url()`                                                                |
-| 请求头  | `get_request_header()` `set_request_header()` `append_request_header()` `remove_request_header()`     |
-| 响应头  | `get_response_header()` `set_response_header()` `append_response_header()` `remove_response_header()` |
-| 请求体  | `request_body()` `set_request_body()`                                                                 |
-| 响应体  | `response_body()` `set_response_body()`                                                               |
-| 响应信息 | `status()` `get_response_body_size()` `set_response_body_size()`                                      |
-| 模型信息 | `get_model_name()` `get_model_provider()`（仅启用 `model` feature 时可用）                                    |
-
-### 配置获取
-
-插件配置由控制台下发，经上下文获取：
+提供格式化日志宏，输出到网关日志系统：
 
 ```rust
-use aiway_plugin::PluginContextExt; // config_as 等扩展方法
-
-// 反序列化为自定义类型（推荐）
-let cfg: MyConfig = ctx.config_as() ?;
-
-// 原始 JSON
-let json: Option<aiway_plugin::serde_json::Value> = ctx.config_as_json();
+log_error!(ctx, "request failed: {}", err);
+log_warn!(ctx, ...);
+log_info!(ctx, ...);
+log_debug!(ctx, ...);
+log_trace!(ctx, ...);
 ```
 
-### 日志
+# 插件上下文
 
-使用格式化宏输出日志（对应 ERROR/WARN/INFO/DEBUG/TRACE 五个级别）：
+`PluginContext` 是插件与网关交互的核心接口，宿主侧和 WASM 侧分别提供实现，插件开发者面向此 trait 编程，不依赖具体实现。
+
+## 请求元数据
+
+| 方法               | 返回               | 说明                            |
+|------------------|------------------|-------------------------------|
+| `request_id()`   | `String`         | 当前请求的唯一 ID                    |
+| `request_ts()`   | `i64`            | 网关收到请求的时间戳（毫秒）                |
+| `is_sse()`       | `bool`           | 是否为 SSE（Server-Sent Events）连接 |
+| `is_websocket()` | `bool`           | 是否为 WebSocket 连接              |
+| `method()`       | `Option<String>` | 请求方法                          |
+| `uri()`          | `Option<Uri>`    | 请求 URI                        |
+
+## 头部读写
+
+| 方法                                    | 说明                               |
+|---------------------------------------|----------------------------------|
+| `get_request_header(name)`            | 读取原始请求头，跨阶段可用                    |
+| `get_response_header(name)`           | 读取原始响应头，跨阶段可用                    |
+| `set_request_header(name, value)`     | 覆盖写入请求头                          |
+| `set_response_header(name, value)`    | 覆盖写入响应头                          |
+| `append_request_header(name, value)`  | 多值追加请求头                          |
+| `append_response_header(name, value)` | 多值追加响应头                          |
+| `remove_request_header(name)`         | 移除请求头                            |
+| `remove_response_header(name)`        | 移除响应头                            |
+| `set_uri(uri)`                        | 改写请求 URI（路径改写，仅 on_request 阶段生效） |
+
+## 请求/响应体
+
+| 方法                        | 说明                               |
+|---------------------------|----------------------------------|
+| `request_body()`          | 读取当前请求体（仅 on_request_body 阶段有值）  |
+| `set_request_body(body)`  | 覆盖请求体，后续插件与转发上游均可见               |
+| `response_body()`         | 读取当前响应体（仅 on_response_body 阶段有值） |
+| `set_response_body(body)` | 覆盖响应体                            |
+
+## 插件配置
+
+由网关在调用插件前注入，无需插件自行加载：
+
+| 方法                 | 说明                            |
+|--------------------|-------------------------------|
+| `config()`         | 插件配置（JSON 字符串）                |
+| `config_as_json()` | 将配置解析为 JSON `Value`（扩展 trait） |
+| `config_as<T>()`   | 将配置反序列化为指定类型（扩展 trait）        |
+
+## 路由信息
+
+| 方法                  | 返回               | 说明                   |
+|---------------------|------------------|----------------------|
+| `get_route_name()`  | `Option<String>` | 匹配到的路由名称             |
+| `get_routing_url()` | `Option<String>` | 负载均衡器选中的路由目标地址（含协议头） |
+
+## 响应信息
+
+| 方法                                        | 返回            | 说明                        |
+|-------------------------------------------|---------------|---------------------------|
+| `status()`                                | `Option<u16>` | 响应状态码（仅 on_response 阶段有值） |
+| `get_response_body_size()`                | `Option<i64>` | 响应体大小（字节），未设置时返回 `None`   |
+| `set_response_body_size(&mut self, size)` | -             | 设置响应体大小                   |
+
+## 模型信息（仅模型插件可用）
+
+以下方法仅在启用 `model` feature 时可用，仅在模型代理类型的插件中有效。
+
+| 方法                     | 返回                 | 说明         |
+|------------------------|--------------------|------------|
+| `get_model_name()`     | `Option<String>`   | 请求使用的模型名称  |
+| `get_model_provider()` | `Option<Provider>` | 命中的模型提供商信息 |
+
+## 日志输出
+
+`log(level, msg)` 为底层接口，`level` 使用日志级别常量；便捷方法输出到网关日志系统：
+
+| 方法               | 级别    | 常量          |
+|------------------|-------|-------------|
+| `log_error(msg)` | ERROR | `LOG_ERROR` |
+| `log_warn(msg)`  | WARN  | `LOG_WARN`  |
+| `log_info(msg)`  | INFO  | `LOG_INFO`  |
+| `log_debug(msg)` | DEBUG | `LOG_DEBUG` |
+| `log_trace(msg)` | TRACE | `LOG_TRACE` |
+
+## HTTP 请求
 
 ```rust
-log_info!(ctx, "request {} failed: {}", ctx.request_id(), err);
-log_error!(ctx, "...");
-log_warn!(ctx, "...");
-log_debug!(ctx, "...");
-log_trace!(ctx, "...");
+fn http_request(&self, req: &HttpRequest) -> Result<HttpResponse, PluginError>
 ```
 
-### 发起 HTTP 调用
+发起出站 HTTP 请求，例如调用第三方 API、认证服务等。默认实现返回错误；WASM 插件通过宿主函数 `host_http_request` 委托网关发送，默认支持。
 
-插件可通过 `http_request()` 调用外部服务，支持普通 body、URL 编码表单与 multipart：
+# 关联数据类型
+
+## HttpRequest
+
+| 字段           | 类型                                | 说明                                                         |
+|--------------|-----------------------------------|------------------------------------------------------------|
+| `method`     | `String`                          | HTTP 方法（GET、POST 等）                                        |
+| `url`        | `String`                          | 请求 URL                                                     |
+| `headers`    | `Vec<(String, String)>`           | 请求头列表                                                      |
+| `body`       | `Option<Vec<u8>>`                 | 请求体（原始字节）                                                  |
+| `form`       | `Option<HashMap<String, String>>` | URL 编码表单（与 body/multipart 互斥，优先级: multipart > form > body） |
+| `multipart`  | `Option<Vec<FormPart>>`           | Multipart 表单（与 body/form 互斥，优先级最高）                         |
+| `timeout_ms` | `u64`                             | 超时时间（毫秒），默认 10000                                          |
+
+## HttpRequestBuilder
+
+提供 Builder 模式便捷构造 `HttpRequest`：
 
 ```rust
-use aiway_plugin::HttpRequestBuilder;
-
-let resp = ctx.http_request(
-& HttpRequestBuilder::new("POST", "https://api.example.com/submit")
-.header("Content-Type", "application/json")
-.body(r#"{"key":"value"}"#.into())
-.timeout_ms(5_000)
-.build(),
-) ?;
-
-let text = resp.text() ?;
-let json: aiway_plugin::serde_json::Value = resp.json() ?;
+let req = HttpRequestBuilder::new("POST", "https://api.example.com/verify")
+.header("Authorization", "Bearer token")
+.body(body_bytes)
+.timeout_ms(5000)
+.build();
 ```
 
-## 上传到控制台
+支持的方法：`header()`、`body()`、`form()`、`add_form_field()`、`multipart()`、`add_multipart_part()`、`timeout_ms()`。
 
-在控制台插件管理页面上传 `.wasm` 文件，配置插件参数后自动同步到网关节点。
+## FormPart（Multipart 表单字段）
 
-至此，一个插件就开发好了。
+| 字段          | 类型               | 说明                              |
+|-------------|------------------|---------------------------------|
+| `key`       | `String`         | 字段名                             |
+| `value`     | `Vec<u8>`        | 字段值（文本或文件内容）                    |
+| `file_name` | `Option<String>` | 文件名（文件上传时设置）                    |
+| `mime_type` | `Option<String>` | MIME 类型（如 text/plain、image/png） |
+
+## HttpResponse
+
+| 字段        | 类型                      | 说明        |
+|-----------|-------------------------|-----------|
+| `status`  | `u16`                   | HTTP 状态码  |
+| `headers` | `Vec<(String, String)>` | 响应头列表     |
+| `body`    | `Vec<u8>`               | 响应体（原始字节） |
+
+便捷方法：
+
+- `text()` -> `Result<String>`：将响应体作为 UTF-8 文本返回
+- `json<T>()` -> `Result<T>`：将响应体反序列化为指定类型
