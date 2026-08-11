@@ -10,6 +10,24 @@ aiway 插件系统基于 WASM，在沙箱环境中安全执行。
 
 ![plugin-arch.png](../images/plugin-arch.png)
 
+## 执行时机
+
+插件按作用范围分为三类：全局插件、路由插件、模型插件（仅作用于模型代理请求）。
+
+- 请求阶段
+
+  预处理/防火墙 → 全局插件 `on_request` → 路由匹配 → 鉴权 → 路由插件 `on_request` → 负载均衡 → 全局/路由 `on_request_body` → 转发上游
+
+- 响应阶段
+
+  服务响应 → 路由插件 `on_response` → 全局插件 `on_response` → 路由/全局 `on_response_body` → 响应客户端
+
+- 日志阶段
+
+  请求结束 → `on_logging`（路由 → 模型 → 全局）
+
+
+
 ## 已有插件
 
 我们提供了一些插件实现，可直接下载使用。 插件仓库：[aiway-plugins](https://github.com/xgpxg/aiway-plugins)。
