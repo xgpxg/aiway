@@ -74,11 +74,11 @@ log_debug!(ctx, ...);
 log_trace!(ctx, ...);
 ```
 
-# 插件上下文
+## 插件上下文
 
 `PluginContext` 是插件与网关交互的核心接口，宿主侧和 WASM 侧分别提供实现，插件开发者面向此 trait 编程，不依赖具体实现。
 
-## 请求元数据
+### 请求元数据
 
 | 方法               | 返回               | 说明                            |
 |------------------|------------------|-------------------------------|
@@ -89,7 +89,7 @@ log_trace!(ctx, ...);
 | `method()`       | `Option<String>` | 请求方法                          |
 | `uri()`          | `Option<Uri>`    | 请求 URI                        |
 
-## 头部读写
+### 头部读写
 
 | 方法                                    | 说明                               |
 |---------------------------------------|----------------------------------|
@@ -103,7 +103,7 @@ log_trace!(ctx, ...);
 | `remove_response_header(name)`        | 移除响应头                            |
 | `set_uri(uri)`                        | 改写请求 URI（路径改写，仅 on_request 阶段生效） |
 
-## 请求/响应体
+### 请求/响应体
 
 | 方法                        | 说明                               |
 |---------------------------|----------------------------------|
@@ -112,7 +112,7 @@ log_trace!(ctx, ...);
 | `response_body()`         | 读取当前响应体（仅 on_response_body 阶段有值） |
 | `set_response_body(body)` | 覆盖响应体                            |
 
-## 插件配置
+### 插件配置
 
 由网关在调用插件前注入，无需插件自行加载：
 
@@ -122,14 +122,14 @@ log_trace!(ctx, ...);
 | `config_as_json()` | 将配置解析为 JSON `Value`（扩展 trait） |
 | `config_as<T>()`   | 将配置反序列化为指定类型（扩展 trait）        |
 
-## 路由信息
+### 路由信息
 
 | 方法                  | 返回               | 说明                   |
 |---------------------|------------------|----------------------|
 | `get_route_name()`  | `Option<String>` | 匹配到的路由名称             |
 | `get_routing_url()` | `Option<String>` | 负载均衡器选中的路由目标地址（含协议头） |
 
-## 响应信息
+### 响应信息
 
 | 方法                                        | 返回            | 说明                        |
 |-------------------------------------------|---------------|---------------------------|
@@ -137,7 +137,7 @@ log_trace!(ctx, ...);
 | `get_response_body_size()`                | `Option<i64>` | 响应体大小（字节），未设置时返回 `None`   |
 | `set_response_body_size(&mut self, size)` | -             | 设置响应体大小                   |
 
-## 模型信息（仅模型插件可用）
+### 模型信息（仅模型插件可用）
 
 以下方法仅在启用 `model` feature 时可用，仅在模型代理类型的插件中有效。
 
@@ -146,7 +146,7 @@ log_trace!(ctx, ...);
 | `get_model_name()`     | `Option<String>`   | 请求使用的模型名称  |
 | `get_model_provider()` | `Option<Provider>` | 命中的模型提供商信息 |
 
-## 日志输出
+### 日志输出
 
 `log(level, msg)` 为底层接口，`level` 使用日志级别常量；便捷方法输出到网关日志系统：
 
@@ -158,7 +158,7 @@ log_trace!(ctx, ...);
 | `log_debug(msg)` | DEBUG | `LOG_DEBUG` |
 | `log_trace(msg)` | TRACE | `LOG_TRACE` |
 
-## HTTP 请求
+### HTTP 请求
 
 ```rust
 fn http_request(&self, req: &HttpRequest) -> Result<HttpResponse, PluginError>
@@ -166,9 +166,9 @@ fn http_request(&self, req: &HttpRequest) -> Result<HttpResponse, PluginError>
 
 发起出站 HTTP 请求，例如调用第三方 API、认证服务等。默认实现返回错误；WASM 插件通过宿主函数 `host_http_request` 委托网关发送，默认支持。
 
-# 关联数据类型
+## 关联数据类型
 
-## HttpRequest
+### HttpRequest
 
 | 字段           | 类型                                | 说明                                                         |
 |--------------|-----------------------------------|------------------------------------------------------------|
@@ -180,7 +180,7 @@ fn http_request(&self, req: &HttpRequest) -> Result<HttpResponse, PluginError>
 | `multipart`  | `Option<Vec<FormPart>>`           | Multipart 表单（与 body/form 互斥，优先级最高）                         |
 | `timeout_ms` | `u64`                             | 超时时间（毫秒），默认 10000                                          |
 
-## HttpRequestBuilder
+### HttpRequestBuilder
 
 提供 Builder 模式便捷构造 `HttpRequest`：
 
@@ -194,7 +194,7 @@ let req = HttpRequestBuilder::new("POST", "https://api.example.com/verify")
 
 支持的方法：`header()`、`body()`、`form()`、`add_form_field()`、`multipart()`、`add_multipart_part()`、`timeout_ms()`。
 
-## FormPart（Multipart 表单字段）
+### FormPart（Multipart 表单字段）
 
 | 字段          | 类型               | 说明                              |
 |-------------|------------------|---------------------------------|
@@ -203,7 +203,7 @@ let req = HttpRequestBuilder::new("POST", "https://api.example.com/verify")
 | `file_name` | `Option<String>` | 文件名（文件上传时设置）                    |
 | `mime_type` | `Option<String>` | MIME 类型（如 text/plain、image/png） |
 
-## HttpResponse
+### HttpResponse
 
 | 字段        | 类型                      | 说明        |
 |-----------|-------------------------|-----------|
