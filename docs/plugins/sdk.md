@@ -59,8 +59,7 @@
 aiway_plugin::export_wasm!(MyPlugin);
 ```
 
-生成 WASM 导出函数（`plugin_info`、`aiway_call` 等），插件必须调用。内部通过 `block_on` 执行异步钩子，WASM 环境无真正异步
-I/O，插件中禁止使用异步网络等操作。
+生成 WASM 导出函数（`plugin_info`、`aiway_call` 等），插件必须调用。
 
 ## 日志宏
 
