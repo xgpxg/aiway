@@ -1,4 +1,4 @@
-## 插件 SDK
+# 插件 SDK
 
 详情可参考：[插件 SDK](https://docs.rs/aiway-plugin/)
 
