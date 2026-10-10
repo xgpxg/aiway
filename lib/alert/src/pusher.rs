@@ -142,8 +142,29 @@ impl Pusher {
         }
     }
 
-    async fn push_webhook(_config: &CustomConfig, _message: &AlertMessage) {
-        todo!()
+    /// 推送到自定义 WebHook
+    ///
+    /// 接收端为通用服务，直接以 JSON 发送结构化的告警消息，
+    /// 由接收方按需解析，不做预格式化。
+    async fn push_webhook(config: &CustomConfig, message: &AlertMessage) {
+        log::debug!("push message to custom webhook");
+
+        match HTTP_CLIENT
+            .post(config.webhook.as_str())
+            .json(message)
+            .send()
+            .await
+        {
+            Ok(response) => {
+                log::debug!(
+                    "custom webhook response: {}",
+                    response.text().await.unwrap_or_default()
+                );
+            }
+            Err(e) => {
+                log::error!("send custom webhook message error: {}", e);
+            }
+        }
     }
 
     fn format_title_and_content(title: &str, content: &str) -> (String, String) {
