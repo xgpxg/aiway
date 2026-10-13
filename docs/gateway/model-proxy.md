@@ -52,7 +52,7 @@ my-model -> deepseek-v4-flash
 
 ### 对话补全
 
-- API: `POST` `/v1/model/completions`
+- API: `POST` `/v1/model/chat/completions`
 
 - 参数：详见 OpenAI API 相关文档
 
