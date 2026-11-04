@@ -6,7 +6,7 @@ use aiway_protocol::context::HttpContext;
 use pingora::prelude::*;
 use pingora::protocols::l4::socket::SocketAddr;
 
-pub async fn firewall_check(session: &mut Session, _: &mut HttpContext) -> HandlerResult<()> {
+pub async fn firewall_check(session: &mut Session, ctx: &mut HttpContext) -> HandlerResult<()> {
     let headers = &session.req_header().headers;
 
     let fallback = session
@@ -17,6 +17,9 @@ pub async fn firewall_check(session: &mut Session, _: &mut HttpContext) -> Handl
         })
         .unwrap_or_default();
     let ip = get_real_ip(headers, fallback);
+
+    // 将客户端真实 IP 存入上下文，供负载均衡的 IP 哈希策略使用
+    ctx.insert_any_state(HttpContext::CLIENT_IP, ip.clone());
 
     let referer = headers
         .get(Headers::REFERER)

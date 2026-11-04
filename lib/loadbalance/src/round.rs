@@ -1,4 +1,4 @@
-use crate::LoadBalance;
+use crate::{LoadBalance, Node, SelectOptions, healthy_indices};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// 轮询负载均衡
@@ -13,48 +13,60 @@ impl RoundRobinLoadBalance {
         }
     }
 }
+
 impl Default for RoundRobinLoadBalance {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T: Clone> LoadBalance<T> for RoundRobinLoadBalance {
-    fn select(&self, instances: &[T]) -> Option<T> {
-        if instances.is_empty() {
-            return None;
+impl LoadBalance for RoundRobinLoadBalance {
+    fn order(&self, nodes: &[Node], unhealthy: &[usize], _opt: &SelectOptions) -> Vec<usize> {
+        // 剔除不健康实例
+        let mut healthy = healthy_indices(nodes.len(), unhealthy);
+        if healthy.is_empty() {
+            return healthy;
         }
+        // 推进计数器一次，从当前轮询位置开始旋转
+        let counter = self.state.fetch_add(1, Ordering::Relaxed);
+        let start = counter % healthy.len();
+        healthy.rotate_left(start);
+        healthy
+    }
+}
 
-        if instances.len() == 1 {
-            return Some(instances[0].clone());
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        let index = self.state.fetch_add(1, Ordering::Relaxed);
-        let index = index % instances.len();
-
-        Some(instances[index].clone())
+    #[test]
+    fn rotates_primary() {
+        let nodes = [
+            Node { addr: "a", weight: 1 },
+            Node { addr: "b", weight: 1 },
+            Node { addr: "c", weight: 1 },
+        ];
+        let lb = RoundRobinLoadBalance::new();
+        let opt = SelectOptions::default();
+        let p0 = lb.order(&nodes, &[], &opt)[0];
+        let p1 = lb.order(&nodes, &[], &opt)[0];
+        let p2 = lb.order(&nodes, &[], &opt)[0];
+        let p3 = lb.order(&nodes, &[], &opt)[0];
+        // 三次不同，第四次回到起点
+        assert_ne!(p0, p1);
+        assert_ne!(p1, p2);
+        assert_ne!(p0, p2);
+        assert_eq!(p0, p3);
     }
 
-    fn select_all(&self, instances: &[T], unhealthy_indices: &[usize]) -> Vec<T> {
-        if instances.is_empty() {
-            return vec![];
-        }
-
-        // 推进计数器一次
-        let counter = self.state.fetch_add(1, Ordering::Relaxed);
-
-        // 过滤不健康实例，从轮询位置开始旋转
-        let mut filtered: Vec<T> = instances
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| !unhealthy_indices.contains(i))
-            .map(|(_, v)| v.clone())
-            .collect();
-        let flen = filtered.len();
-        if flen > 0 {
-            let start = counter % flen;
-            filtered.rotate_left(start);
-        }
-        filtered
+    #[test]
+    fn skips_unhealthy() {
+        let nodes = [
+            Node { addr: "a", weight: 1 },
+            Node { addr: "b", weight: 1 },
+        ];
+        let lb = RoundRobinLoadBalance::new();
+        let order = lb.order(&nodes, &[1], &SelectOptions::default());
+        assert_eq!(order, vec![0]);
     }
 }

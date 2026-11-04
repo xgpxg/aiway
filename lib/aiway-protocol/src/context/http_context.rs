@@ -129,6 +129,8 @@ impl HttpContext {
     pub const RESPONSE_BODY: &'static str = ":resp:body";
     /// 插件主动响应（any_state 存储 plugin-manager 的 `RespondData`）
     pub const RESPOND: &'static str = ":plugin:respond";
+    /// 客户端真实 IP（供 IP 哈希等使用），由防火墙校验阶段写入（any_state 存储 `String`）
+    pub const CLIENT_IP: &'static str = ":client:ip";
     pub fn new() -> Self {
         let ctx = Self {
             routing: Default::default(),
@@ -218,7 +220,13 @@ impl HttpContext {
     }
 
     pub fn request_raw_parts(&self) -> Option<SerdeParts> {
-        self.get_any_state::<SerdeParts>(Self::REQUEST_RAW_PARTS).map(|v| (*v).clone())
+        self.get_any_state::<SerdeParts>(Self::REQUEST_RAW_PARTS)
+            .map(|v| (*v).clone())
+    }
+
+    pub fn client_ip(&self) -> Option<String> {
+        self.get_any_state::<String>(Self::CLIENT_IP)
+            .map(|v| (*v).clone())
     }
 
     /// 获取请求的模型名称

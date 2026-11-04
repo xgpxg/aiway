@@ -76,27 +76,20 @@ impl<'de> Deserialize<'de> for ServiceNode {
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LbStrategy {
     /// 随机
-    #[serde(rename = "random")]
     #[default]
     Random,
     /// 轮询
-    #[serde(rename = "round_robin")]
     RoundRobin,
     /// 加权轮询（平滑加权轮询）
-    #[serde(rename = "weighted_round_robin")]
     WeightedRoundRobin,
     /// 加权随机
-    #[serde(rename = "weighted_random")]
     WeightedRandom,
     /// 最少连接
-    #[serde(rename = "least_conn")]
     LeastConn,
-    /// 一致性哈希（按请求 path）
-    #[serde(rename = "consistent_hash")]
-    ConsistentHash,
     /// IP 哈希（会话保持，按客户端真实 IP）
-    #[serde(rename = "ip_hash")]
     IpHash,
+    // TODO 考虑一个Custom策略，由用户自定义需要的Key组合，再通过Hash环选择节点
 }

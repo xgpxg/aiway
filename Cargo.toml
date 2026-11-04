@@ -10,7 +10,7 @@ members = [
     "test-server",
     "lib/loadbalance",
     "lib/cache",
-    "aiway",
+    #"aiway",
     "logg",
     "lib/alert",
     "lib/plugin-manager",

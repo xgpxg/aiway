@@ -1,7 +1,7 @@
 use crate::server::db::models::service::ServiceStatus;
-use busi::req::PageReq;
-use aiway_protocol::gateway::service::LbStrategy;
+use aiway_protocol::gateway::service::{LbStrategy, ServiceNode};
 use busi::impl_pagination;
+use busi::req::PageReq;
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,10 +10,10 @@ pub struct ServiceAddReq {
     pub name: String,
     /// 描述
     pub description: String,
-    /// 服务节点
+    /// 服务节点，支持纯地址或带权重对象
     #[serde(default = "Vec::default")]
-    pub nodes: Vec<String>,
-    /// 负载均衡策略，可选值：random | round_robin
+    pub nodes: Vec<ServiceNode>,
+    /// 负载均衡策略
     #[serde(default = "LbStrategy::default")]
     pub lb: LbStrategy,
 }
@@ -23,9 +23,9 @@ pub struct ServiceUpdateReq {
     pub id: i64,
     /// 描述
     pub description: Option<String>,
-    /// 服务节点
-    pub nodes: Option<Vec<String>>,
-    /// 负载均衡策略，可选值：random | round_robin
+    /// 服务节点，支持纯地址或带权重对象
+    pub nodes: Option<Vec<ServiceNode>>,
+    /// 负载均衡策略
     pub lb: Option<LbStrategy>,
 }
 

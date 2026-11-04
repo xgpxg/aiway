@@ -120,17 +120,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aiway"
-version = "0.3.4"
-dependencies = [
- "anyhow",
- "clap",
- "logging",
- "rust-embed",
- "tokio",
-]
-
-[[package]]
 name = "aiway-plugin"
 version = "0.3.6"
 dependencies = [
@@ -147,7 +136,7 @@ dependencies = [
 
 [[package]]
 name = "aiway-protocol"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "base58",
  "bincode",
@@ -1139,7 +1128,7 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.3.8"
+version = "0.3.9"
 dependencies = [
  "aiway-protocol",
  "alert",
@@ -2321,7 +2310,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.3.10"
+version = "0.3.11"
 dependencies = [
  "aha-reqwest-eventsource",
  "aiway-protocol",
@@ -3332,7 +3321,7 @@ checksum = "6373607a59f0be73a39b6fe456b8192fcc3585f602af20751600e974dd455e77"
 
 [[package]]
 name = "loadbalance"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "fastrand",
 ]

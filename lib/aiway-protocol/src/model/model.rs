@@ -28,6 +28,7 @@ impl PartialEq for Model {
 impl Eq for Model {}
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LbStrategy {
     /// 随机
     #[default]

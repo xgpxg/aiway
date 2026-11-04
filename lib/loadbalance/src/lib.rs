@@ -1,31 +1,59 @@
 //! # 网关服务端的负载均衡
-//!
-//!
+
+mod hash_ring;
+mod least_conn;
 mod random;
 mod round;
+mod weighted_random;
+mod weighted_round;
 
+pub use hash_ring::HashLoadBalance;
+pub use least_conn::LeastConnLoadBalance;
 pub use random::RandomLoadBalance;
 pub use round::RoundRobinLoadBalance;
+pub use weighted_random::WeightedRandomLoadBalance;
+pub use weighted_round::WeightedRoundRobinLoadBalance;
 
-/// 实例提供者
-pub trait Instances<T: Clone> {
-    /// 获取所有实例
-    fn instances(&self) -> Vec<T>;
+/// 负载均衡输入节点视图
+///
+/// 借用服务节点的地址与权重，避免在热路径上产生克隆。
+#[derive(Debug, Clone, Copy)]
+pub struct Node<'a> {
+    /// 节点地址
+    pub addr: &'a str,
+    /// 权重，最小为 1
+    pub weight: u32,
 }
 
-impl Instances<String> for Vec<String> {
-    fn instances(&self) -> Vec<String> {
-        self.clone()
-    }
+/// 选择时的附加输入
+///
+/// 不同策略按需取用：哈希类策略用 `key`，最少连接用 `conn_counts`。
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SelectOptions<'a> {
+    /// 哈希键：IP 哈希传客户端真实 IP
+    pub key: Option<&'a str>,
+    /// 与 `nodes` 一一对齐的实时连接数，供最少连接策略使用
+    pub conn_counts: Option<&'a [u32]>,
 }
 
 /// 负载均衡器 trait
-pub trait LoadBalance<T: Clone>: Sync + Send {
-    /// 从实例中选择一个
-    fn select(&self, instances: &[T]) -> Option<T>;
+pub trait LoadBalance: Send + Sync {
+    /// 单点选择一个实例，返回其在 `nodes` 中的索引。
+    ///
+    /// 默认实现复用 [`LoadBalance::order`]（不健康列表为空），取排序后的首个。
+    fn select(&self, nodes: &[Node], opt: &SelectOptions) -> Option<usize> {
+        self.order(nodes, &[], opt).into_iter().next()
+    }
 
-    /// 返回按负载策略排序的所有健康实例。
-    fn select_all(&self, instances: &[T], unhealthy_indices: &[usize]) -> Vec<T>;
+    /// 返回按策略排序后的健康实例索引，第 0 个为主实例，其余为故障切换候选。
+    ///
+    /// - `unhealthy`：需要剔除的不健康实例索引
+    fn order(&self, nodes: &[Node], unhealthy: &[usize], opt: &SelectOptions) -> Vec<usize>;
+}
+
+/// 计算健康实例索引（剔除 `unhealthy`），保持原有顺序。
+pub(crate) fn healthy_indices(len: usize, unhealthy: &[usize]) -> Vec<usize> {
+    (0..len).filter(|i| !unhealthy.contains(i)).collect()
 }
 
 /// 负载均衡错误类型
@@ -41,105 +69,9 @@ impl std::fmt::Display for LoadBalanceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LoadBalanceError::GetInstancesError(e) => write!(f, "Failed to get instances: {}", e),
-            LoadBalanceError::NoAvailableInstance => {
-                write!(f, "No available instance")
-            }
+            LoadBalanceError::NoAvailableInstance => write!(f, "No available instance"),
         }
     }
 }
 
 impl std::error::Error for LoadBalanceError {}
-
-/// 负载均衡策略
-#[derive(Debug, Default)]
-pub enum LoadBalanceStrategy {
-    /// 随机
-    #[default]
-    Random,
-    /// 轮询
-    RoundRobin,
-}
-
-impl LoadBalanceStrategy {
-    #[allow(unused)]
-    pub fn as_schema(&self) -> &str {
-        match self {
-            LoadBalanceStrategy::Random => "r",
-            LoadBalanceStrategy::RoundRobin => "rr",
-        }
-    }
-}
-/*
-/// 服务定义
-pub struct Service<T> {
-    /// 服务实例列表
-    instances: Vec<T>,
-    /// 负载均衡策略
-    strategy: LoadBalanceStrategy,
-}
-
-impl<T: Clone> Service<T> {
-    /// 创建新的服务
-    pub fn new(instances: Vec<T>, strategy: LoadBalanceStrategy) -> Self {
-        Self {
-            instances,
-            strategy,
-        }
-    }
-
-    /// 获取服务实例
-    pub fn instances(&self) -> &[T] {
-        &self.instances
-    }
-
-    /// 获取负载均衡策略
-    pub fn strategy(&self) -> &LoadBalanceStrategy {
-        &self.strategy
-    }
-}
-
-/// 负载均衡工厂
-pub struct LoadBalanceFactory<T: Clone> {
-    services: DashMap<String, (Box<dyn LoadBalance<T>>, Box<dyn Instances<T>>)>,
-    random_lb: RandomLoadBalance,
-    round_lb: RoundRobinLoadBalance,
-}
-
-impl<T: Clone> LoadBalanceFactory<T> {
-    pub fn new() -> Self {
-        Self {
-            services: DashMap::new(),
-            random_lb: RandomLoadBalance::new(),
-            round_lb: RoundRobinLoadBalance::new(),
-        }
-    }
-
-    pub fn add(&self, key: &str, service: Box<dyn Instances<T>>, strategy: LoadBalanceStrategy) {
-        let strategy = match strategy {
-            LoadBalanceStrategy::Random => {
-                Box::new(RandomLoadBalance::new()) as Box<dyn LoadBalance<T>>
-            }
-            LoadBalanceStrategy::RoundRobin => {
-                Box::new(RoundRobinLoadBalance::new()) as Box<dyn LoadBalance<T>>
-            }
-        };
-        self.services.insert(key.to_string(), (strategy, service));
-    }
-
-    pub fn get_instance(&self, service_id: &str) -> Result<T, LoadBalanceError> {
-        let service = self
-            .services
-            .get(service_id)
-            .ok_or(LoadBalanceError::NoAvailableInstance)?;
-
-        let instances = service.1.instances();
-        if instances.is_empty() {
-            return Err(LoadBalanceError::NoAvailableInstance);
-        }
-
-        let lb = &service.0;
-        lb.select(&instances)
-            .ok_or(LoadBalanceError::NoAvailableInstance)
-    }
-}
-*/
